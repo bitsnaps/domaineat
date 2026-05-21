@@ -1,10 +1,15 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath } from 'node:url'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [vue()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['tests/setup/jsdom.ts'],
+    include: ['tests/**/*.spec.ts', 'tests/**/*.test.ts'],
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

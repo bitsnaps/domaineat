@@ -1,0 +1,18 @@
+<script setup lang="ts">
+import Sidebar from '@/components/Sidebar.vue'
+import Navbar from '@/components/Navbar.vue'
+</script>
+
+<template>
+  <div class="d-flex h-100 bg-body-tertiary">
+    <Sidebar />
+    <div class="d-flex flex-column flex-grow-1 overflow-hidden">
+      <Navbar />
+      <div class="d-flex flex-grow-1 overflow-hidden">
+        <main class="flex-grow-1 overflow-auto p-4 bg-body">
+          <RouterView />
+        </main>
+      </div>
+    </div>
+  </div>
+</template>

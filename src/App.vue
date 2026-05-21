@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import BButton from './components/BButton.vue';
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
 </script>
 
 <template>
-  <BButton variant="primary">OK</BButton>
+  <DefaultLayout />
 </template>
