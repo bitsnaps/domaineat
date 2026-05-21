@@ -25,3 +25,6 @@ dist-ssr
 
 # untracked
 .untracked/
+
+# var env
+.env
