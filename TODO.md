@@ -6,13 +6,13 @@
 
 ---
 
-## 🏗️ Phase 0 — Project Foundation `0/5`
+## 🏗️ Phase 0 — Project Foundation `5/5` ✅
 
-- [ ] P0-1 — Configure Vue Router in `main.ts`: install plugin, create `src/router/index.ts`, add `<RouterView />` to `App.vue`
-- [ ] P0-2 — Configure Pinia in `main.ts`: install plugin, create `src/stores/` directory
-- [ ] P0-3 — Set up path aliases in `vite.config.ts`: `@` → `src/`, `#` → `src/stores/`, update `tsconfig.app.json` paths
-- [ ] P0-4 — Create `src/layouts/DefaultLayout.vue`: collapsible sidebar, topbar with brand/user-menu/dark-toggle, responsive hamburger on mobile
-- [ ] P0-5 — Create placeholder views + wire router: `DashboardView`, `DomainsView`, `LedgerView`, `ProspectsView`, `SettingsView`
+- [x] P0-1 — Configure Vue Router in `main.ts`: install plugin, create `src/router/index.ts`, add `<RouterView />` to `App.vue`
+- [x] P0-2 — Configure Pinia in `main.ts`: install plugin, create `src/stores/` directory
+- [x] P0-3 — Set up path aliases in `vite.config.ts`: `@` → `src/`, `#` → `src/stores/`, update `tsconfig.app.json` paths
+- [x] P0-4 — Create `src/layouts/DefaultLayout.vue`: collapsible sidebar, topbar with brand/user-menu/dark-toggle, responsive hamburger on mobile
+- [x] P0-5 — Create placeholder views + wire router: `DashboardView`, `DomainsView`, `LedgerView`, `ProspectsView`, `SettingsView`
 
 ---
 
