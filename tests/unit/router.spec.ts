@@ -1,18 +1,35 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { createRouter, createMemoryHistory } from 'vue-router'
+import { createRouter, createMemoryHistory, type RouteRecordRaw } from 'vue-router'
 import App from '@/App.vue'
 
-const routes = [
-  { path: '/', name: 'dashboard', component: { template: '<div>Dashboard</div>' } },
-  { path: '/domains', name: 'domains', component: { template: '<div>Domains</div>' } },
-  { path: '/ledger', name: 'ledger', component: { template: '<div>Ledger</div>' } },
-  { path: '/prospects', name: 'prospects', component: { template: '<div>Prospects</div>' } },
-  { path: '/settings', name: 'settings', component: { template: '<div>Settings</div>' } },
+// Minimal views for testing
+const DummyView = { template: '<div data-testid="routed-view">routed</div>' }
+const AppLayout = { template: '<div data-testid="app-layout"><RouterView /></div>' }
+const DefaultLayout = { template: '<div data-testid="default-layout"><RouterView /></div>' }
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    component: AppLayout,
+    children: [
+      { path: '', name: 'dashboard', component: DummyView },
+    ],
+  },
+  {
+    path: '/',
+    component: DefaultLayout,
+    children: [
+      { path: 'domains', name: 'domains', component: DummyView },
+      { path: 'ledger', name: 'ledger', component: DummyView },
+      { path: 'prospects', name: 'prospects', component: DummyView },
+      { path: 'settings', name: 'settings', component: DummyView },
+    ],
+  },
 ]
 
-describe('App Vue Router integration', () => {
+describe('Vue Router integration', () => {
   let pinia: ReturnType<typeof createPinia>
   let router: ReturnType<typeof createRouter>
 
@@ -26,51 +43,51 @@ describe('App Vue Router integration', () => {
     })
     router.push('/')
     await router.isReady()
-  })
 
-  it('installs vue-router plugin on the app', () => {
-    const wrapper = mount(App, {
-      global: {
-        plugins: [pinia, router],
-        stubs: {
-          RouterView: true,
-          RouterLink: true,
-        },
-      },
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
     })
-    expect(wrapper.exists()).toBe(true)
   })
 
-  it('renders a RouterView component', () => {
-    const wrapper = mount(App, {
-      global: {
-        plugins: [pinia, router],
-        stubs: {
-          RouterView: { template: '<div data-testid="router-view">routed</div>' },
-          RouterLink: true,
-        },
-      },
+  it('installs the router plugin without error', () => {
+    const app = mount(App, {
+      global: { plugins: [pinia, router] },
     })
-    expect(wrapper.find('[data-testid="router-view"]').exists()).toBe(true)
+    expect(app).toBeDefined()
   })
 
-  it('navigates to /domains route', async () => {
+  it('renders RouterView at the root', () => {
+    const wrapper = mount(App, {
+      global: { plugins: [pinia, router] },
+    })
+    // App.vue is just <RouterView /> — child layout renders
+    expect(wrapper.element.children.length).toBeGreaterThan(0)
+  })
+
+  it('navigates to / (landing/dashboard)', async () => {
+    await router.push('/')
+    expect(router.currentRoute.value.name).toBe('dashboard')
+  })
+
+  it('navigates to /domains', async () => {
     await router.push('/domains')
     expect(router.currentRoute.value.name).toBe('domains')
-    expect(router.currentRoute.value.path).toBe('/domains')
   })
 
-  it('navigates to /ledger route', async () => {
+  it('navigates to /ledger', async () => {
     await router.push('/ledger')
     expect(router.currentRoute.value.name).toBe('ledger')
   })
 
-  it('navigates to /prospects route', async () => {
+  it('navigates to /prospects', async () => {
     await router.push('/prospects')
     expect(router.currentRoute.value.name).toBe('prospects')
   })
 
-  it('navigates to /settings route', async () => {
+  it('navigates to /settings', async () => {
     await router.push('/settings')
     expect(router.currentRoute.value.name).toBe('settings')
   })

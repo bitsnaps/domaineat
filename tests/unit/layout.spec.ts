@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import AppLayout from '@/layouts/AppLayout.vue'
 
 const routes = [
   { path: '/', name: 'dashboard', component: { template: '<div>Dashboard</div>' } },
@@ -11,6 +12,27 @@ const routes = [
   { path: '/prospects', name: 'prospects', component: { template: '<div>Prospects</div>' } },
   { path: '/settings', name: 'settings', component: { template: '<div>Settings</div>' } },
 ]
+
+describe('AppLayout (bare — no sidebar)', () => {
+  let router: ReturnType<typeof createRouter>
+
+  beforeEach(async () => {
+    router = createRouter({
+      history: createMemoryHistory(),
+      routes,
+    })
+    router.push('/')
+    await router.isReady()
+  })
+
+  it('renders just a RouterView with no sidebar', () => {
+    const wrapper = mount(AppLayout, {
+      global: { plugins: [router] },
+    })
+    expect(wrapper.find('aside.sidebar').exists()).toBe(false)
+    expect(wrapper.find('nav.navbar').exists()).toBe(false)
+  })
+})
 
 describe('DefaultLayout', () => {
   let pinia: ReturnType<typeof createPinia>
