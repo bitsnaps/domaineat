@@ -63,11 +63,12 @@ const appState = useAppStateStore()
 
 <style scoped>
 .sidebar {
-  width: 260px;
-  padding: 1rem;
-  transition: width 0.3s ease, padding 0.3s ease;
-  overflow: hidden;
-  flex-shrink: 0;
+ width: 260px;
+ padding: 1rem;
+ transition: width 0.3s ease, padding 0.3s ease;
+ overflow: hidden;
+ flex-shrink: 0;
+ border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
 }
 .sidebar-collapsed {
   width: 64px;

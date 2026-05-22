@@ -4,7 +4,7 @@ const appState = useAppStateStore()
 </script>
 
 <template>
-  <nav class="navbar navbar-expand bg-body-tertiary border-bottom px-3">
+  <nav class="navbar navbar-expand bg-body-tertiary px-3" style="border-bottom: 1px solid rgba(255,255,255,0.15);">
     <button
       class="btn btn-sm btn-outline-secondary me-3"
       data-testid="sidebar-hamburger"

@@ -329,26 +329,26 @@ const features = [
 }
 
 .hero-glow {
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(111, 66, 193, 0.15) 0%, transparent 70%);
-  top: -100px;
-  right: -100px;
-  z-index: 0;
-  animation: glowPulse 6s ease-in-out infinite;
+ position: absolute;
+ width: 600px;
+ height: 600px;
+ border-radius: 50%;
+ background: radial-gradient(circle, rgba(220, 48, 124, 0.2) 0%, rgba(94, 98, 176, 0.1) 50%, transparent 70%);
+ top: -100px;
+ right: -100px;
+ z-index: 0;
+ animation: glowPulse 6s ease-in-out infinite;
 }
 
 .hero-glow::before {
-  content: '';
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(253, 126, 20, 0.1) 0%, transparent 70%);
-  bottom: -200px;
-  left: -100px;
+ content: '';
+ position: absolute;
+ width: 400px;
+ height: 400px;
+ border-radius: 50%;
+ background: radial-gradient(circle, rgba(51, 183, 226, 0.15) 0%, transparent 70%);
+ bottom: -200px;
+ left: -100px;
 }
 
 @keyframes glowPulse {
@@ -385,13 +385,13 @@ const features = [
 }
 
 .feature-icon-wrapper {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 1rem;
-  background: rgba(111, 66, 193, 0.1);
+ width: 56px;
+ height: 56px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ border-radius: 1rem;
+ background: rgba(220, 48, 124, 0.15);
 }
 
 /* Pricing Cards */
@@ -405,7 +405,7 @@ const features = [
 
 /* CTA */
 .cta-section .card {
-  background: linear-gradient(135deg, rgba(111, 66, 193, 0.08) 0%, rgba(253, 126, 20, 0.05) 100%);
+ background: linear-gradient(135deg, rgba(220, 48, 124, 0.12) 0%, rgba(51, 183, 226, 0.08) 100%);
 }
 
 /* Landing page overrides — hide the sidebar for full-width hero */
