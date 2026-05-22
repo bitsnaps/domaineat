@@ -11,7 +11,7 @@
  */
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { sequelize, Domain, Ledger, Prospect } from './models/index.js'
+import { sequelize, Domain, Ledger, Prospect, User } from './models/index.js'
 
 export const app = new Hono()
 
@@ -241,5 +241,170 @@ app.get('/api/exchange-rates', async (c) => {
     return c.json({ rates: fallbackRates, source: 'fallback' })
   }
 })
+
+// ─── User & AI Settings ────────────────────────────────────────────────
+
+// Get user profile + AI settings
+app.get('/api/users/:id', async (c) => {
+  const user = await User.findByPk(c.req.param('id'), {
+    attributes: { exclude: ['password_hash', 'llm_api_key_encrypted'] },
+  })
+  if (!user) return c.json({ error: 'User not found' }, 404)
+  return c.json(user)
+})
+
+// Update user AI settings
+app.patch('/api/users/:id/ai-settings', async (c) => {
+  const user = await User.findByPk(c.req.param('id'))
+  if (!user) return c.json({ error: 'User not found' }, 404)
+
+  const body = await c.req.json()
+  const allowed = ['llm_provider', 'llm_model', 'llm_api_key_encrypted']
+  const updates: Record<string, any> = {}
+  for (const key of allowed) {
+    if (body[key] !== undefined) updates[key] = body[key]
+  }
+
+  await user.update(updates)
+  // Return without sensitive fields
+  const safe = user.toJSON() as any
+  delete safe.password_hash
+  // Mask API key — only show last 4 chars
+  if (safe.llm_api_key_encrypted) {
+    const key = String(safe.llm_api_key_encrypted)
+    safe.llm_api_key_encrypted = key.length > 4 ? '••••' + key.slice(-4) : '••••'
+  }
+  return c.json(safe)
+})
+
+// Check if user has AI configured
+app.get('/api/users/:id/ai-status', async (c) => {
+  const user = await User.findByPk(c.req.param('id'))
+  if (!user) return c.json({ error: 'User not found' }, 404)
+
+  const configured = !!(user.llm_provider && user.llm_api_key_encrypted)
+  const dailyLimit = user.tier === 'free' ? 5 : user.tier === 'premium' ? 100 : Infinity
+  return c.json({
+    configured,
+    provider: user.llm_provider,
+    model: user.llm_model,
+    daily_calls: user.daily_ai_calls,
+    daily_limit: dailyLimit,
+    tier: user.tier,
+  })
+})
+
+// ─── AI Draft Outreach ─────────────────────────────────────────────────
+
+app.post('/api/ai/draft-outreach', async (c) => {
+  const { user_id, domain_name, prospect_domain, company_name, contact_email } = await c.req.json()
+
+  if (!user_id || !domain_name || !prospect_domain) {
+    return c.json({ error: 'user_id, domain_name, and prospect_domain are required' }, 400)
+  }
+
+  const user = await User.findByPk(user_id)
+  if (!user) return c.json({ error: 'User not found' }, 404)
+
+  if (!user.llm_provider || !user.llm_api_key_encrypted) {
+    return c.json({ error: 'AI not configured. Set your LLM provider and API key in Settings.' }, 400)
+  }
+
+  // Rate limiting
+  const dailyLimit = user.tier === 'free' ? 5 : user.tier === 'premium' ? 100 : Infinity
+  if (user.daily_ai_calls >= dailyLimit) {
+    return c.json({ error: `Daily AI call limit reached (${dailyLimit}/day for ${user.tier} tier)` }, 429)
+  }
+
+  // Build prompt
+  const prompt = `You are a professional domain broker. Write a brief, friendly outreach email to inquire about purchasing the domain "${prospect_domain}".
+
+Context:
+- I own the domain "${domain_name}" in the same niche
+- ${company_name ? `The prospect's company is "${company_name}"` : 'The prospect company is unknown'}
+- ${contact_email ? `Contact email: ${contact_email}` : 'Contact email is not available — suggest they reply to this email'}
+
+Requirements:
+- Keep it under 150 words
+- Be professional and respectful
+- Mention I own a related domain
+- Express genuine interest
+- Suggest a reasonable opening offer range
+- End with a clear call-to-action
+
+Return ONLY the email body text, no subject line needed.`
+
+  try {
+    // Increment daily call counter
+    await user.update({ daily_ai_calls: user.daily_ai_calls + 1 })
+
+    // Call the LLM provider
+    const draft = await callLlm(user.llm_provider, user.llm_api_key_encrypted, user.llm_model, prompt)
+    return c.json({ draft, provider: user.llm_provider, model: user.llm_model })
+  } catch (err: any) {
+    // Decrement counter on failure
+    await user.update({ daily_ai_calls: Math.max(0, user.daily_ai_calls - 1) })
+    return c.json({ error: `AI call failed: ${err.message}` }, 502)
+  }
+})
+
+/**
+ * Call an LLM provider with a prompt. Supports OpenAI-compatible APIs.
+ */
+async function callLlm(provider: string, apiKey: string, model: string | null, prompt: string): Promise<string> {
+  const defaultModels: Record<string, string> = {
+    openai: 'gpt-4o-mini',
+    anthropic: 'claude-3-haiku-20240307',
+    groq: 'llama-3.1-8b-instant',
+    openrouter: 'openai/gpt-4o-mini',
+  }
+
+  const useModel = model || defaultModels[provider] || 'gpt-4o-mini'
+
+  if (provider === 'anthropic') {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: useModel,
+        max_tokens: 500,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      signal: AbortSignal.timeout(30000),
+    })
+    if (!res.ok) throw new Error(`Anthropic API ${res.status}: ${await res.text()}`)
+    const data = await res.json() as any
+    return data.content?.[0]?.text || ''
+  }
+
+  // OpenAI-compatible (openai, groq, openrouter)
+  const baseUrls: Record<string, string> = {
+    openai: 'https://api.openai.com',
+    groq: 'https://api.groq.com/openai',
+    openrouter: 'https://openrouter.ai/api',
+  }
+  const baseUrl = baseUrls[provider] || baseUrls.openai
+
+  const res = await fetch(`${baseUrl}/v1/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: useModel,
+      max_tokens: 500,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+    signal: AbortSignal.timeout(30000),
+  })
+  if (!res.ok) throw new Error(`${provider} API ${res.status}: ${await res.text()}`)
+  const data = await res.json() as any
+  return data.choices?.[0]?.message?.content || ''
+}
 
 

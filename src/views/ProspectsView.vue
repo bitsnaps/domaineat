@@ -3,7 +3,8 @@ import { onMounted, ref, computed } from 'vue'
 import { useProspectsStore } from '@/stores/prospects'
 import { useDomainsStore } from '@/stores/domains'
 import ProspectModal from '@/components/ProspectModal.vue'
-import type { Prospect, OutreachStatus, LeadScore } from '@/types'
+import OutreachDraftModal from '@/components/OutreachDraftModal.vue'
+import type { Prospect, OutreachStatus, LeadScore, Domain } from '@/types'
 
 const store = useProspectsStore()
 const domains = useDomainsStore()
@@ -13,6 +14,30 @@ const USER_ID = 1
 // Modal state
 const showModal = ref(false)
 const editingProspect = ref<Prospect | null>(null)
+
+// Outreach draft modal state
+const showDraftModal = ref(false)
+const draftProspect = ref<Prospect | null>(null)
+const draftDomain = ref<Domain | null>(null)
+
+function openDraft(prospect: Prospect) {
+  draftProspect.value = prospect
+  draftDomain.value = domains.domains.find(d => d.id === prospect.domain_id) || null
+  showDraftModal.value = true
+}
+function closeDraftModal() {
+  showDraftModal.value = false
+  draftProspect.value = null
+  draftDomain.value = null
+}
+async function handleDraftSaved(draft: string) {
+  // Optionally store draft as a note on the prospect
+  if (draftProspect.value && draft) {
+    await store.updateProspect(draftProspect.value.id, {
+      notes: (draftProspect.value.notes ? draftProspect.value.notes + '\n\n' : '') + `[AI Draft]:\n${draft}`,
+    })
+  }
+}
 
 // Pagination
 const page = ref(1)
@@ -237,10 +262,11 @@ const scoreOptions: LeadScore[] = ['hot', 'warm', 'cold']
                   </span>
                 </td>
                 <td class="small text-muted">{{ formatDate(p.last_contact_date) }}</td>
-                <td class="small text-end">
-                  <button class="btn btn-sm btn-link text-muted p-0 me-2" @click="openEdit(p)" title="Edit">✎</button>
-                  <button class="btn btn-sm btn-link text-danger p-0" @click="handleDelete(p)" title="Delete">✕</button>
-                </td>
+<td class="small text-end">
+              <button class="btn btn-sm btn-link p-0 me-2" style="color: #6366f1;" @click="openDraft(p)" title="Generate AI Draft">✨</button>
+              <button class="btn btn-sm btn-link text-muted p-0 me-2" @click="openEdit(p)" title="Edit">✎</button>
+              <button class="btn btn-sm btn-link text-danger p-0" @click="handleDelete(p)" title="Delete">✕</button>
+            </td>
               </tr>
             </tbody>
           </table>
@@ -259,13 +285,22 @@ const scoreOptions: LeadScore[] = ['hot', 'warm', 'cold']
       </div>
     </div>
 
-    <!-- Prospect Modal -->
-    <ProspectModal
-      v-if="showModal"
-      :prospect="editingProspect"
-      @save="handleSave"
-      @close="closeModal"
-    />
+<!-- Prospect Modal -->
+  <ProspectModal
+    v-if="showModal"
+    :prospect="editingProspect"
+    @save="handleSave"
+    @close="closeModal"
+  />
+
+  <!-- Outreach Draft Modal -->
+  <OutreachDraftModal
+    v-if="showDraftModal && draftProspect && draftDomain"
+    :prospect="draftProspect"
+    :domain="draftDomain"
+    @saved="handleDraftSaved"
+    @close="closeDraftModal"
+  />
   </div>
 </template>
 

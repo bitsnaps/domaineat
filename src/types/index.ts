@@ -76,13 +76,14 @@ export interface LedgerEntryCreate {
 export type OutreachStatus = 'uncontacted' | 'contacted' | 'responded' | 'negotiating' | 'closed' | 'lost'
 
 export interface Prospect {
-  id: number
-  domain_id: number
-  prospect_domain: string
-  company_name: string | null
-  contact_email: string | null
-  outreach_status: OutreachStatus
-  last_contact_date: string | null
+ id: number
+ domain_id: number
+ prospect_domain: string
+ company_name: string | null
+ contact_email: string | null
+ outreach_status: OutreachStatus
+ last_contact_date: string | null
+ notes: string | null
 }
 
 /** Payload for creating a prospect */
@@ -97,10 +98,11 @@ export interface ProspectCreate {
 
 /** Payload for updating a prospect */
 export interface ProspectUpdate {
-  outreach_status?: OutreachStatus
-  company_name?: string | null
-  contact_email?: string | null
-  last_contact_date?: string | null
+ outreach_status?: OutreachStatus
+ company_name?: string | null
+ contact_email?: string | null
+ last_contact_date?: string | null
+ notes?: string | null
 }
 
 // ─── DNS Check Result ─────────────────────────────────────────────────────
@@ -160,3 +162,41 @@ export interface DomainAnalysis {
 
 /** Lead score classification */
 export type LeadScore = 'hot' | 'warm' | 'cold'
+
+// ─── User & AI Settings ────────────────────────────────────────────────
+
+export type LlmProvider = 'openai' | 'anthropic' | 'groq' | 'openrouter'
+
+export interface User {
+  id: number
+  email: string
+  tier: UserTier
+  llm_provider: LlmProvider | null
+  llm_model: string | null
+  llm_api_key_encrypted: string | null  // masked — only last 4 chars
+  daily_ai_calls: number
+  created_at: string
+}
+
+export interface AiStatus {
+  configured: boolean
+  provider: LlmProvider | null
+  model: string | null
+  daily_calls: number
+  daily_limit: number
+  tier: UserTier
+}
+
+export interface AiDraftRequest {
+  user_id: number
+  domain_name: string
+  prospect_domain: string
+  company_name?: string | null
+  contact_email?: string | null
+}
+
+export interface AiDraftResponse {
+  draft: string
+  provider: string
+  model: string
+}

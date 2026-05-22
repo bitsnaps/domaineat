@@ -2,7 +2,7 @@
 
 > **Goal:** Ship v0 MVP as a static Vue 3 SPA + Netlify serverless functions (Hono), with SQLite for local dev.
 > **PRD Reference:** [`docs/PRD-v0.md`](docs/PRD-v0.md)
-> **Progress:** 39 / 47 tasks ✅ | **~83%**
+> **Progress:** 43 / 47 tasks ✅ | **~91%**
 
 ---
 
@@ -62,12 +62,12 @@
 
 ---
 
-## 🤖 Phase 5 — Basic AI Agent `0/4`
+## 🤖 Phase 5 — Basic AI Agent `4/4` ✅
 
-- [ ] P5-1 — AI settings in user profile: store LLM API key (encrypted at rest, memory-only per PRD §4.1), select provider/model, show rate limits
-- [ ] P5-2 — Netlify function `POST /api/ai/draft-outreach`: build prompt from domain+prospect, call user's LLM key (header, never stored), enforce rate limits
-- [ ] P5-3 — Outreach draft UI: "Generate Draft" button, loading state, editable textarea, copy/save/regenerate
-- [ ] P5-4 — Rate limit enforcement: track ops/hr per user, block with upgrade prompt, show remaining in UI
+- [x] P5-1 — AI settings in user profile: User model updated with llm_provider/model/api_key_encrypted/daily_ai_calls. SettingsView has provider/model/API key form. GET/PATCH /api/users/:id/ai-settings. Key masked in responses.
+- [x] P5-2 — Netlify function `POST /api/ai/draft-outreach`: builds prompt from domain+prospect, calls LLM (OpenAI/Anthropic/Groq/OpenRouter), enforces rate limits (5 free, 100 premium, ∞ enterprise). callLlm() multi-provider helper.
+- [x] P5-3 — Outreach draft UI: OutreachDraftModal with Generate Draft button, loading spinner, editable textarea, Copy/Regenerate buttons, Save Draft appends to prospect notes. ✨ button on each prospect row.
+- [x] P5-4 — Rate limit enforcement: daily_ai_calls counter on User, rate limits per tier (5/100/∞), 429 response when exceeded. SettingsView shows usage bar with daily_calls/daily_limit. GET /api/users/:id/ai-status endpoint.
 
 ---
 

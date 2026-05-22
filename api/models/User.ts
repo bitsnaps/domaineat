@@ -5,6 +5,10 @@ export class User extends Model {
   declare email: string
   declare password_hash: string
   declare tier: 'free' | 'premium' | 'enterprise'
+  declare llm_provider: string | null
+  declare llm_model: string | null
+  declare llm_api_key_encrypted: string | null
+  declare daily_ai_calls: number
   declare created_at: Date
 }
 
@@ -31,6 +35,22 @@ export function initUser(sequelize: Sequelize): typeof User {
         validate: {
           isIn: [['free', 'premium', 'enterprise']],
         },
+      },
+      llm_provider: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
+      llm_model: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+      },
+      llm_api_key_encrypted: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      daily_ai_calls: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
       },
       created_at: {
         type: DataTypes.DATE,

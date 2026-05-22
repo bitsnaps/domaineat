@@ -1,34 +1,47 @@
 /**
  * Tests for the app views.
- * DomainsView and LedgerView require Pinia.
- * ProspectsView and SettingsView remain simple stubs.
+ * DomainsView, LedgerView, ProspectsView require Pinia.
+ * SettingsView fetches data on mount (no Pinia needed but has async setup).
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
-// Simple stub views (no Pinia needed)
-const stubViews = [
-  { name: 'SettingsView', path: '@/views/SettingsView.vue', expected: 'Settings' },
-]
-
-for (const view of stubViews) {
-  describe(`${view.name}`, () => {
-    it('renders without error', async () => {
-      const mod = await import(view.path)
-      const component = mod.default
-      const wrapper = mount(component)
-      expect(wrapper.exists()).toBe(true)
+// SettingsView — no Pinia but has async data fetch
+describe('SettingsView', () => {
+  it('renders without error', async () => {
+    const mod = await import('@/views/SettingsView.vue')
+    const component = mod.default
+    const wrapper = mount(component, {
+      global: {
+        stubs: { teleport: true },
+      },
     })
-
-    it(`contains "${view.expected}" text`, async () => {
-      const mod = await import(view.path)
-      const component = mod.default
-      const wrapper = mount(component)
-      expect(wrapper.text()).toContain(view.expected)
-    })
+    expect(wrapper.exists()).toBe(true)
   })
-}
+
+  it('contains "Settings" heading', async () => {
+    const mod = await import('@/views/SettingsView.vue')
+    const component = mod.default
+    const wrapper = mount(component, {
+      global: {
+        stubs: { teleport: true },
+      },
+    })
+    expect(wrapper.text()).toContain('Settings')
+  })
+
+  it('shows AI Configuration section', async () => {
+    const mod = await import('@/views/SettingsView.vue')
+    const component = mod.default
+    const wrapper = mount(component, {
+      global: {
+        stubs: { teleport: true },
+      },
+    })
+    expect(wrapper.text()).toContain('AI Configuration')
+  })
+})
 
 // Views that require Pinia
 const piniaViews = [
