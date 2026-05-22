@@ -1,0 +1,11 @@
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+export default {
+  'config': __dirname + '/api/config/database.js',
+  'models-path': __dirname + '/api/models',
+  'migrations-path': __dirname + '/api/migrations',
+  'seeders-path': __dirname + '/api/seeders',
+}

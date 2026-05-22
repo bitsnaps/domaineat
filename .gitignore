@@ -28,3 +28,6 @@ dist-ssr
 
 # var env
 .env
+
+# coverage
+coverage/
