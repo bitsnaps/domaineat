@@ -74,6 +74,44 @@ app.delete('/api/domains/:id', async (c) => {
   return c.json({ deleted: true }, 200)
 })
 
+// Domain-scoped ledger entries
+app.get('/api/domains/:id/ledger', async (c) => {
+  const domain = await Domain.findByPk(c.req.param('id'))
+  if (!domain) return c.json({ error: 'Domain not found' }, 404)
+
+  const entries = await Ledger.findAll({
+    where: { domain_id: domain.id },
+    order: [['transaction_date', 'DESC']],
+  })
+  return c.json(entries)
+})
+
+// Domain-scoped prospects
+app.get('/api/domains/:id/prospects', async (c) => {
+  const domain = await Domain.findByPk(c.req.param('id'))
+  if (!domain) return c.json({ error: 'Domain not found' }, 404)
+
+  const prospects = await Prospect.findAll({
+    where: { domain_id: domain.id },
+    order: [['created_at', 'DESC']],
+  })
+  return c.json(prospects)
+})
+
+// DNS + SSL check
+app.get('/api/domains/:id/dns-check', async (c) => {
+  const domain = await Domain.findByPk(c.req.param('id'))
+  if (!domain) return c.json({ error: 'Domain not found' }, 404)
+
+  const { fullDnsCheck } = await import('./dns-check.js')
+  try {
+    const result = await fullDnsCheck(domain.getDataValue('domain_name'))
+    return c.json(result)
+  } catch (err: any) {
+    return c.json({ error: `DNS check failed: ${err.message}` }, 502)
+  }
+})
+
 // ─── Ledger ────────────────────────────────────────────────────────────
 
 app.get('/api/ledger', async (c) => {

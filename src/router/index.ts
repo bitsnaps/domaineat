@@ -9,6 +9,7 @@ const DashboardView = () => import('@/views/DashboardView.vue')
 
 // Views — app pages (with sidebar)
 const DomainsView = () => import('@/views/DomainsView.vue')
+const DomainDetailView = () => import('@/views/DomainDetailView.vue')
 const LedgerView = () => import('@/views/LedgerView.vue')
 const ProspectsView = () => import('@/views/ProspectsView.vue')
 const SettingsView = () => import('@/views/SettingsView.vue')
@@ -28,6 +29,7 @@ const routes = [
     component: DefaultLayout,
     children: [
       { path: 'domains', name: 'domains', component: DomainsView },
+      { path: 'domains/:id', name: 'domain-detail', component: DomainDetailView, props: true },
       { path: 'ledger', name: 'ledger', component: LedgerView },
       { path: 'prospects', name: 'prospects', component: ProspectsView },
       { path: 'settings', name: 'settings', component: SettingsView },

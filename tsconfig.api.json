@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "declaration": false
   },
-  "include": ["api/server.ts", "api/app.ts", "api/models/**/*.ts", "api/migrate.ts"]
+  "include": ["api/server.ts", "api/app.ts", "api/models/**/*.ts", "api/migrate.ts", "api/dns-check.ts"]
 }

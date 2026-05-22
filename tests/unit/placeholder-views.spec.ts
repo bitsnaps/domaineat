@@ -1,19 +1,20 @@
 /**
- * Tests for the 4 placeholder views — each is a simple stub.
- * These tests ensure the views render and contain expected route text.
+ * Tests for the 4 app views — each is a simple stub except DomainsView.
+ * DomainsView requires Pinia, so we create a test store for it.
+ * LedgerView, ProspectsView, SettingsView remain simple stubs.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 
-// Simple direct mount of each placeholder view
-const views = [
-  { name: 'DomainsView', path: '@/views/DomainsView.vue', expected: 'Domains' },
+// Simple stub views (no Pinia needed)
+const stubViews = [
   { name: 'LedgerView', path: '@/views/LedgerView.vue', expected: 'Ledger' },
   { name: 'ProspectsView', path: '@/views/ProspectsView.vue', expected: 'Prospects' },
   { name: 'SettingsView', path: '@/views/SettingsView.vue', expected: 'Settings' },
 ]
 
-for (const view of views) {
+for (const view of stubViews) {
   describe(`${view.name}`, () => {
     it('renders without error', async () => {
       const mod = await import(view.path)
@@ -30,3 +31,28 @@ for (const view of views) {
     })
   })
 }
+
+// DomainsView requires Pinia
+describe('DomainsView', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('renders without error', async () => {
+    const mod = await import('@/views/DomainsView.vue')
+    const component = mod.default
+    const wrapper = mount(component, {
+      global: { plugins: [createPinia()] },
+    })
+    expect(wrapper.exists()).toBe(true)
+  })
+
+  it('contains "Domain" text', async () => {
+    const mod = await import('@/views/DomainsView.vue')
+    const component = mod.default
+    const wrapper = mount(component, {
+      global: { plugins: [createPinia()] },
+    })
+    expect(wrapper.text()).toContain('Domain')
+  })
+})

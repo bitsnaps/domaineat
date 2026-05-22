@@ -41,9 +41,9 @@ describe('Router module', () => {
     expect(route?.path).toBe('/settings')
   })
 
-  it('has exactly 5 named routes', () => {
+  it('has exactly 6 named routes', () => {
     const named = router.getRoutes().filter((r) => r.name)
-    expect(named.length).toBe(5)
+    expect(named.length).toBe(6)
   })
 
   it('uses createWebHistory', () => {
