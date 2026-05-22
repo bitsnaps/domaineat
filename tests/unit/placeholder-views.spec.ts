@@ -9,7 +9,6 @@ import { createPinia, setActivePinia } from 'pinia'
 
 // Simple stub views (no Pinia needed)
 const stubViews = [
-  { name: 'ProspectsView', path: '@/views/ProspectsView.vue', expected: 'Prospects' },
   { name: 'SettingsView', path: '@/views/SettingsView.vue', expected: 'Settings' },
 ]
 
@@ -35,6 +34,7 @@ for (const view of stubViews) {
 const piniaViews = [
   { name: 'DomainsView', path: '@/views/DomainsView.vue', expected: 'Domain' },
   { name: 'LedgerView', path: '@/views/LedgerView.vue', expected: 'Total Costs' },
+  { name: 'ProspectsView', path: '@/views/ProspectsView.vue', expected: 'Total Prospects' },
 ]
 
 for (const view of piniaViews) {

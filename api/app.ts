@@ -112,6 +112,36 @@ app.get('/api/domains/:id/dns-check', async (c) => {
   }
 })
 
+// Domain analysis (keyword parse, alt extensions, RDAP)
+app.get('/api/domains/:id/analyze', async (c) => {
+  const domain = await Domain.findByPk(c.req.param('id'))
+  if (!domain) return c.json({ error: 'Domain not found' }, 404)
+
+  const { analyzeDomain } = await import('./domain-analysis.js')
+  try {
+    const result = await analyzeDomain(domain.getDataValue('domain_name'))
+    return c.json(result)
+  } catch (err: any) {
+    return c.json({ error: `Domain analysis failed: ${err.message}` }, 502)
+  }
+})
+
+// Standalone domain analysis (no DB record needed)
+app.post('/api/analyze-domain', async (c) => {
+  const { domain } = await c.req.json()
+  if (!domain || typeof domain !== 'string') {
+    return c.json({ error: 'domain field is required' }, 400)
+  }
+
+  const { analyzeDomain } = await import('./domain-analysis.js')
+  try {
+    const result = await analyzeDomain(domain)
+    return c.json(result)
+  } catch (err: any) {
+    return c.json({ error: `Domain analysis failed: ${err.message}` }, 502)
+  }
+})
+
 // ─── Ledger ────────────────────────────────────────────────────────────
 
 app.get('/api/ledger', async (c) => {

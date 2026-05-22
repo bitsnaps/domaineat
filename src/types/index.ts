@@ -87,11 +87,12 @@ export interface Prospect {
 
 /** Payload for creating a prospect */
 export interface ProspectCreate {
-  domain_id: number
-  prospect_domain: string
-  company_name?: string | null
-  contact_email?: string | null
-  outreach_status?: OutreachStatus
+ domain_id: number
+ prospect_domain: string
+ company_name?: string | null
+ contact_email?: string | null
+ outreach_status?: OutreachStatus
+ last_contact_date?: string | null
 }
 
 /** Payload for updating a prospect */
@@ -124,3 +125,38 @@ export interface HealthCheck {
   database: 'connected' | 'disconnected'
   error?: string
 }
+
+// ─── Domain Analysis ────────────────────────────────────────────────────
+
+export interface ParsedDomain {
+  sld: string
+  tld: string
+  keywords: string[]
+  altExtensions: string[]
+}
+
+export interface ExtensionCheckResult {
+  domain: string
+  tld: string
+  available: boolean | null
+  registrar: string | null
+  expiryDate: string | null
+}
+
+export interface RdapResult {
+  domain: string
+  registrar: string | null
+  creationDate: string | null
+  expiryDate: string | null
+  nameservers: string[]
+  status: string[]
+}
+
+export interface DomainAnalysis {
+  parsed: ParsedDomain
+  extensions: ExtensionCheckResult[]
+  rdap: RdapResult | null
+}
+
+/** Lead score classification */
+export type LeadScore = 'hot' | 'warm' | 'cold'

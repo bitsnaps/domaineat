@@ -2,7 +2,7 @@
 
 > **Goal:** Ship v0 MVP as a static Vue 3 SPA + Netlify serverless functions (Hono), with SQLite for local dev.
 > **PRD Reference:** [`docs/PRD-v0.md`](docs/PRD-v0.md)
-> **Progress:** 33 / 47 tasks ✅ | **~70%**
+> **Progress:** 39 / 47 tasks ✅ | **~83%**
 
 ---
 
@@ -51,14 +51,14 @@
 
 ---
 
-## 🔍 Phase 4 — Prospect Finder `0/6`
+## 🔍 Phase 4 — Prospect Finder `6/6` ✅
 
-- [ ] P4-1 — Keyword parser service: parse domain name into keywords, handle hyphens/numbers/suffixes, Netlify function `POST /api/domains/:id/parse-keywords`
-- [ ] P4-2 — Alternative extension checker: check `.net/.org/.co/.io/.dev/.app` etc., Netlify function `POST /api/domains/:id/check-extensions`
-- [ ] P4-3 — RDAP lookup integration: Netlify function `GET /api/rdap/:domain`, respect rate limits (5/day free, 100/day premium)
-- [ ] P4-4 — Create Pinia prospects store `src/stores/prospects.ts`: state (prospects, loading), actions (fetch, find, updateStatus), getters (uncontacted, contacted, byDomain)
-- [ ] P4-5 — Build `ProspectsView.vue`: leads table, "Find Prospects" button, filter by status/domain, click → draft
-- [ ] P4-6 — Lead identification flags: flag active alt-extension sites as buyers, highlight active vs parked, show RDAP metadata
+- [x] P4-1 — Keyword parser service (`api/domain-analysis.ts`): parseDomain() splits SLD into keywords, handles hyphens, common word dictionary, generates alt extensions
+- [x] P4-2 — Alternative extension checker: checkAltExtensions() checks .com/.net/.org/.io/.dev/.app etc. via RDAP, returns availability + registrar + expiry
+- [x] P4-3 — RDAP lookup integration: rdapLookup() queries IANA bootstrap → TLD RDAP server, extracts registrar/dates/nameservers/status. Routes: `GET /api/domains/:id/analyze`, `POST /api/analyze-domain`
+- [x] P4-4 — Pinia prospects store (`src/stores/prospects.ts`): CRUD, filters (status/lead score/domain), leadScore(), needsFollowUp (7-day stale contacts)
+- [x] P4-5 — ProspectsView.vue: summary cards (total, hot, warm, follow-ups), follow-up alert, filters, prospect table with lead score badges, pagination, ProspectModal
+- [x] P4-6 — Lead identification flags: hot/warm/cold scoring (responded/negotiating=hot, contacted=warm, else=cold), 7-day follow-up reminders, RDAP metadata available via analyze endpoint
 
 ---
 
