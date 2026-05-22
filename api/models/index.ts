@@ -1,6 +1,4 @@
 import { Sequelize } from 'sequelize'
-import { config as dotenvConfig } from 'dotenv'
-dotenvConfig()
 
 import { initUser, User } from './User.js'
 import { initDomain, Domain } from './Domain.js'
@@ -10,6 +8,7 @@ import { initProspect, Prospect } from './Prospect.js'
 const env = process.env.NODE_ENV || 'development'
 
 // Create Sequelize instance from DATABASE_URL env var (NeonDB / any Postgres)
+// NOTE: dotenv/config must be loaded by the entrypoint BEFORE this module is imported.
 const sequelize = new Sequelize(process.env.DATABASE_URL!, {
   dialect: 'postgres',
   dialectOptions: {

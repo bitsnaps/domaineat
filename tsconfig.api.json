@@ -4,17 +4,11 @@
     "module": "ES2022",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
+    "outDir": "dist-api",
+    "rootDir": "api",
     "strict": true,
     "skipLibCheck": true,
-    "outDir": "./dist-api",
-    "rootDir": ".",
-    "paths": {
-      "@/*": ["./src/*"],
-      "#/*": ["./src/stores/*"]
-    }
+    "declaration": false
   },
-  "include": [
-    "api/**/*.ts",
-    "netlify/**/*.ts"
-  ]
+  "include": ["api/server.ts", "api/app.ts", "api/models/**/*.ts", "api/migrate.ts"]
 }

@@ -1,6 +1,6 @@
 /**
- * API function tests — tests the REAL netlify/functions/api.ts app
- * by mocking the DB module at the shared boundary.
+ * API route tests — tests the platform-agnostic api/app.ts
+ * by mocking the DB module at the models boundary.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
@@ -9,7 +9,7 @@ const mockDomains: any[] = []
 const mockLedger: any[] = []
 const mockProspects: any[] = []
 
-vi.mock('../../netlify/functions/_shared/db.js', () => ({
+vi.mock('../../api/models/index.js', () => ({
   sequelize: {
     authenticate: vi.fn(),
   },
@@ -43,9 +43,9 @@ vi.mock('../../netlify/functions/_shared/db.js', () => ({
 }))
 
 // Import the REAL app (after mocking — mock must be in place first)
-import { app } from '../../netlify/functions/api'
+import { app } from '../../api/app'
 
-describe('API Routes (real api.ts)', () => {
+describe('API Routes (real api/app.ts)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockDomains.length = 0
@@ -64,7 +64,7 @@ describe('API Routes (real api.ts)', () => {
   })
 
   it('GET /api/health returns 503 when DB is disconnected', async () => {
-    const { sequelize } = await import('../../netlify/functions/_shared/db.js')
+    const { sequelize } = await import('../../api/models/index.js')
     ;(sequelize.authenticate as any).mockRejectedValueOnce(new Error('connection refused'))
     const res = await app.request('/api/health')
     expect(res.status).toBe(503)
@@ -147,7 +147,7 @@ describe('API Routes (real api.ts)', () => {
   })
 
   it('POST /api/domains returns 400 on validation error', async () => {
-    const { Domain } = await import('../../netlify/functions/_shared/db.js')
+    const { Domain } = await import('../../api/models/index.js')
     ;(Domain.create as any).mockRejectedValueOnce(new Error('notNull Violation'))
     const res = await app.request('/api/domains', {
       method: 'POST',
@@ -183,7 +183,7 @@ describe('API Routes (real api.ts)', () => {
   })
 
   it('POST /api/ledger returns 400 on error', async () => {
-    const { Ledger } = await import('../../netlify/functions/_shared/db.js')
+    const { Ledger } = await import('../../api/models/index.js')
     ;(Ledger.create as any).mockRejectedValueOnce(new Error('validation failed'))
     const res = await app.request('/api/ledger', {
       method: 'POST',
@@ -217,7 +217,7 @@ describe('API Routes (real api.ts)', () => {
   })
 
   it('POST /api/prospects returns 400 on error', async () => {
-    const { Prospect } = await import('../../netlify/functions/_shared/db.js')
+    const { Prospect } = await import('../../api/models/index.js')
     ;(Prospect.create as any).mockRejectedValueOnce(new Error('validation error'))
     const res = await app.request('/api/prospects', {
       method: 'POST',

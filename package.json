@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "tsx api/server.ts",
+    "dev:all": "concurrently \"pnpm dev\" \"pnpm dev:api\"",
     "build": "vue-tsc -b && vite build",
+    "build:api": "tsc -p tsconfig.api.json",
+    "start": "node dist-api/server.js",
     "preview": "vite preview",
     "test": "vitest run tests/*",
     "test:coverage": "vitest run tests/* --coverage",

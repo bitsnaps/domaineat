@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-api
+.git
+.hermes
+.memory
+docs
+tests
+*.md
+.env
+.env.*
