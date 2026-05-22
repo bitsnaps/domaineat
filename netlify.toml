@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "pnpm install --frozen-lockfile && pnpm run build"
   publish = "dist"
 
 [functions]
@@ -12,5 +12,5 @@
   to = "/index.html"
   status = 200
 
-# API routes are handled by the function (no redirect needed — 
+# API routes are handled by the function (no redirect needed —
 # Netlify auto-routes /.netlify/functions/api → api.ts)

@@ -1,8 +1,9 @@
 import { createApp } from 'vue'
-import './style.css'
 // Plain Bootstrap 5 CSS (no Bootswatch)
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
+// Custom design system overrides (must come after Bootstrap)
+import './style.css'
 import App from './App.vue'
 import router from './router'
 import { createPinia } from 'pinia'

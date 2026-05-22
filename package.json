@@ -15,7 +15,6 @@
     "@hono/node-server": "^2.0.3",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
-    "bootswatch": "^5.3.8",
     "dotenv": "^17.4.2",
     "hono": "^4.12.21",
     "pg": "^8.21.0",

@@ -17,9 +17,6 @@ importers:
       bootstrap-icons:
         specifier: ^1.13.1
         version: 1.13.1
-      bootswatch:
-        specifier: ^5.3.8
-        version: 5.3.8
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -819,9 +816,6 @@ packages:
     resolution: {integrity: sha512-HP1SZDqaLDPwsNiqRqi5NcP0SSXciX2s9E+RyqJIIqGo+vJeN5AJVM98CXmW/Wux0nQ5L7jeWUdplCEf0Ee+tg==}
     peerDependencies:
       '@popperjs/core': ^2.11.8
-
-  bootswatch@5.3.8:
-    resolution: {integrity: sha512-88mnH9tv+x6DV+scBxYFOpM4YSDVhyfEgbhqaEfvkHNctKI9qRcACxIP9nmBZ5mSeLXtsgax1VsRkUs1eWjlAQ==}
 
   brace-expansion@2.1.0:
     resolution: {integrity: sha512-TN1kCZAgdgweJhWWpgKYrQaMNHcDULHkWwQIspdtjV4Y5aurRdZpjAqn6yX3FPqTA9ngHCc4hJxMAMgGfve85w==}
@@ -2161,8 +2155,6 @@ snapshots:
   bootstrap@5.3.8(@popperjs/core@2.11.8):
     dependencies:
       '@popperjs/core': 2.11.8
-
-  bootswatch@5.3.8: {}
 
   brace-expansion@2.1.0:
     dependencies:

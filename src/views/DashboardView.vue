@@ -214,7 +214,7 @@ const pricingPlans = [
     <section class="stats-section">
       <div class="container">
         <div class="row align-items-center justify-content-center">
-          <div v-for="(stat, i) in stats" :key="stat.label" class="col-6 col-md-3">
+          <div v-for="stat in stats" :key="stat.label" class="col-6 col-md-3">
             <div class="stat-card">
               <div class="stat-number">
                 <span>{{ stat.prefix || '' }}{{ Math.round(stat.value).toLocaleString() }}{{ stat.suffix || '' }}</span>
@@ -222,12 +222,6 @@ const pricingPlans = [
               <div class="stat-label">{{ stat.label }}</div>
             </div>
           </div>
-          <!-- Dividers between stats (hidden on mobile) -->
-          <template v-for="i in 3" :key="'div-'+i">
-            <div v-if="i < 4" class="col-auto d-none d-md-block">
-              <div class="stat-divider"></div>
-            </div>
-          </template>
         </div>
       </div>
     </section>
