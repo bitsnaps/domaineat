@@ -96,7 +96,7 @@ const features = [
           </div>
           <div class="col-lg-5 mt-5 mt-lg-0">
             <div class="hero-card card border-0 shadow-lg rounded-4 overflow-hidden">
-              <div class="card-header bg-primary bg-opacity-10 d-flex justify-content-between align-items-center px-4 py-3">
+              <div class="card-header bg-primary d-flex justify-content-between align-items-center px-4 py-3" style="--bs-bg-opacity: 0.2">
                 <span class="fw-bold text-primary"><i class="bi bi-globe2 me-2"></i>Portfolio</span>
                 <span class="badge bg-success rounded-pill">12 active</span>
               </div>
@@ -280,7 +280,7 @@ const features = [
     <section class="cta-section py-5">
       <div class="container">
         <div class="card border-0 rounded-4 overflow-hidden shadow-lg">
-          <div class="card-body p-5 text-center bg-primary bg-opacity-10">
+          <div class="card-body p-5 text-center bg-primary" style="--bs-bg-opacity: 0.15">
             <h2 class="display-6 fw-bold mb-3">Ready to Dominate Your Domain Portfolio?</h2>
             <p class="lead text-body-secondary mb-4 mx-auto" style="max-width: 500px">
               Join hundreds of domain investors who already manage their portfolios smarter.

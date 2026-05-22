@@ -23,6 +23,7 @@ export default defineConfig({
       exclude: [
         'src/vite-env.d.ts',
         'src/**/*.d.ts',
+        'src/main.ts',
         'api/config/**',
         'api/migrations/**',
         'api/migrate.ts',

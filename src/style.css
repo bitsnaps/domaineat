@@ -1,29 +1,56 @@
 /* Domaineat — Global Styles (Bootswatch Quartz base) */
 
 :root {
-  --sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  scroll-behavior: smooth;
+ --sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+ --heading: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+ font-synthesis: none;
+ text-rendering: optimizeLegibility;
+ -webkit-font-smoothing: antialiased;
+ -moz-osx-font-smoothing: grayscale;
+ scroll-behavior: smooth;
+
+ /* ── Contrast overrides for Quartz theme ──────────────────────────
+  * Bootswatch Quartz sets $min-contrast-ratio to 1.5 (Bootstrap default
+  * is 4.5:1). This causes WCAG failures on bg-primary badges, buttons,
+  * and text-body-secondary. We override the generated CSS variables to
+  * bring contrast up to at least 4.5:1 against the purple body bg.
+  */
+
+ /* Quartz primary = #e83283 (pink) on purple (#686dc3) bg.
+  * Pink on purple passes at ~3.5:1 — acceptable for large text,
+  * but not for small. Use white for small text on primary bg. */
+ --bs-primary-text-emphasis: #f8a0c4;
+ --bs-secondary-color: rgba(255, 255, 255, 0.85);
+ --bs-secondary-bg: rgba(255, 255, 255, 0.12);
+ --bs-tertiary-color: rgba(255, 255, 255, 0.8);
+ --bs-tertiary-bg: rgba(255, 255, 255, 0.08);
+ --bs-body-secondary-color: rgba(255, 255, 255, 0.82);
+
+ /* Improve badge contrast */
+ --bs-badge-color: #fff;
+
+ /* Button outline contrast — make outline-light actually visible */
+ --bs-btn-outline-light-color: rgba(255, 255, 255, 0.9);
+ --bs-btn-outline-light-border-color: rgba(255, 255, 255, 0.6);
+ --bs-btn-outline-light-hover-color: #686dc3;
+ --bs-btn-outline-light-hover-bg: rgba(255, 255, 255, 0.9);
+ --bs-btn-outline-light-hover-border-color: rgba(255, 255, 255, 0.9);
 }
 
 body {
-  margin: 0;
-  overflow-x: hidden;
+ margin: 0;
+ overflow-x: hidden;
 }
 
 /* Smooth scroll anchors */
 html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 80px;
+ scroll-behavior: smooth;
+ scroll-padding-top: 80px;
 }
 
 /* Landing page: make the layout full-width (no sidebar constriction) */
 .landing {
-  width: 100%;
+ width: 100%;
 }
 
 /* Slight enhancement to Bootstrap's display headings */
@@ -31,28 +58,107 @@ html {
 .display-4,
 .display-5,
 .display-6 {
-  letter-spacing: -0.02em;
+ letter-spacing: -0.02em;
 }
 
 /* Rounded pill buttons look better with slightly more padding */
 .btn.rounded-pill {
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
+ padding-left: 1.5rem;
+ padding-right: 1.5rem;
 }
 
 /* Make the sidebar + main layout fill the viewport */
 .h-100 {
-  height: 100vh;
+ height: 100vh;
+}
+
+/* ── Landing page contrast fixes ────────────────────────────── */
+
+/* Badges: bg-primary bg-opacity-25 text-primary → poor contrast.
+ * Override to use white text on semi-transparent primary bg */
+.landing .badge.bg-primary {
+ color: #fff;
+ background-color: rgba(232, 50, 131, 0.85) !important;
+}
+
+/* "text-primary" on purple bg — use a lighter pink for readability */
+.landing .text-primary {
+ color: #f8a0c4 !important;
+}
+
+/* text-body-secondary is too faint at 70% white — bump to 82% */
+.landing .text-body-secondary {
+ color: rgba(255, 255, 255, 0.82) !important;
+}
+
+/* bg-body-tertiary sections — ensure enough contrast with text */
+.landing .bg-body-tertiary {
+ background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Feature cards with bg-body-tertiary — text needs more contrast */
+.landing .feature-card .text-body-secondary {
+ color: rgba(255, 255, 255, 0.88) !important;
+}
+
+/* Pricing section — "text-warning" on purple bg is borderline */
+.landing .text-warning {
+ color: #ffd54f !important;
+}
+
+/* Success color (#41d7a7) on purple bg — increase brightness */
+.landing .text-success {
+ color: #5eefbf !important;
+}
+
+/* Danger color on purple — make it brighter red */
+.landing .text-danger {
+ color: #ff6b8a !important;
+}
+
+/* Hero card header: bg-primary bg-opacity-10 is nearly invisible */
+.landing .hero-card .bg-opacity-10 {
+ --bs-bg-opacity: 0.2 !important;
+}
+
+/* Card bodies inside bg-body-tertiary sections need stronger text */
+.landing .bg-body-tertiary .card {
+ color: rgba(255, 255, 255, 0.92);
+}
+
+/* Pricing list items — the "x-circle" disabled items need more contrast */
+.landing .pricing-section .text-body-secondary .bi-x-circle {
+ opacity: 0.7;
+}
+
+/* Enterprise badge: text-warning on bg-warning bg-opacity-25 → low contrast */
+.landing .badge.bg-warning {
+ color: #343a40 !important;
+ background-color: rgba(255, 193, 7, 0.9) !important;
+}
+
+/* "Secondary" badge on pricing — bg-secondary bg-opacity-25 text-secondary */
+.landing .badge.bg-secondary {
+ color: rgba(255, 255, 255, 0.95) !important;
+ background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Footer links — text-body-secondary too faint */
+.landing .footer-section a {
+ color: rgba(255, 255, 255, 0.75) !important;
+}
+.landing .footer-section a:hover {
+ color: rgba(255, 255, 255, 1) !important;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-  .display-3 {
-    font-size: 2.5rem;
-  }
-  .display-5 {
-    font-size: 1.5rem;
-  }
+ .display-3 {
+  font-size: 2.5rem;
+ }
+ .display-5 {
+  font-size: 1.5rem;
+ }
 }
 
 /* Transition for theme switching */
@@ -61,5 +167,5 @@ body,
 .btn,
 .nav-link,
 .list-group-item {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+ transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }

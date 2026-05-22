@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import DashboardView from '@/views/DashboardView.vue'
 
@@ -7,6 +7,7 @@ describe('DashboardView (Landing Page)', () => {
   let router: ReturnType<typeof createRouter>
 
   beforeEach(async () => {
+    vi.useFakeTimers()
     router = createRouter({
       history: createMemoryHistory(),
       routes: [
@@ -15,6 +16,10 @@ describe('DashboardView (Landing Page)', () => {
     })
     router.push('/')
     await router.isReady()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   const mountView = () =>
@@ -40,16 +45,13 @@ describe('DashboardView (Landing Page)', () => {
   it('renders the stats section with 4 stat items', () => {
     const wrapper = mountView()
     expect(wrapper.find('.stats-section').exists()).toBe(true)
-    // Stats are rendered via v-for
     const vm = wrapper.vm as any
-    if (vm.stats) {
-      expect(vm.stats.length).toBe(4)
-    }
+    expect(vm.stats.length).toBe(4)
   })
 
   it('renders the features section', () => {
     const wrapper = mountView()
-    expect(wrapper.find('.features-section').exists() || wrapper.text()).toBeDefined()
+    expect(wrapper.text()).toBeDefined()
   })
 
   it('has a Get Started CTA button', () => {
@@ -66,10 +68,38 @@ describe('DashboardView (Landing Page)', () => {
 
   it('stat values start at 0 before animation', () => {
     const wrapper = mountView()
-    // On mount, the animated counters start at 0
     const vm = wrapper.vm as any
-    if (vm.stats) {
-      expect(vm.stats[0].value).toBe(0)
-    }
+    expect(vm.stats[0].value).toBe(0)
+  })
+
+  it('animateCounters increments stat values over time', () => {
+    const wrapper = mountView()
+    const vm = wrapper.vm as any
+
+    // Advance past the 300ms setTimeout in onMounted
+    vi.advanceTimersByTime(310)
+
+    // Now the setInterval should be running — advance past the full 2000ms duration
+    vi.advanceTimersByTime(2500)
+
+    // All stats should have reached their target values
+    expect(vm.stats[0].value).toBe(vm.stats[0].target)
+    expect(vm.stats[1].value).toBe(vm.stats[1].target)
+    expect(vm.stats[2].value).toBe(vm.stats[2].target)
+    expect(vm.stats[3].value).toBe(vm.stats[3].target)
+  })
+
+  it('stats increment gradually, not instantly', () => {
+    const wrapper = mountView()
+    const vm = wrapper.vm as any
+
+    // Advance past the initial 300ms delay
+    vi.advanceTimersByTime(310)
+
+    // After just 500ms of animation, values should be > 0 but < target
+    vi.advanceTimersByTime(500)
+
+    expect(vm.stats[0].value).toBeGreaterThan(0)
+    expect(vm.stats[0].value).toBeLessThan(vm.stats[0].target)
   })
 })
