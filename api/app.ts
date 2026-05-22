@@ -135,6 +135,23 @@ app.post('/api/ledger', async (c) => {
   }
 })
 
+app.patch('/api/ledger/:id', async (c) => {
+  const entry = await Ledger.findByPk(c.req.param('id'))
+  if (!entry) return c.json({ error: 'Ledger entry not found' }, 404)
+
+  const body = await c.req.json()
+  await entry.update(body)
+  return c.json(entry)
+})
+
+app.delete('/api/ledger/:id', async (c) => {
+  const entry = await Ledger.findByPk(c.req.param('id'))
+  if (!entry) return c.json({ error: 'Ledger entry not found' }, 404)
+
+  await entry.destroy()
+  return c.json({ ok: true })
+})
+
 // ─── Prospects ─────────────────────────────────────────────────────────
 
 app.get('/api/prospects', async (c) => {
@@ -171,8 +188,28 @@ app.delete('/api/prospects/:id', async (c) => {
   const prospect = await Prospect.findByPk(c.req.param('id'))
   if (!prospect) return c.json({ error: 'Prospect not found' }, 404)
 
-  await prospect.destroy()
-  return c.json({ deleted: true }, 200)
+ await prospect.destroy()
+ return c.json({ deleted: true }, 200)
+})
+
+// ─── Exchange Rates ──────────────────────────────────────────────────────
+
+app.get('/api/exchange-rates', async (c) => {
+  // Fallback rates (updated periodically — in production use a real API)
+  const fallbackRates = {
+    USD: 1, EUR: 0.92, GBP: 0.79, CAD: 1.36, AUD: 1.53, JPY: 149.5, CNY: 7.24, INR: 83.1,
+  }
+
+  try {
+    const res = await fetch('https://api.exchangerate.host/latest?base=USD', {
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) throw new Error('Upstream error')
+    const data = await res.json() as { rates?: Record<string, number> }
+    return c.json({ rates: data.rates || fallbackRates, source: 'live' })
+  } catch {
+    return c.json({ rates: fallbackRates, source: 'fallback' })
+  }
 })
 
 

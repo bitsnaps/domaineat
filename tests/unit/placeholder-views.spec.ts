@@ -1,7 +1,7 @@
 /**
- * Tests for the 4 app views — each is a simple stub except DomainsView.
- * DomainsView requires Pinia, so we create a test store for it.
- * LedgerView, ProspectsView, SettingsView remain simple stubs.
+ * Tests for the app views.
+ * DomainsView and LedgerView require Pinia.
+ * ProspectsView and SettingsView remain simple stubs.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
@@ -9,7 +9,6 @@ import { createPinia, setActivePinia } from 'pinia'
 
 // Simple stub views (no Pinia needed)
 const stubViews = [
-  { name: 'LedgerView', path: '@/views/LedgerView.vue', expected: 'Ledger' },
   { name: 'ProspectsView', path: '@/views/ProspectsView.vue', expected: 'Prospects' },
   { name: 'SettingsView', path: '@/views/SettingsView.vue', expected: 'Settings' },
 ]
@@ -32,27 +31,34 @@ for (const view of stubViews) {
   })
 }
 
-// DomainsView requires Pinia
-describe('DomainsView', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-  })
+// Views that require Pinia
+const piniaViews = [
+  { name: 'DomainsView', path: '@/views/DomainsView.vue', expected: 'Domain' },
+  { name: 'LedgerView', path: '@/views/LedgerView.vue', expected: 'Total Costs' },
+]
 
-  it('renders without error', async () => {
-    const mod = await import('@/views/DomainsView.vue')
-    const component = mod.default
-    const wrapper = mount(component, {
-      global: { plugins: [createPinia()] },
+for (const view of piniaViews) {
+  describe(`${view.name}`, () => {
+    beforeEach(() => {
+      setActivePinia(createPinia())
     })
-    expect(wrapper.exists()).toBe(true)
-  })
 
-  it('contains "Domain" text', async () => {
-    const mod = await import('@/views/DomainsView.vue')
-    const component = mod.default
-    const wrapper = mount(component, {
-      global: { plugins: [createPinia()] },
+    it('renders without error', async () => {
+      const mod = await import(view.path)
+      const component = mod.default
+      const wrapper = mount(component, {
+        global: { plugins: [createPinia()] },
+      })
+      expect(wrapper.exists()).toBe(true)
     })
-    expect(wrapper.text()).toContain('Domain')
+
+    it(`contains "${view.expected}" text`, async () => {
+      const mod = await import(view.path)
+      const component = mod.default
+      const wrapper = mount(component, {
+        global: { plugins: [createPinia()] },
+      })
+      expect(wrapper.text()).toContain(view.expected)
+    })
   })
-})
+}

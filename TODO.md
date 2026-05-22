@@ -2,7 +2,7 @@
 
 > **Goal:** Ship v0 MVP as a static Vue 3 SPA + Netlify serverless functions (Hono), with SQLite for local dev.
 > **PRD Reference:** [`docs/PRD-v0.md`](docs/PRD-v0.md)
-> **Progress:** 27 / 47 tasks ✅ | **~57%**
+> **Progress:** 33 / 47 tasks ✅ | **~70%**
 
 ---
 
@@ -40,14 +40,14 @@
 
 ---
 
-## 💰 Phase 3 — Profit/Loss Ledger `0/6`
+## 💰 Phase 3 — Profit/Loss Ledger `6/6` ✅
 
-- [ ] P3-1 — Create Pinia ledger store `src/stores/ledger.ts`: state (entries, loading, date filter), actions (CRUD), getters (totalCosts, totalRevenue, netProfit, burnRate)
-- [ ] P3-2 — Build `LedgerView.vue`: transaction table, filters (domain, date range, type), summary cards
-- [ ] P3-3 — Implement financial calculations: holding cost, tenure, ROI, NAV (PRD Technical Specs)
-- [ ] P3-4 — Build Ledger entry form: add/edit/delete transactions, validation (amount > 0, date required, domain exists)
-- [ ] P3-5 — Multi-currency support: preferred currency in Settings, exchange rate API, display converted amounts
-- [ ] P3-6 — Financial Dashboard cards: burn rate, amortized cost, renewal rates, expiration alerts
+- [x] P3-1 — Create Pinia ledger store `src/stores/ledger.ts`: entries, CRUD actions, financial getters (totalCosts, totalRevenue, netProfit, burnRate, roi, nav, countByType)
+- [x] P3-2 — Build `LedgerView.vue`: summary cards, transaction table with type/date/domain filters, pagination, search
+- [x] P3-3 — Financial calculations: holding cost, tenure, ROI, NAV, amortized monthly cost, renewal rate (in store + FinancialDashboard)
+- [x] P3-4 — Ledger entry form (`LedgerEntryModal.vue`): add/edit/delete transactions, domain selector, type, amount > 0, date, notes validation
+- [x] P3-5 — Multi-currency support: `useCurrency` composable, `GET /api/exchange-rates` (live + fallback), currency selector, formatCurrency helper
+- [x] P3-6 — Financial Dashboard cards (`FinancialDashboard.vue`): burn rate, amortized cost, renewal rates, NAV, ROI, avg tenure, expiration alerts
 
 ---
 
