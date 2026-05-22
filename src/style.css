@@ -1,205 +1,104 @@
-/* Domaineat — Global Styles (Bootswatch Quartz base) */
+/* Domaineat — Global Styles (Light SaaS design system) */
 
 :root {
- --sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
- --heading: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
- font-synthesis: none;
- text-rendering: optimizeLegibility;
- -webkit-font-smoothing: antialiased;
- -moz-osx-font-smoothing: grayscale;
- scroll-behavior: smooth;
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #818cf8;
+  --accent: #f59e0b;
+  --accent-light: #fbbf24;
+  --dark: #0f172a;
+  --darker: #020617;
+  --gray-900: #1e293b;
+  --gray-800: #334155;
+  --gray-700: #475569;
+  --gray-600: #64748b;
+  --gray-500: #6b7280;
+  --gray-400: #94a3b8;
+  --gray-300: #cbd5e1;
+  --gray-200: #e2e8f0;
+  --gray-100: #f1f5f9;
+  --gray-50: #f8fafc;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
 
- /* ── Quartz theme background fixes ──────────────────────────
-  * Bootswatch Quartz SCSS sets $body-bg: $purple (#686dc3) but
-  * never overrides $secondary-bg / $tertiary-bg. Bootstrap's
-  * compile then fills in the default light-theme grays (#e9e9e8,
-  * #f8f9fa) which look muddy on a dark/purple page.
-  *
-  * We fix: body uses the intended gradient, secondary/tertiary
-  * use translucent whites for the glassmorphism look.
-  */
-
- /* Restore the intended Quartz body gradient (cyan → purple → pink) */
- --bs-body-bg: linear-gradient(90deg, #33b7e2, #5e62b0, #dc307c);
- --bs-body-bg-rgb: 94, 98, 176; /* midpoint purple for rgba fallbacks */
-
- /* Semi-transparent overlays — glassmorphism on gradient */
- --bs-secondary-bg: rgba(255, 255, 255, 0.1);
- --bs-secondary-bg-rgb: 255, 255, 255;
- --bs-tertiary-bg: rgba(255, 255, 255, 0.06);
- --bs-tertiary-bg-rgb: 255, 255, 255;
-
- /* ── Contrast overrides ─────────────────────────────────────
-  * Bootswatch Quartz sets $min-contrast-ratio to 1.5 (Bootstrap
-  * default is 4.5:1). We bump text colors for WCAG AA.
-  */
- --bs-primary-text-emphasis: #f8a0c4;
- --bs-secondary-color: rgba(255, 255, 255, 0.85);
- --bs-tertiary-color: rgba(255, 255, 255, 0.8);
- --bs-body-secondary-color: rgba(255, 255, 255, 0.82);
-
- /* Badge contrast */
- --bs-badge-color: #fff;
-
- /* Button outline — make outline-light visible on dark */
- --bs-btn-outline-light-color: rgba(255, 255, 255, 0.9);
- --bs-btn-outline-light-border-color: rgba(255, 255, 255, 0.6);
- --bs-btn-outline-light-hover-color: #5e62b0;
- --bs-btn-outline-light-hover-bg: rgba(255, 255, 255, 0.9);
- --bs-btn-outline-light-hover-border-color: rgba(255, 255, 255, 0.9);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
 }
 
-/* ── Body: gradient background ───────────────────────────────
- * CSS variables can't store gradients for background-color, so
- * we apply the gradient directly on body.
- */
-body {
- margin: 0;
- overflow-x: hidden;
- background: linear-gradient(135deg, #33b7e2 0%, #5e62b0 40%, #8e5cc8 65%, #dc307c 100%);
- background-attachment: fixed;
- min-height: 100vh;
- color: #fff;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* ── bg-body / bg-body-tertiary / bg-body-secondary ──────────
- * Override Bootstrap's utility classes to use translucent whites
- * instead of the light-theme gray defaults.
- */
-.bg-body {
- background: rgba(255, 255, 255, 0.04) !important;
- backdrop-filter: blur(2px);
-}
-
-.bg-body-secondary {
- background: rgba(255, 255, 255, 0.1) !important;
- backdrop-filter: blur(4px);
-}
-
-.bg-body-tertiary {
- background: rgba(255, 255, 255, 0.06) !important;
- backdrop-filter: blur(3px);
-}
-
-/* ── Smooth scroll anchors ─────────────────────────────────── */
 html {
- scroll-behavior: smooth;
- scroll-padding-top: 80px;
+  scroll-behavior: smooth;
 }
 
-/* Landing page: make the layout full-width */
+body {
+  font-family: var(--font-body);
+  color: var(--gray-800);
+  background: var(--gray-50);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--dark);
+  letter-spacing: -0.02em;
+}
+
+/* ── Text gradient utility ──────────────────────────────────── */
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Landing page full-width ─────────────────────────────────── */
 .landing {
- width: 100%;
+  width: 100%;
 }
 
-/* Slight enhancement to Bootstrap's display headings */
-.display-3,
-.display-4,
-.display-5,
-.display-6 {
- letter-spacing: -0.02em;
-}
-
-/* Rounded pill buttons — slightly more padding */
-.btn.rounded-pill {
- padding-left: 1.5rem;
- padding-right: 1.5rem;
-}
-
-/* Make the sidebar + main layout fill the viewport */
+/* ── Layout: sidebar + main fill viewport ───────────────────── */
 .h-100 {
- height: 100vh;
-}
-
-/* ── Card glassmorphism ──────────────────────────────────────
- * Quartz already applies glassmorphic gradients to cards.
- * Ensure they work with our translucent bg overrides.
- */
-.card {
- backdrop-filter: blur(8px);
-}
-
-/* ── Landing page contrast fixes ───────────────────────────── */
-
-/* Badges: solid bg + white text instead of low-opacity fills */
-.landing .badge.bg-primary {
- color: #fff;
- background-color: rgba(232, 50, 131, 0.85) !important;
-}
-
-/* text-primary on gradient — lighter pink for readability */
-.landing .text-primary {
- color: #f8a0c4 !important;
-}
-
-/* text-body-secondary: bump from 70% → 82% white */
-.landing .text-body-secondary {
- color: rgba(255, 255, 255, 0.82) !important;
-}
-
-/* Feature cards — more contrast for description text */
-.landing .feature-card .text-body-secondary {
- color: rgba(255, 255, 255, 0.88) !important;
-}
-
-/* Semantic colors — brighter on gradient background */
-.landing .text-warning {
- color: #ffd54f !important;
-}
-
-.landing .text-success {
- color: #5eefbf !important;
-}
-
-.landing .text-danger {
- color: #ff6b8a !important;
-}
-
-/* Card bodies in tertiary sections */
-.landing .bg-body-tertiary .card {
- color: rgba(255, 255, 255, 0.92);
-}
-
-/* Pricing X-circle items */
-.landing .pricing-section .text-body-secondary .bi-x-circle {
- opacity: 0.7;
-}
-
-/* Enterprise badge: yellow bg needs dark text */
-.landing .badge.bg-warning {
- color: #343a40 !important;
- background-color: rgba(255, 193, 7, 0.9) !important;
-}
-
-/* Secondary badge on pricing */
-.landing .badge.bg-secondary {
- color: rgba(255, 255, 255, 0.95) !important;
- background-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Footer links */
-.landing .footer-section a {
- color: rgba(255, 255, 255, 0.75) !important;
-}
-.landing .footer-section a:hover {
- color: rgba(255, 255, 255, 1) !important;
+  height: 100vh;
 }
 
 /* ── Responsive ─────────────────────────────────────────────── */
-@media (max-width: 768px) {
- .display-3 {
-  font-size: 2.5rem;
- }
- .display-5 {
-  font-size: 1.5rem;
- }
+@media (max-width: 991.98px) {
+  .stat-divider {
+    display: none;
+  }
+  .pricing-card.popular {
+    transform: none;
+  }
+  .pricing-card.popular:hover {
+    transform: translateY(-4px);
+  }
 }
 
-/* ── Theme switching transitions ───────────────────────────── */
+@media (max-width: 767.98px) {
+  .feature-card {
+    padding: 1.75rem;
+  }
+}
+
+/* ── Theme switching transitions ────────────────────────────── */
 body,
 .card,
 .btn,
 .nav-link,
 .list-group-item {
- transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }

@@ -34,7 +34,7 @@ describe('DashboardView (Landing Page)', () => {
 
   it('renders the hero section', () => {
     const wrapper = mountView()
-    expect(wrapper.find('.hero-section').exists()).toBe(true)
+    expect(wrapper.find('.hero').exists()).toBe(true)
   })
 
   it('contains the app name Domaineat in the hero', () => {

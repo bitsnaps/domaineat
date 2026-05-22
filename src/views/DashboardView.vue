@@ -3,10 +3,10 @@ import { ref, onMounted } from 'vue'
 
 // Animated counter for stats
 const stats = ref([
-  { icon: 'bi-globe2', value: 0, target: 847, label: 'Domains Tracked', suffix: '+' },
-  { icon: 'bi-cash-stack', value: 0, target: 124, label: 'Saved on Renewals', prefix: '$', suffix: 'K' },
-  { icon: 'bi-search', value: 0, target: 2340, label: 'Prospects Found', suffix: '+' },
-  { icon: 'bi-graph-up-arrow', value: 0, target: 97, label: 'Uptime', suffix: '%' },
+  { value: 0, target: 847, label: 'Domains Tracked', suffix: '+' },
+  { value: 0, target: 124, label: 'Saved on Renewals', prefix: '$', suffix: 'K' },
+  { value: 0, target: 2340, label: 'Prospects Found', suffix: '+' },
+  { value: 0, target: 97, label: 'Uptime', suffix: '%' },
 ])
 
 function animateCounters() {
@@ -24,13 +24,12 @@ function animateCounters() {
 }
 
 onMounted(() => {
-  // Trigger counters after a small delay for visual effect
   setTimeout(animateCounters, 300)
 })
 
 const features = [
   {
-    icon: 'bi-globe2',
+    icon: 'bi-grid-1x2-fill',
     title: 'Portfolio Dashboard',
     desc: 'Centralized view of all your domains across registrars. Track expiry dates, costs, and status at a glance.',
   },
@@ -40,7 +39,7 @@ const features = [
     desc: 'Amortized cost tracking, renewal forecasting, and portfolio burn rate analysis. Know your numbers.',
   },
   {
-    icon: 'bi-search',
+    icon: 'bi-bullseye',
     title: 'Prospect Engine',
     desc: 'Find potential buyers with automated company lookup, outreach tracking, and contact management.',
   },
@@ -55,92 +54,153 @@ const features = [
     desc: 'Never lose a domain. Smart alerts for upcoming expirations with auto-renew recommendations.',
   },
   {
-    icon: 'bi-plug',
+    icon: 'bi-plug-fill',
     title: 'Registrar API Hub',
     desc: 'Connect GoDaddy, Porkbun, Cloudflare, NameSilo and more. One API to rule them all.',
+  },
+]
+
+const domains = [
+  { name: 'ai ventures.com', registrar: 'Cloudflare', price: '$12.00/yr', days: 284, status: 'safe' },
+  { name: 'neural.io', registrar: 'Porkbun', price: '$8.50/yr', days: 142, status: 'warning' },
+  { name: 'prompt.ai', registrar: 'GoDaddy', price: '$42.00/yr', days: 23, status: 'danger' },
+  { name: 'dataforge.dev', registrar: 'NameSilo', price: '$6.99/yr', days: 361, status: 'safe' },
+]
+
+const pricingPlans = [
+  {
+    name: 'Free',
+    price: '$0',
+    period: 'forever',
+    popular: false,
+    features: [
+      'Up to 25 domains',
+      'Basic ledger',
+      'Expiry alerts',
+      '1 registrar API',
+      'Prospect engine',
+      'Valuation insights',
+    ],
+    cta: 'Get Started Free',
+    ctaClass: 'btn-pricing',
+  },
+  {
+    name: 'Premium',
+    price: '$9',
+    period: '/month',
+    popular: true,
+    features: [
+      'Unlimited domains',
+      'Full ledger + reports',
+      'Prospect engine',
+      'All registrar APIs',
+      'Valuation insights',
+      'Priority support',
+    ],
+    cta: 'Upgrade to Premium',
+    ctaClass: 'btn-pricing btn-pricing-primary',
+  },
+  {
+    name: 'Enterprise',
+    price: '$49',
+    period: '/month',
+    popular: false,
+    features: [
+      'Everything in Premium',
+      'Team accounts (5 seats)',
+      'Webhook integrations',
+      'Custom valuations',
+      'SLA guarantee',
+      'Dedicated support',
+    ],
+    cta: 'Contact Sales',
+    ctaClass: 'btn-pricing',
   },
 ]
 </script>
 
 <template>
   <div class="landing">
-    <!-- Hero Section -->
-    <section class="hero-section py-5 position-relative overflow-hidden">
-      <div class="hero-glow"></div>
-      <div class="container position-relative" style="z-index: 2">
-        <div class="row align-items-center min-vh-75 py-5">
-          <div class="col-lg-7 text-center text-lg-start">
-            <span class="badge bg-primary bg-opacity-25 text-primary px-3 py-2 mb-3 fs-6">
-              <i class="bi bi-rocket-takeoff me-1"></i> Now in Early Access
-            </span>
-            <h1 class="display-3 fw-bold mb-4 lh-sm">
-              Your Domain Portfolio.<br />
-              <span class="text-primary">Finally Organized.</span>
-            </h1>
-            <p class="lead text-body-secondary mb-4 mx-auto mx-lg-0" style="max-width: 540px">
-              Domaineat is the intelligent command center for domain investors. Track portfolios,
-              manage finances, find buyers, and never miss a renewal — all in one beautiful dashboard.
-            </p>
-            <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
-              <router-link to="/domains" class="btn btn-primary btn-lg px-4 rounded-pill shadow-lg">
-                <i class="bi bi-rocket-takeoff me-2"></i>Get Started Free
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+      <div class="container">
+        <router-link to="/" class="navbar-brand">Domain<span>eat</span></router-link>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto align-items-center">
+            <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+            <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
+            <li class="nav-item ms-lg-3">
+              <router-link to="/domains" class="btn btn-nav">Log in</router-link>
+            </li>
+            <li class="nav-item ms-2">
+              <router-link to="/domains" class="btn btn-nav btn-nav-primary">Get Started</router-link>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-bg"></div>
+      <div class="hero-grid"></div>
+      <div class="container position-relative">
+        <div class="row justify-content-center text-center">
+          <div class="col-lg-8">
+            <div class="badge-early">
+              <span class="pulse-dot"></span>
+              Now in Early Access
+            </div>
+            <h1>Your Domain Portfolio.<br><span class="text-gradient">Finally Organized.</span></h1>
+            <p>Domaineat is the intelligent command center for domain investors. Track portfolios, manage finances, find buyers, and never miss a renewal — all in one beautiful dashboard.</p>
+            <div class="hero-cta justify-content-center">
+              <router-link to="/domains" class="btn btn-hero btn-hero-primary">
+                Start Free <i class="bi bi-arrow-right"></i>
               </router-link>
-              <a href="#features" class="btn btn-outline-light btn-lg px-4 rounded-pill">
-                <i class="bi bi-play-circle me-2"></i>See How It Works
+              <a href="#features" class="btn btn-hero btn-hero-secondary">
+                <i class="bi bi-play-circle"></i> Watch Demo
               </a>
             </div>
-            <p class="text-body-secondary mt-3 small">
-              <i class="bi bi-check-circle text-success me-1"></i> No credit card required
-              <span class="ms-3"><i class="bi bi-check-circle text-success me-1"></i> Free tier forever</span>
-            </p>
+            <div class="hero-note justify-content-center">
+              <span><i class="bi bi-check-circle-fill"></i> No credit card required</span>
+              <span><i class="bi bi-check-circle-fill"></i> Free tier forever</span>
+            </div>
           </div>
-          <div class="col-lg-5 mt-5 mt-lg-0">
-            <div class="hero-card card border-0 shadow-lg rounded-4 overflow-hidden">
-              <div class="card-header bg-primary d-flex justify-content-between align-items-center px-4 py-3" style="--bs-bg-opacity: 0.2">
-                <span class="fw-bold text-primary"><i class="bi bi-globe2 me-2"></i>Portfolio</span>
-                <span class="badge bg-success rounded-pill">12 active</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dashboard Preview -->
+    <section class="dashboard-section">
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-lg-8">
+            <div class="portfolio-badge">
+              <i class="bi bi-globe2"></i> Live Portfolio
+            </div>
+            <div class="dashboard-card">
+              <div class="dashboard-header">
+                <div class="dashboard-dots">
+                  <span class="dot-red"></span>
+                  <span class="dot-yellow"></span>
+                  <span class="dot-green"></span>
+                </div>
+                <span class="dashboard-title">Portfolio</span>
+                <span class="ms-auto dashboard-active">12 active</span>
               </div>
-              <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                  <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
-                    <div>
-                      <div class="fw-semibold">ai ventures<span class="text-primary">.com</span></div>
-                      <small class="text-body-secondary">Cloudflare</small>
-                    </div>
-                    <div class="text-end">
-                      <div class="fw-semibold text-success">$12.00/yr</div>
-                      <small class="text-body-secondary">284 days left</small>
-                    </div>
+              <div class="dashboard-body">
+                <div v-for="domain in domains" :key="domain.name" class="domain-row">
+                  <div class="domain-icon"><i class="bi bi-globe"></i></div>
+                  <div class="domain-info">
+                    <div class="domain-name">{{ domain.name }}</div>
+                    <div class="domain-registrar">{{ domain.registrar }}</div>
                   </div>
-                  <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
-                    <div>
-                      <div class="fw-semibold">neural<span class="text-primary">.io</span></div>
-                      <small class="text-body-secondary">Porkbun</small>
-                    </div>
-                    <div class="text-end">
-                      <div class="fw-semibold text-success">$8.50/yr</div>
-                      <small class="text-body-secondary">142 days left</small>
-                    </div>
-                  </div>
-                  <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
-                    <div>
-                      <div class="fw-semibold">prompt<span class="text-warning">.ai</span></div>
-                      <small class="text-body-secondary">GoDaddy</small>
-                    </div>
-                    <div class="text-end">
-                      <div class="fw-semibold text-warning">$42.00/yr</div>
-                      <small class="text-danger">23 days left</small>
-                    </div>
-                  </div>
-                  <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
-                    <div>
-                      <div class="fw-semibold">dataforge<span class="text-primary">.dev</span></div>
-                      <small class="text-body-secondary">NameSilo</small>
-                    </div>
-                    <div class="text-end">
-                      <div class="fw-semibold text-success">$6.99/yr</div>
-                      <small class="text-body-secondary">361 days left</small>
-                    </div>
+                  <div class="domain-price">{{ domain.price }}</div>
+                  <div class="domain-days" :class="'days-' + domain.status">
+                    {{ domain.days }} days left
                   </div>
                 </div>
               </div>
@@ -150,266 +210,836 @@ const features = [
       </div>
     </section>
 
-    <!-- Stats Section -->
-    <section class="stats-section py-5 bg-body-tertiary">
+    <!-- Stats -->
+    <section class="stats-section">
       <div class="container">
-        <div class="row g-4 text-center">
-          <div v-for="stat in stats" :key="stat.label" class="col-6 col-md-3">
-            <div class="p-3">
-              <i :class="'bi ' + stat.icon" class="fs-1 text-primary d-block mb-2"></i>
-              <div class="display-5 fw-bold lh-1 mb-1">
-                {{ stat.prefix || '' }}{{ Math.round(stat.value).toLocaleString() }}{{ stat.suffix || '' }}
+        <div class="row align-items-center justify-content-center">
+          <div v-for="(stat, i) in stats" :key="stat.label" class="col-6 col-md-3">
+            <div class="stat-card">
+              <div class="stat-number">
+                <span>{{ stat.prefix || '' }}{{ Math.round(stat.value).toLocaleString() }}{{ stat.suffix || '' }}</span>
               </div>
-              <div class="text-body-secondary">{{ stat.label }}</div>
+              <div class="stat-label">{{ stat.label }}</div>
             </div>
           </div>
+          <!-- Dividers between stats (hidden on mobile) -->
+          <template v-for="i in 3" :key="'div-'+i">
+            <div v-if="i < 4" class="col-auto d-none d-md-block">
+              <div class="stat-divider"></div>
+            </div>
+          </template>
         </div>
       </div>
     </section>
 
-    <!-- Features Section -->
-    <section id="features" class="features-section py-5">
+    <!-- Features -->
+    <section class="features-section" id="features">
       <div class="container">
-        <div class="text-center mb-5">
-          <span class="badge bg-primary bg-opacity-25 text-primary px-3 py-2 mb-3">
-            <i class="bi bi-grid me-1"></i> Features
-          </span>
-          <h2 class="display-5 fw-bold">Everything You Need to<br /><span class="text-primary">Eat the Domain Game</span></h2>
-          <p class="lead text-body-secondary mx-auto" style="max-width: 600px">
-            From portfolio tracking to buyer outreach, Domaineat covers the entire domain investment lifecycle.
-          </p>
+        <div class="section-header">
+          <div class="section-label"><i class="bi bi-stars"></i> Features</div>
+          <h2>Everything You Need to <span class="text-gradient-inline">Eat the Domain Game</span></h2>
+          <p>From portfolio tracking to buyer outreach, Domaineat covers the entire domain investment lifecycle.</p>
         </div>
         <div class="row g-4">
           <div v-for="feature in features" :key="feature.title" class="col-md-6 col-lg-4">
-            <div class="card h-100 border-0 bg-body-tertiary rounded-4 p-4 feature-card">
-              <div class="feature-icon-wrapper mb-3">
-                <i :class="'bi ' + feature.icon" class="fs-2 text-primary"></i>
-              </div>
-              <h5 class="fw-bold mb-2">{{ feature.title }}</h5>
-              <p class="text-body-secondary mb-0">{{ feature.desc }}</p>
+            <div class="feature-card">
+              <div class="feature-icon"><i :class="'bi ' + feature.icon"></i></div>
+              <h3>{{ feature.title }}</h3>
+              <p>{{ feature.desc }}</p>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Pricing Section -->
-    <section class="pricing-section py-5 bg-body-tertiary">
+    <!-- Pricing -->
+    <section class="pricing-section" id="pricing">
       <div class="container">
-        <div class="text-center mb-5">
-          <span class="badge bg-primary bg-opacity-25 text-primary px-3 py-2 mb-3">
-            <i class="bi bi-tag me-1"></i> Pricing
-          </span>
-          <h2 class="display-5 fw-bold">Simple, <span class="text-primary">Transparent</span> Pricing</h2>
-          <p class="lead text-body-secondary mx-auto" style="max-width: 500px">
-            Start free. Upgrade when your portfolio grows.
-          </p>
+        <div class="section-header">
+          <div class="section-label"><i class="bi bi-tag-fill"></i> Pricing</div>
+          <h2>Simple, Transparent Pricing</h2>
+          <p>Start free. Upgrade when your portfolio grows.</p>
         </div>
-        <div class="row g-4 justify-content-center">
-          <!-- Free Tier -->
-          <div class="col-md-4">
-            <div class="card h-100 border-0 rounded-4 p-4 shadow-sm">
-              <div class="card-body d-flex flex-column">
-                <span class="badge bg-secondary bg-opacity-25 text-secondary align-self-start mb-3">Free</span>
-                <div class="display-4 fw-bold mb-0">$0</div>
-                <small class="text-body-secondary mb-4">forever</small>
-                <ul class="list-unstyled mb-4 flex-grow-1">
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Up to 25 domains</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Basic ledger</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Expiry alerts</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>1 registrar API</li>
-                  <li class="mb-2 text-body-secondary"><i class="bi bi-x-circle me-2"></i>Prospect engine</li>
-                  <li class="mb-2 text-body-secondary"><i class="bi bi-x-circle me-2"></i>Valuation insights</li>
-                </ul>
-                <router-link to="/domains" class="btn btn-outline-primary btn-lg rounded-pill w-100">
-                  Start Free
-                </router-link>
-              </div>
-            </div>
-          </div>
-          <!-- Premium Tier -->
-          <div class="col-md-4">
-            <div class="card h-100 border-primary border-2 rounded-4 p-4 shadow-lg position-relative">
-              <span class="position-absolute top-0 start-50 translate-middle badge bg-primary rounded-pill px-3 py-2 shadow">
-                Most Popular
-              </span>
-              <div class="card-body d-flex flex-column mt-2">
-                <span class="badge bg-primary bg-opacity-25 text-primary align-self-start mb-3">Premium</span>
-                <div class="display-4 fw-bold mb-0">$9</div>
-                <small class="text-body-secondary mb-4">/month</small>
-                <ul class="list-unstyled mb-4 flex-grow-1">
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Unlimited domains</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Full ledger + reports</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Prospect engine</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>All registrar APIs</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Valuation insights</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Priority support</li>
-                </ul>
-                <router-link to="/domains" class="btn btn-primary btn-lg rounded-pill w-100 shadow">
-                  Go Premium
-                </router-link>
-              </div>
-            </div>
-          </div>
-          <!-- Enterprise Tier -->
-          <div class="col-md-4">
-            <div class="card h-100 border-0 rounded-4 p-4 shadow-sm">
-              <div class="card-body d-flex flex-column">
-                <span class="badge bg-warning bg-opacity-25 text-warning align-self-start mb-3">Enterprise</span>
-                <div class="display-4 fw-bold mb-0">$49</div>
-                <small class="text-body-secondary mb-4">/month</small>
-                <ul class="list-unstyled mb-4 flex-grow-1">
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Everything in Premium</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Team accounts (5 seats)</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Webhook integrations</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Custom valuations</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>SLA guarantee</li>
-                  <li class="mb-2"><i class="bi bi-check-circle text-success me-2"></i>Dedicated support</li>
-                </ul>
-                <a href="mailto:hello@domaineat.com" class="btn btn-outline-warning btn-lg rounded-pill w-100">
-                  Contact Sales
-                </a>
-              </div>
+        <div class="row g-4 justify-content-center align-items-stretch">
+          <div v-for="plan in pricingPlans" :key="plan.name" class="col-md-4">
+            <div class="pricing-card" :class="{ popular: plan.popular }">
+              <div v-if="plan.popular" class="popular-badge">Most Popular</div>
+              <div class="pricing-name">{{ plan.name }}</div>
+              <div class="pricing-price" v-html="plan.price + (plan.period.includes('/') ? '<span>' + plan.period + '</span>' : '')"></div>
+              <div v-if="!plan.period.includes('/')" class="pricing-price"><span></span></div>
+              <div class="pricing-period">{{ plan.period.includes('/') ? 'Unlimited power' : plan.period }}</div>
+              <ul class="pricing-features">
+                <li v-for="feat in plan.features" :key="feat">
+                  <i class="bi bi-check-circle-fill"></i> {{ feat }}
+                </li>
+              </ul>
+              <button :class="'btn ' + plan.ctaClass">{{ plan.cta }}</button>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="cta-section py-5">
+    <!-- CTA -->
+    <section class="cta-section">
       <div class="container">
-        <div class="card border-0 rounded-4 overflow-hidden shadow-lg">
-          <div class="card-body p-5 text-center bg-primary" style="--bs-bg-opacity: 0.15">
-            <h2 class="display-6 fw-bold mb-3">Ready to Dominate Your Domain Portfolio?</h2>
-            <p class="lead text-body-secondary mb-4 mx-auto" style="max-width: 500px">
-              Join hundreds of domain investors who already manage their portfolios smarter.
-            </p>
-            <router-link to="/domains" class="btn btn-primary btn-lg px-5 rounded-pill shadow-lg">
-              <i class="bi bi-rocket-takeoff me-2"></i>Start for Free Today
-            </router-link>
-          </div>
+        <div class="cta-content">
+          <h2>Ready to Dominate Your Domain Portfolio?</h2>
+          <p>Join hundreds of domain investors who already manage their portfolios smarter.</p>
+          <router-link to="/domains" class="btn btn-cta">
+            Get Started Free <i class="bi bi-arrow-right"></i>
+          </router-link>
         </div>
       </div>
     </section>
 
     <!-- Footer -->
-    <footer class="footer-section py-4 bg-body-tertiary">
+    <footer class="footer">
       <div class="container">
-        <div class="row align-items-center">
-          <div class="col-md-6 text-center text-md-start">
-            <span class="text-body-secondary">
-              <i class="bi bi-globe2 text-primary me-1"></i>
-              <strong class="text-body">Domaineat</strong> &copy; {{ new Date().getFullYear() }}
-            </span>
-          </div>
-          <div class="col-md-6 text-center text-md-end mt-2 mt-md-0">
-            <a href="https://github.com/bitsnaps/domaineat" target="_blank" class="text-body-secondary text-decoration-none me-3">
-              <i class="bi bi-github fs-5"></i>
-            </a>
-            <a href="mailto:hello@domaineat.com" class="text-body-secondary text-decoration-none me-3">
-              <i class="bi bi-envelope fs-5"></i>
-            </a>
-            <a href="#" class="text-body-secondary text-decoration-none">
-              <i class="bi bi-twitter-x fs-5"></i>
-            </a>
-          </div>
-        </div>
+        <div class="footer-brand">Domain<span>eat</span></div>
+        <div class="footer-copy">&copy; {{ new Date().getFullYear() }} Domaineat</div>
       </div>
     </footer>
   </div>
 </template>
 
 <style scoped>
-/* Hero Section */
-.hero-section {
-  min-height: 85vh;
+/* ── Navigation ─────────────────────────────────────────────── */
+.navbar {
+  padding: 1.25rem 0;
+  background: rgba(248, 250, 252, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(203, 213, 225, 0.3);
+  z-index: 1030;
+}
+
+.navbar-brand {
+  font-family: var(--font-display) !important;
+  font-weight: 700 !important;
+  font-size: 1.5rem !important;
+  color: var(--dark) !important;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+}
+
+.navbar-brand span {
+  color: var(--primary);
+}
+
+.nav-link {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--gray-700) !important;
+  padding: 0.5rem 1rem !important;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--primary) !important;
+}
+
+.btn-nav {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.75rem;
+  border: 1.5px solid var(--gray-300);
+  color: var(--gray-700);
+  background: transparent;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-nav:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-nav-primary {
+  background: var(--dark);
+  color: #fff !important;
+  border-color: var(--dark);
+}
+
+.btn-nav-primary:hover {
+  background: var(--gray-900);
+  border-color: var(--gray-900);
+  color: #fff !important;
+}
+
+/* ── Hero Section ────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  padding: 8rem 0 6rem;
+  background: var(--darker);
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(245, 158, 11, 0.08), transparent);
+  pointer-events: none;
+}
+
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black, transparent);
+  -webkit-mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black, transparent);
+}
+
+.badge-early {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 2rem;
+  color: var(--primary-light);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 1.5rem;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--primary-light);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--primary-light);
+  animation: pulse 2s infinite;
+  display: inline-block;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.5rem;
+}
+
+.hero p {
+  font-size: 1.125rem;
+  color: var(--gray-400);
+  max-width: 560px;
+  line-height: 1.7;
+  margin: 0 auto 2rem;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.btn-hero {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  padding: 0.875rem 2rem;
+  border-radius: 0.875rem;
+  border: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.btn-hero-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff;
+  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.3);
+}
+
+.btn-hero-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+  color: #fff;
+}
+
+.btn-hero-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+.btn-hero-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.hero-note {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.8125rem;
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+.hero-note i {
+  color: var(--success);
+  margin-right: 0.25rem;
+}
+
+/* ── Dashboard Preview ───────────────────────────────────────── */
+.dashboard-section {
+  position: relative;
+  margin-top: -4rem;
+  padding-bottom: 5rem;
+}
+
+.portfolio-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary-light);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 0.375rem 0.875rem;
+  border-radius: 2rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-card {
+  background: var(--gray-900);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  overflow: hidden;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+.dashboard-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
+  gap: 0.75rem;
 }
 
-.hero-glow {
- position: absolute;
- width: 600px;
- height: 600px;
- border-radius: 50%;
- background: radial-gradient(circle, rgba(220, 48, 124, 0.2) 0%, rgba(94, 98, 176, 0.1) 50%, transparent 70%);
- top: -100px;
- right: -100px;
- z-index: 0;
- animation: glowPulse 6s ease-in-out infinite;
+.dashboard-dots {
+  display: flex;
+  gap: 0.5rem;
 }
 
-.hero-glow::before {
- content: '';
- position: absolute;
- width: 400px;
- height: 400px;
- border-radius: 50%;
- background: radial-gradient(circle, rgba(51, 183, 226, 0.15) 0%, transparent 70%);
- bottom: -200px;
- left: -100px;
+.dashboard-dots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
 }
 
-@keyframes glowPulse {
-  0%, 100% { opacity: 0.7; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
+.dot-red { background: #ef4444; }
+.dot-yellow { background: #f59e0b; }
+.dot-green { background: #10b981; }
+
+.dashboard-title {
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-400);
+  margin-left: 0.5rem;
 }
 
-.min-vh-75 {
-  min-height: 75vh;
+.dashboard-active {
+  color: var(--gray-600);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
-/* Hero Card (mock dashboard preview) */
-.hero-card {
-  animation: floatCard 6s ease-in-out infinite;
+.dashboard-body {
+  padding: 1.5rem;
 }
 
-@keyframes floatCard {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
+.domain-row {
+  display: flex;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  gap: 1rem;
 }
 
-.hero-card .list-group-item:last-child {
+.domain-row:last-child {
   border-bottom: none;
 }
 
-/* Feature Cards */
+.domain-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 0.75rem;
+  background: rgba(99, 102, 241, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-light);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.domain-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.domain-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: #fff;
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
+}
+
+.domain-registrar {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+.domain-price {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--gray-300);
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+.domain-days {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  white-space: nowrap;
+}
+
+.days-safe {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success);
+}
+
+.days-warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning);
+}
+
+.days-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+}
+
+/* ── Stats Section ───────────────────────────────────────────── */
+.stats-section {
+  padding: 4rem 0;
+  background: var(--gray-50);
+}
+
+.stat-card {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.stat-number {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--dark);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.stat-number span {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+.stat-divider {
+  width: 1px;
+  background: var(--gray-300);
+  height: 60px;
+  margin: auto 0;
+}
+
+/* ── Features Section ────────────────────────────────────────── */
+.features-section {
+  padding: 6rem 0;
+  background: #fff;
+  position: relative;
+}
+
+.features-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gray-300), transparent);
+}
+
+.section-header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 4rem;
+}
+
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.section-header p {
+  color: var(--gray-600);
+  font-size: 1.0625rem;
+}
+
+.text-gradient-inline {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .feature-card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  padding: 2.5rem;
+  border-radius: 1.25rem;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-100);
+  height: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 
 .feature-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.15);
-}
-
-.feature-icon-wrapper {
- width: 56px;
- height: 56px;
- display: flex;
- align-items: center;
- justify-content: center;
- border-radius: 1rem;
- background: rgba(220, 48, 124, 0.15);
-}
-
-/* Pricing Cards */
-.pricing-section .card {
-  transition: transform 0.3s ease;
-}
-
-.pricing-section .card:hover {
   transform: translateY(-4px);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.08);
+  border-color: var(--gray-200);
 }
 
-/* CTA */
-.cta-section .card {
- background: linear-gradient(135deg, rgba(220, 48, 124, 0.12) 0%, rgba(51, 183, 226, 0.08) 100%);
+.feature-card:hover::before {
+  opacity: 1;
 }
 
-/* Landing page overrides — hide the sidebar for full-width hero */
-.landing {
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
+}
+
+.feature-card h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.feature-card p {
+  font-size: 0.9375rem;
+  color: var(--gray-600);
+  line-height: 1.7;
+  margin-bottom: 0;
+}
+
+/* ── Pricing Section ─────────────────────────────────────────── */
+.pricing-section {
+  padding: 6rem 0;
+  background: var(--gray-50);
+  position: relative;
+}
+
+.pricing-card {
+  background: #fff;
+  border-radius: 1.5rem;
+  border: 1px solid var(--gray-200);
+  padding: 2.5rem;
+  height: 100%;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.pricing-card:hover {
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.pricing-card.popular {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary), 0 24px 48px -12px rgba(99, 102, 241, 0.15);
+  transform: scale(1.02);
+}
+
+.pricing-card.popular:hover {
+  transform: scale(1.02) translateY(-4px);
+}
+
+.popular-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.375rem 1rem;
+  border-radius: 2rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.pricing-name {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 0.25rem;
+}
+
+.pricing-price {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: var(--dark);
+  line-height: 1;
+  margin: 1.25rem 0 0.25rem;
+  letter-spacing: -0.03em;
+}
+
+.pricing-price span {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--gray-600);
+  vertical-align: baseline;
+}
+
+.pricing-period {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  font-weight: 500;
+  margin-bottom: 2rem;
+}
+
+.pricing-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem;
+}
+
+.pricing-features li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0;
+  font-size: 0.9375rem;
+  color: var(--gray-700);
+}
+
+.pricing-features li i {
+  color: var(--success);
+  font-size: 1.125rem;
+  flex-shrink: 0;
+}
+
+.btn-pricing {
   width: 100%;
+  padding: 0.875rem;
+  border-radius: 0.875rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border: 1.5px solid var(--gray-300);
+  background: transparent;
+  color: var(--gray-700);
+  transition: all 0.2s;
+}
+
+.btn-pricing:hover {
+  border-color: var(--dark);
+  color: var(--dark);
+}
+
+.btn-pricing-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+}
+
+.btn-pricing-primary:hover {
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* ── CTA Section ─────────────────────────────────────────────── */
+.cta-section {
+  padding: 6rem 0;
+  background: var(--dark);
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 100%, rgba(99, 102, 241, 0.12), transparent),
+    radial-gradient(ellipse 40% 30% at 20% 0%, rgba(245, 158, 11, 0.06), transparent);
+}
+
+.cta-content {
+  position: relative;
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.cta-content h2 {
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  color: #fff;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.cta-content p {
+  color: var(--gray-500);
+  font-size: 1.0625rem;
+  margin-bottom: 2rem;
+}
+
+.btn-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2.5rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: 1rem;
+  border: none;
+  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.3);
+  transition: all 0.3s;
+  text-decoration: none;
+}
+
+.btn-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+  color: #fff;
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.footer {
+  padding: 3rem 0;
+  background: var(--darker);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
+}
+
+.footer-brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.footer-brand span {
+  color: var(--primary);
+}
+
+.footer-copy {
+  color: var(--gray-700);
+  font-size: 0.875rem;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .hero {
+    padding: 6rem 0 4rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .hero h1 {
+    font-size: 2.25rem;
+  }
+  .dashboard-section {
+    margin-top: -2rem;
+  }
+  .feature-card {
+    padding: 1.75rem;
+  }
 }
 </style>
