@@ -6,11 +6,12 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# API routes → Netlify function (must come BEFORE the SPA catch-all)
+# API routes → Netlify function (force=true overrides file system + other redirects)
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
+  force = true
 
 # SPA fallback — all non-file, non-API routes serve index.html
 [[redirects]]
