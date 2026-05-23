@@ -5,18 +5,3 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-
-# API routes → Netlify function (force=true overrides file system + other redirects)
-# :splat captures everything after /api/, then we prepend /api/ again
-# so Hono sees the full /api/* path (Netlify strips /.netlify/functions/api from the front)
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/api/:splat"
-  status = 200
-  force = true
-
-# SPA fallback — all non-file, non-API routes serve index.html
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
