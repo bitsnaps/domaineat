@@ -325,6 +325,155 @@ app.get('/api/exchange-rates', async (c) => {
   }
 })
 
+// ─── Domain Validation ─────────────────────────────────────────────────
+
+app.get('/api/validate', async (c) => {
+  const domain = c.req.query('domain')
+  if (!domain || typeof domain !== 'string') {
+    return c.json({ error: 'domain query parameter is required' }, 400)
+  }
+
+  const sanitized = domain.toLowerCase().replace(/^www\./, '').trim()
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z]{2,})+$/.test(sanitized)) {
+    return c.json({ error: 'Invalid domain format' }, 400)
+  }
+
+  try {
+    const { rdapLookup } = await import('./domain-analysis.js')
+    const { fullDnsCheck } = await import('./dns-check.js')
+
+    const [rdapResult, dnsResult] = await Promise.allSettled([
+      rdapLookup(sanitized),
+      fullDnsCheck(sanitized),
+    ])
+
+    const rdap = rdapResult.status === 'fulfilled' ? rdapResult.value : null
+    const dns = dnsResult.status === 'fulfilled' ? dnsResult.value : null
+
+    return c.json({
+      status: 'ok',
+      domain: sanitized,
+      available: rdap === null,
+      whois: rdap ? {
+        registrar: rdap.registrar,
+        creationDate: rdap.creationDate,
+        expiryDate: rdap.expiryDate,
+        nameservers: rdap.nameservers,
+        status: rdap.status,
+      } : null,
+      dns: dns ? {
+        resolved: dns.resolved,
+        ip: dns.ip,
+        nameservers: dns.nameservers,
+        ssl_expiry: dns.ssl_expiry,
+      } : null,
+    })
+  } catch (err: any) {
+    return c.json({ error: `Validation failed: ${err.message}` }, 502)
+  }
+})
+
+// ─── Domain Search (TLD expansion) ─────────────────────────────────────
+
+app.get('/api/search', async (c) => {
+  const domain = c.req.query('domain')
+  const tldsParam = c.req.query('tlds')
+
+  if (!domain || typeof domain !== 'string') {
+    return c.json({ error: 'domain query parameter is required' }, 400)
+  }
+
+  const sld = domain.toLowerCase().replace(/^www\./, '').split('.')[0]
+  if (!sld) {
+    return c.json({ error: 'Invalid domain — could not extract SLD' }, 400)
+  }
+
+  const defaultTlds = ['com', 'net', 'org', 'io', 'co', 'dev', 'app', 'ai', 'xyz', 'me']
+  const tlds = tldsParam
+    ? tldsParam.split(',').map(t => t.trim().replace(/^\./, '')).filter(Boolean)
+    : defaultTlds
+
+  try {
+    const { checkExtension } = await import('./domain-analysis.js')
+    const results = await Promise.allSettled(
+      tlds.map(tld => checkExtension(sld, tld))
+    )
+
+    const extensions = results
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+      .map(r => r.value)
+
+    return c.json({
+      status: 'ok',
+      sld,
+      results: extensions,
+    })
+  } catch (err: any) {
+    return c.json({ error: `Search failed: ${err.message}` }, 502)
+  }
+})
+
+// ─── Bulk Domain Lookup ────────────────────────────────────────────────
+
+app.post('/api/bulk', async (c) => {
+  const body = await c.req.json().catch(() => null)
+  if (!body || !Array.isArray(body.domains) || body.domains.length === 0) {
+    return c.json({ error: 'domains array is required (e.g. {"domains":["example.com","test.io"]})' }, 400)
+  }
+
+  if (body.domains.length > 50) {
+    return c.json({ error: 'Maximum 50 domains per bulk request' }, 400)
+  }
+
+  const domains = body.domains.map((d: string) =>
+    String(d).toLowerCase().replace(/^www\./, '').trim()
+  ).filter((d: string) => /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z]{2,})+$/.test(d))
+
+  if (domains.length === 0) {
+    return c.json({ error: 'No valid domains found in request' }, 400)
+  }
+
+  try {
+    const { rdapLookup } = await import('./domain-analysis.js')
+    const { fullDnsCheck } = await import('./dns-check.js')
+
+    const results = await Promise.allSettled(
+      domains.map(async (domain: string) => {
+        const [rdapResult, dnsResult] = await Promise.allSettled([
+          rdapLookup(domain),
+          fullDnsCheck(domain),
+        ])
+
+        const rdap = rdapResult.status === 'fulfilled' ? rdapResult.value : null
+        const dns = dnsResult.status === 'fulfilled' ? dnsResult.value : null
+
+        return {
+          domain,
+          available: rdap === null,
+          whois: rdap ? {
+            registrar: rdap.registrar,
+            creationDate: rdap.creationDate,
+            expiryDate: rdap.expiryDate,
+          } : null,
+          dns: dns ? {
+            resolved: dns.resolved,
+            ip: dns.ip,
+          } : null,
+        }
+      })
+    )
+
+    return c.json({
+      status: 'ok',
+      results: results
+        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
+        .map(r => r.value),
+    })
+  } catch (err: any) {
+    return c.json({ error: `Bulk lookup failed: ${err.message}` }, 502)
+  }
+})
+
 // ─── User & AI Settings ────────────────────────────────────────────────
 
 // Get user profile + AI settings
