@@ -1,0 +1,51 @@
+/**
+ * Auth utilities — JWT signing/verification + password hashing.
+ * Uses jose (JWT) + bcryptjs (hashing) — pure JS, no native deps.
+ */
+import bcrypt from 'bcryptjs'
+import { SignJWT, jwtVerify } from 'jose'
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'dev-secret-change-in-production'
+)
+
+const JWT_EXPIRES_IN = '7d'
+const JWT_ALG = 'HS256'
+
+/** Hash a plaintext password */
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10)
+}
+
+/** Verify a plaintext password against a hash */
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash)
+}
+
+/** Sign a JWT with user payload */
+export async function signJwt(payload: { userId: number; email: string; tier: string }): Promise<string> {
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: JWT_ALG })
+    .setIssuedAt()
+    .setExpirationTime(JWT_EXPIRES_IN)
+    .sign(JWT_SECRET)
+}
+
+/** Verify and decode a JWT */
+export async function verifyJwt(token: string): Promise<{ userId: number; email: string; tier: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET)
+    return payload as unknown as { userId: number; email: string; tier: string }
+  } catch {
+    return null
+  }
+}
+
+/** Tier-based limits */
+export const TIER_LIMITS = {
+  free: { domains: 10, rdapDaily: 5, aiDaily: 5 },
+  premium: { domains: 1000, rdapDaily: 100, aiDaily: 100 },
+  enterprise: { domains: Infinity, rdapDaily: Infinity, aiDaily: Infinity },
+} as const
+
+export type TierName = keyof typeof TIER_LIMITS

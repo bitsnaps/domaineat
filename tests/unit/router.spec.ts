@@ -10,23 +10,30 @@ const AppLayout = { template: '<div data-testid="app-layout"><RouterView /></div
 const DefaultLayout = { template: '<div data-testid="default-layout"><RouterView /></div>' }
 
 const routes: RouteRecordRaw[] = [
-  {
-    path: '/',
-    component: AppLayout,
-    children: [
-      { path: '', name: 'dashboard', component: DummyView },
-    ],
-  },
-  {
-    path: '/',
-    component: DefaultLayout,
-    children: [
-      { path: 'domains', name: 'domains', component: DummyView },
-      { path: 'ledger', name: 'ledger', component: DummyView },
-      { path: 'prospects', name: 'prospects', component: DummyView },
-      { path: 'settings', name: 'settings', component: DummyView },
-    ],
-  },
+ {
+  path: '/',
+  component: AppLayout,
+  children: [
+   { path: '', name: 'dashboard', component: DummyView },
+  ],
+ },
+ {
+  path: '/login',
+  name: 'login',
+  component: DummyView,
+  meta: { public: true },
+ },
+ {
+  path: '/',
+  component: DefaultLayout,
+  meta: { requiresAuth: true },
+  children: [
+   { path: 'domains', name: 'domains', component: DummyView },
+   { path: 'ledger', name: 'ledger', component: DummyView },
+   { path: 'prospects', name: 'prospects', component: DummyView },
+   { path: 'settings', name: 'settings', component: DummyView },
+  ],
+ },
 ]
 
 describe('Vue Router integration', () => {
@@ -87,8 +94,13 @@ describe('Vue Router integration', () => {
     expect(router.currentRoute.value.name).toBe('prospects')
   })
 
-  it('navigates to /settings', async () => {
-    await router.push('/settings')
-    expect(router.currentRoute.value.name).toBe('settings')
-  })
+ it('navigates to /settings', async () => {
+  await router.push('/settings')
+  expect(router.currentRoute.value.name).toBe('settings')
+ })
+
+ it('navigates to /login', async () => {
+  await router.push('/login')
+  expect(router.currentRoute.value.name).toBe('login')
+ })
 })

@@ -12,11 +12,94 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { sequelize, Domain, Ledger, Prospect, User } from './models/index.js'
+import { hashPassword, verifyPassword, signJwt, verifyJwt, TIER_LIMITS } from './auth.js'
 
 export const app = new Hono()
 
 // Middleware
 app.use('/api/*', cors())
+
+// ─── Auth Routes ───────────────────────────────────────────────────────
+
+// Register
+app.post('/api/auth/register', async (c) => {
+  const { email, password } = await c.req.json()
+  if (!email || !password) {
+    return c.json({ error: 'Email and password are required' }, 400)
+  }
+  if (password.length < 8) {
+    return c.json({ error: 'Password must be at least 8 characters' }, 400)
+  }
+
+  // Check if email already exists
+  const existing = await User.findOne({ where: { email } })
+  if (existing) {
+    return c.json({ error: 'Email already registered' }, 409)
+  }
+
+  const hashed = await hashPassword(password)
+  const user = await User.create({
+    email,
+    password_hash: hashed,
+    tier: 'free',
+  } as any)
+
+  const token = await signJwt({ userId: user.id, email: user.email, tier: user.tier })
+  return c.json({
+    token,
+    user: { id: user.id, email: user.email, tier: user.tier },
+  }, 201)
+})
+
+// Login
+app.post('/api/auth/login', async (c) => {
+  const { email, password } = await c.req.json()
+  if (!email || !password) {
+    return c.json({ error: 'Email and password are required' }, 400)
+  }
+
+  const user = await User.findOne({ where: { email } })
+  if (!user) {
+    return c.json({ error: 'Invalid email or password' }, 401)
+  }
+
+  const valid = await verifyPassword(password, user.password_hash)
+  if (!valid) {
+    return c.json({ error: 'Invalid email or password' }, 401)
+  }
+
+  const token = await signJwt({ userId: user.id, email: user.email, tier: user.tier })
+  return c.json({
+    token,
+    user: { id: user.id, email: user.email, tier: user.tier },
+  })
+})
+
+// Get current user from token
+app.get('/api/auth/me', async (c) => {
+  const auth = c.req.header('Authorization')
+  if (!auth?.startsWith('Bearer ')) {
+    return c.json({ error: 'Authorization header required' }, 401)
+  }
+
+  const payload = await verifyJwt(auth.slice(7))
+  if (!payload) {
+    return c.json({ error: 'Invalid or expired token' }, 401)
+  }
+
+  const user = await User.findByPk(payload.userId, {
+    attributes: { exclude: ['password_hash', 'llm_api_key_encrypted'] },
+  })
+  if (!user) return c.json({ error: 'User not found' }, 404)
+  return c.json(user)
+})
+
+// Auth middleware helper — extracts user from Bearer token
+async function getAuthUser(c: any): Promise<{ userId: number; email: string; tier: string } | null> {
+  const auth = c.req.header('Authorization')
+  if (!auth?.startsWith('Bearer ')) return null
+  return verifyJwt(auth.slice(7))
+}
 
 // Health check
 app.get('/api/health', async (c) => {

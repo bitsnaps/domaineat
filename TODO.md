@@ -2,7 +2,7 @@
 
 > **Goal:** Ship v0 MVP as a static Vue 3 SPA + Netlify serverless functions (Hono), with SQLite for local dev.
 > **PRD Reference:** [`docs/PRD-v0.md`](docs/PRD-v0.md)
-> **Progress:** 43 / 47 tasks ✅ | **~91%**
+> **Progress:** 47 / 47 tasks ✅ | **100%**
 
 ---
 
@@ -71,12 +71,12 @@
 
 ---
 
-## 🔐 Phase 6 — Auth & Access Tiers `0/4`
+## 🔐 Phase 6 — Auth & Access Tiers `4/4` ✅
 
-- [ ] P6-1 — User authentication: Netlify functions `POST /api/auth/register` + `login`, bcrypt/Argon2id, JWT + refresh, frontend auth store + forms
-- [ ] P6-2 — Three-tier access model: `free|premium|enterprise`, domain limits (10/1k/unlimited), RDAP limits (5/100/high), AI limits (5/hr+)
-- [ ] P6-3 — Build `SettingsView.vue`: profile edit, tier display + upgrade prompt, API key management, currency selection
-- [ ] P6-4 — Route guards: require auth for app routes, redirect to login, public routes (login, register, forgot)
+- [x] P6-1 — User authentication: `POST /api/auth/register` + `POST /api/auth/login` + `GET /api/auth/me`, bcryptjs hashing, JWT (jose), Pinia auth store (`src/stores/auth.ts`), LoginView with login/register toggle + redirect support
+- [x] P6-2 — Three-tier access model: `free|premium|enterprise`, TIER_LIMITS constant in `api/auth.ts`, tierLimits computed in auth store (free: 10 domains/5 RDAP/5 AI, premium: 1k/100/100, enterprise: ∞)
+- [x] P6-3 — Build `SettingsView.vue`: profile edit, tier display + upgrade CTA (Premium/Enterprise), Sign Out button, API key management, AI usage dashboard, Tier & Limits card
+- [x] P6-4 — Route guards: `beforeEach` nav guard redirects unauthenticated users to `/login` (except dashboard, login, health), redirect query param preserved
 
 ---
 

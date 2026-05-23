@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import type { User, AiStatus, LlmProvider } from '@/types'
 
 const API_BASE = '/api'
 const USER_ID = 1
+const auth = useAuthStore()
+const router = useRouter()
 
 // User state
 const user = ref<User | null>(null)
@@ -96,9 +100,14 @@ async function saveAiSettings() {
 }
 
 function onProviderChange() {
-  if (!llmModel.value && llmProvider.value) {
-    llmModel.value = defaultModels[llmProvider.value] || ''
-  }
+ if (!llmModel.value && llmProvider.value) {
+  llmModel.value = defaultModels[llmProvider.value] || ''
+ }
+}
+
+function handleLogout() {
+ auth.logout()
+ router.push('/login')
 }
 </script>
 
@@ -117,16 +126,19 @@ function onProviderChange() {
             <div class="col-sm-4 text-muted small">Email</div>
             <div class="col-sm-8 small fw-medium">{{ user?.email || '—' }}</div>
           </div>
-          <div class="row mt-2">
-            <div class="col-sm-4 text-muted small">Tier</div>
-            <div class="col-sm-8">
-              <span class="badge rounded-pill" :class="user?.tier === 'free' ? 'bg-secondary' : 'bg-primary'">
-                {{ tierLabel }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+   <div class="row mt-2">
+    <div class="col-sm-4 text-muted small">Tier</div>
+    <div class="col-sm-8">
+     <span class="badge rounded-pill" :class="user?.tier === 'free' ? 'bg-secondary' : 'bg-primary'">
+      {{ tierLabel }}
+     </span>
+    </div>
+   </div>
+   <div class="mt-3">
+    <button class="btn btn-sm btn-outline-secondary" @click="handleLogout">Sign Out</button>
+   </div>
+  </div>
+ </div>
 
       <!-- AI Configuration Card -->
       <div class="card border-0 shadow-sm mb-4">
@@ -210,7 +222,39 @@ function onProviderChange() {
         </div>
       </div>
 
-      <!-- Currency Settings Card -->
+      <!-- Tier & Limits Card -->
+ <div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+   <h6 class="fw-semibold mb-3">Tier &amp; Limits</h6>
+   <div class="row g-3">
+    <div class="col-sm-4">
+     <div class="text-muted small fw-semibold text-uppercase mb-1">Domains</div>
+     <div class="h5 mb-0">{{ user?.tier === 'enterprise' ? '∞' : (user?.tier === 'premium' ? '1,000' : '10') }}</div>
+    </div>
+    <div class="col-sm-4">
+     <div class="text-muted small fw-semibold text-uppercase mb-1">RDAP / day</div>
+     <div class="h5 mb-0">{{ user?.tier === 'enterprise' ? '∞' : (user?.tier === 'premium' ? '100' : '5') }}</div>
+    </div>
+    <div class="col-sm-4">
+     <div class="text-muted small fw-semibold text-uppercase mb-1">AI calls / day</div>
+     <div class="h5 mb-0">{{ aiStatus?.daily_limit === Infinity ? '∞' : (aiStatus?.daily_limit ?? 5) }}</div>
+    </div>
+   </div>
+   <!-- Upgrade CTA for free tier -->
+   <div v-if="user?.tier === 'free'" class="mt-3 p-3 rounded" style="background: #eef2ff;">
+    <div class="small fw-semibold" style="color: #6366f1;">Upgrade to Premium</div>
+    <div class="text-muted small mb-2">Get 1,000 domains, 100 RDAP checks/day, and 100 AI calls/day.</div>
+    <button class="btn btn-sm text-white" style="background: #6366f1;" disabled>Coming Soon</button>
+   </div>
+   <div v-else-if="user?.tier === 'premium'" class="mt-3 p-3 rounded" style="background: #fef3c7;">
+    <div class="small fw-semibold" style="color: #b45309;">Upgrade to Enterprise</div>
+    <div class="text-muted small mb-2">Unlimited domains, RDAP checks, and AI calls.</div>
+    <button class="btn btn-sm text-white" style="background: #b45309;" disabled>Coming Soon</button>
+   </div>
+  </div>
+ </div>
+
+ <!-- Currency Settings Card -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
           <h6 class="fw-semibold mb-3">Currency</h6>
