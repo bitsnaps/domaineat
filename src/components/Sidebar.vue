@@ -6,12 +6,9 @@ const appState = useAppStateStore()
 <template>
  <aside
  class="sidebar d-flex flex-column border-end"
- :class="{
- 'sidebar-collapsed': appState.sidebarCollapsed && !appState.mobileMenuOpen,
- 'sidebar-mobile-open': appState.mobileMenuOpen,
- }"
+ :class="{ 'sidebar-collapsed': appState.sidebarCollapsed }"
  >
- <router-link to="/home" class="sidebar-brand d-flex align-items-center mb-3 text-decoration-none" @click="appState.closeMobileMenu">
+ <router-link to="/home" class="sidebar-brand d-flex align-items-center mb-3 text-decoration-none">
  <i class="bi bi-globe2 fs-3" style="color: var(--primary);"></i>
  <span class="sidebar-label fs-5 fw-bold ms-2" style="font-family: var(--font-display); color: var(--dark);">
  Domain<span style="color: var(--primary);">eat</span>
@@ -22,40 +19,35 @@ const appState = useAppStateStore()
  <ul class="nav nav-pills flex-column mb-auto gap-1">
  <li class="nav-item">
  <router-link to="/home" class="nav-link d-flex align-items-center" active-class="active"
- :title="appState.sidebarCollapsed ? 'Dashboard' : ''"
- @click="appState.closeMobileMenu">
+ :title="appState.sidebarCollapsed ? 'Dashboard' : ''">
  <i class="bi bi-speedometer2 sidebar-icon"></i>
  <span class="sidebar-label ms-3">Dashboard</span>
  </router-link>
  </li>
  <li class="nav-item">
  <router-link to="/domains" class="nav-link d-flex align-items-center" active-class="active"
- :title="appState.sidebarCollapsed ? 'Domains' : ''"
- @click="appState.closeMobileMenu">
+ :title="appState.sidebarCollapsed ? 'Domains' : ''">
  <i class="bi bi-globe sidebar-icon"></i>
  <span class="sidebar-label ms-3">Domains</span>
  </router-link>
  </li>
  <li class="nav-item">
  <router-link to="/ledger" class="nav-link d-flex align-items-center" active-class="active"
- :title="appState.sidebarCollapsed ? 'Ledger' : ''"
- @click="appState.closeMobileMenu">
+ :title="appState.sidebarCollapsed ? 'Ledger' : ''">
  <i class="bi bi-cash-stack sidebar-icon"></i>
  <span class="sidebar-label ms-3">Ledger</span>
  </router-link>
  </li>
  <li class="nav-item">
  <router-link to="/prospects" class="nav-link d-flex align-items-center" active-class="active"
- :title="appState.sidebarCollapsed ? 'Prospects' : ''"
- @click="appState.closeMobileMenu">
+ :title="appState.sidebarCollapsed ? 'Prospects' : ''">
  <i class="bi bi-search sidebar-icon"></i>
  <span class="sidebar-label ms-3">Prospects</span>
  </router-link>
  </li>
  <li class="nav-item">
  <router-link to="/settings" class="nav-link d-flex align-items-center" active-class="active"
- :title="appState.sidebarCollapsed ? 'Settings' : ''"
- @click="appState.closeMobileMenu">
+ :title="appState.sidebarCollapsed ? 'Settings' : ''">
  <i class="bi bi-gear sidebar-icon"></i>
  <span class="sidebar-label ms-3">Settings</span>
  </router-link>
@@ -75,7 +67,7 @@ const appState = useAppStateStore()
 .sidebar {
  width: 260px;
  padding: 1rem;
- transition: width 0.3s ease, padding 0.3s ease, transform 0.3s ease;
+ transition: width 0.3s ease, padding 0.3s ease;
  overflow: hidden;
  flex-shrink: 0;
  background: var(--bs-body-bg, #fff);
@@ -132,57 +124,5 @@ const appState = useAppStateStore()
 
 .sidebar-toggle-btn {
  width: 100%;
-}
-
-/* ── Mobile (<768px): sidebar becomes offcanvas overlay ── */
-@media (max-width: 767.98px) {
- .sidebar {
- position: fixed;
- top: 0;
- left: 0;
- bottom: 0;
- z-index: 1040;
- width: 260px;
- padding: 1rem;
- transform: translateX(-100%);
- transition: transform 0.3s ease;
- box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
- }
-
- .sidebar.sidebar-mobile-open {
- transform: translateX(0);
- }
-
- /* Override collapsed state on mobile — always show full sidebar */
- .sidebar.sidebar-collapsed {
- width: 260px;
- padding: 1rem;
- transform: translateX(-100%);
- }
-
- .sidebar.sidebar-collapsed.sidebar-mobile-open {
- transform: translateX(0);
- }
-
- .sidebar.sidebar-collapsed .sidebar-label {
- opacity: 1;
- width: auto;
- overflow: visible;
- }
-
- .sidebar.sidebar-collapsed .nav-link {
- justify-content: flex-start;
- padding-left: inherit;
- padding-right: inherit;
- }
-
- .sidebar.sidebar-collapsed .sidebar-brand {
- justify-content: flex-start;
- margin-left: 0;
- }
-
- .sidebar-toggle-btn {
- display: none;
- }
 }
 </style>

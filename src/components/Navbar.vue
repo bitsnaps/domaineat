@@ -1,22 +1,23 @@
 <script setup lang="ts">
 import { useAppStateStore } from '@/stores/appState'
 const appState = useAppStateStore()
-
-function handleToggle() {
- if (window.innerWidth < 768) {
- appState.toggleMobileMenu()
- } else {
- appState.toggleSidebar()
- }
-}
 </script>
 
 <template>
  <nav class="navbar navbar-expand px-3" style="border-bottom: 1px solid var(--gray-200);">
+ <!-- Hamburger: toggles desktop sidebar OR mobile menu -->
  <button
- class="btn btn-sm btn-outline-secondary me-3"
+ class="btn btn-sm btn-outline-secondary me-3 d-md-none"
+ data-testid="mobile-hamburger"
+ @click="appState.toggleMobileMenu"
+ aria-label="Open menu"
+ >
+ <i class="bi bi-list fs-5"></i>
+ </button>
+ <button
+ class="btn btn-sm btn-outline-secondary me-3 d-none d-md-inline-block"
  data-testid="sidebar-hamburger"
- @click="handleToggle"
+ @click="appState.toggleSidebar"
  :title="appState.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
  >
  <i class="bi bi-list fs-5"></i>
