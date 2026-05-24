@@ -28,12 +28,8 @@ watch(route, () => {
  @click="closeMobileSidebar"
  ></div>
 
- <!-- Sidebar -->
- <Sidebar
- :class="{
- 'sidebar-mobile-open': appState.mobileMenuOpen,
- }"
- />
+ <!-- Sidebar (handles its own mobile-open class internally) -->
+ <Sidebar />
 
  <div class="d-flex flex-column flex-grow-1 overflow-hidden default-layout-main" style="background: var(--gray-50);">
  <Navbar />

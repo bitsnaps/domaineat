@@ -68,18 +68,38 @@ describe('appState store', () => {
     expect(store.theme).toBe('dark')
   })
 
-  it('detects system prefers-color-scheme: dark', () => {
-    ;(window.matchMedia as any).mockImplementation((query: string) => ({
-      matches: query === '(prefers-color-scheme: dark)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }))
-    const store = useAppStateStore()
-    expect(store.theme).toBe('dark')
-  })
+ it('detects system prefers-color-scheme: dark', () => {
+ ;(window.matchMedia as any).mockImplementation((query: string) => ({
+ matches: query === '(prefers-color-scheme: dark)',
+ media: query,
+ onchange: null,
+ addListener: vi.fn(),
+ removeListener: vi.fn(),
+ addEventListener: vi.fn(),
+ removeEventListener: vi.fn(),
+ dispatchEvent: vi.fn(),
+ }))
+ const store = useAppStateStore()
+ expect(store.theme).toBe('dark')
+ })
+
+ it('toggles mobile menu', () => {
+ const store = useAppStateStore()
+ expect(store.mobileMenuOpen).toBe(false)
+ store.toggleMobileMenu()
+ expect(store.mobileMenuOpen).toBe(true)
+ store.toggleMobileMenu()
+ expect(store.mobileMenuOpen).toBe(false)
+ })
+
+ it('closes mobile menu', () => {
+ const store = useAppStateStore()
+ store.toggleMobileMenu()
+ expect(store.mobileMenuOpen).toBe(true)
+ store.closeMobileMenu()
+ expect(store.mobileMenuOpen).toBe(false)
+ // closeMobileMenu is idempotent
+ store.closeMobileMenu()
+ expect(store.mobileMenuOpen).toBe(false)
+ })
 })

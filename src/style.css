@@ -294,51 +294,10 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Responsive: Mobile (<768px) ────────────────────────────── */
 @media (max-width: 767.98px) {
-  /* Sidebar becomes offcanvas overlay */
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 1040;
-    width: 260px;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
-  }
+ /* Sidebar mobile rules are in Sidebar.vue scoped styles */
+ /* (scoped styles have higher specificity, so global rules here would lose) */
 
-  .sidebar.sidebar-mobile-open {
-    transform: translateX(0);
-  }
-
-  .sidebar.sidebar-collapsed {
-    width: 260px;
-    padding: 1rem;
-    transform: translateX(-100%);
-  }
-
-  .sidebar.sidebar-collapsed.sidebar-mobile-open {
-    transform: translateX(0);
-  }
-
-  .sidebar.sidebar-collapsed .sidebar-label {
-    opacity: 1;
-    width: auto;
-    overflow: visible;
-  }
-
-  .sidebar.sidebar-collapsed .nav-link {
-    justify-content: flex-start;
-    padding-left: inherit;
-    padding-right: inherit;
-  }
-
-  .sidebar.sidebar-collapsed .sidebar-brand {
-    justify-content: flex-start;
-    margin-left: 0;
-  }
-
-  /* Main content takes full width */
+ /* Main content takes full width */
   .default-layout-main {
     margin-left: 0 !important;
     width: 100% !important;
