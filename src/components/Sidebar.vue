@@ -18,39 +18,44 @@ const appState = useAppStateStore()
 
   <ul class="nav nav-pills flex-column mb-auto gap-1">
     <li class="nav-item">
-      <router-link to="/home" class="nav-link d-flex align-items-center" active-class="active"
-        :title="appState.sidebarCollapsed ? 'Dashboard' : ''">
-        <i class="bi bi-speedometer2 sidebar-icon"></i>
-        <span class="sidebar-label ms-3">Dashboard</span>
-      </router-link>
-    </li>
-    <li class="nav-item">
-      <router-link to="/domains" class="nav-link d-flex align-items-center" active-class="active"
-        :title="appState.sidebarCollapsed ? 'Domains' : ''">
-        <i class="bi bi-globe sidebar-icon"></i>
-        <span class="sidebar-label ms-3">Domains</span>
-      </router-link>
-    </li>
-    <li class="nav-item">
-      <router-link to="/ledger" class="nav-link d-flex align-items-center" active-class="active"
-        :title="appState.sidebarCollapsed ? 'Ledger' : ''">
-        <i class="bi bi-cash-stack sidebar-icon"></i>
-        <span class="sidebar-label ms-3">Ledger</span>
-      </router-link>
-    </li>
-    <li class="nav-item">
-      <router-link to="/prospects" class="nav-link d-flex align-items-center" active-class="active"
-        :title="appState.sidebarCollapsed ? 'Prospects' : ''">
-        <i class="bi bi-search sidebar-icon"></i>
-        <span class="sidebar-label ms-3">Prospects</span>
-      </router-link>
-    </li>
-    <li class="nav-item">
-      <router-link to="/settings" class="nav-link d-flex align-items-center" active-class="active"
-        :title="appState.sidebarCollapsed ? 'Settings' : ''">
-        <i class="bi bi-gear sidebar-icon"></i>
-        <span class="sidebar-label ms-3">Settings</span>
-      </router-link>
+ <router-link to="/home" class="nav-link d-flex align-items-center" active-class="active"
+ :title="appState.sidebarCollapsed ? 'Dashboard' : ''"
+ @click="appState.closeMobileMenu">
+ <i class="bi bi-speedometer2 sidebar-icon"></i>
+ <span class="sidebar-label ms-3">Dashboard</span>
+ </router-link>
+ </li>
+ <li class="nav-item">
+ <router-link to="/domains" class="nav-link d-flex align-items-center" active-class="active"
+ :title="appState.sidebarCollapsed ? 'Domains' : ''"
+ @click="appState.closeMobileMenu">
+ <i class="bi bi-globe sidebar-icon"></i>
+ <span class="sidebar-label ms-3">Domains</span>
+ </router-link>
+ </li>
+ <li class="nav-item">
+ <router-link to="/ledger" class="nav-link d-flex align-items-center" active-class="active'"
+ :title="appState.sidebarCollapsed ? 'Ledger' : ''"
+ @click="appState.closeMobileMenu">
+ <i class="bi bi-cash-stack sidebar-icon"></i>
+ <span class="sidebar-label ms-3">Ledger</span>
+ </router-link>
+ </li>
+ <li class="nav-item">
+ <router-link to="/prospects" class="nav-link d-flex align-items-center" active-class="active'"
+ :title="appState.sidebarCollapsed ? 'Prospects' : ''"
+ @click="appState.closeMobileMenu">
+ <i class="bi bi-search sidebar-icon"></i>
+ <span class="sidebar-label ms-3">Prospects</span>
+ </router-link>
+ </li>
+ <li class="nav-item">
+ <router-link to="/settings" class="nav-link d-flex align-items-center" active-class="active'"
+ :title="appState.sidebarCollapsed ? 'Settings' : ''"
+ @click="appState.closeMobileMenu">
+ <i class="bi bi-gear sidebar-icon"></i>
+ <span class="sidebar-label ms-3">Settings</span>
+ </router-link>
     </li>
   </ul>
 

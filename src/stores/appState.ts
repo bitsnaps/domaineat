@@ -2,15 +2,24 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useAppStateStore = defineStore('appState', () => {
-  const sidebarCollapsed = ref(false)
-  const theme = ref<'light' | 'dark'>('light')
+ const sidebarCollapsed = ref(false)
+ const mobileMenuOpen = ref(false)
+ const theme = ref<'light' | 'dark'>('light')
 
-  const toggleSidebar = () => {
-    sidebarCollapsed.value = !sidebarCollapsed.value
-    localStorage.setItem('app_sidebar_collapsed', String(sidebarCollapsed.value))
-  }
+ const toggleSidebar = () => {
+ sidebarCollapsed.value = !sidebarCollapsed.value
+ localStorage.setItem('app_sidebar_collapsed', String(sidebarCollapsed.value))
+ }
 
-  const toggleTheme = () => {
+ const toggleMobileMenu = () => {
+ mobileMenuOpen.value = !mobileMenuOpen.value
+ }
+
+ const closeMobileMenu = () => {
+ mobileMenuOpen.value = false
+ }
+
+ const toggleTheme = () => {
     theme.value = theme.value === 'dark' ? 'light' : 'dark'
     document.documentElement.setAttribute('data-bs-theme', theme.value)
     localStorage.setItem('app_theme', theme.value)
@@ -33,5 +42,5 @@ export const useAppStateStore = defineStore('appState', () => {
     }
   }
 
-  return { sidebarCollapsed, theme, toggleSidebar, toggleTheme }
+  return { sidebarCollapsed, mobileMenuOpen, theme, toggleSidebar, toggleMobileMenu, closeMobileMenu, toggleTheme }
 })
