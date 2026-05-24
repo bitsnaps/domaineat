@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useToastStore } from '@/stores/toast'
 import type {
   Prospect,
   ProspectCreate,
@@ -25,83 +26,97 @@ export const useProspectsStore = defineStore('prospects', () => {
 
   // ─── Actions ────────────────────────────────────────────────────────────
 
-  async function fetchProspects() {
-    loading.value = true
-    error.value = null
-    try {
-      const params = new URLSearchParams()
-      if (filterDomainId.value) params.set('domain_id', String(filterDomainId.value))
-      const res = await fetch(`${API_BASE}/prospects?${params}`)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      prospects.value = await res.json()
-    } catch (err: any) {
-      error.value = err.message
-    } finally {
-      loading.value = false
-    }
-  }
+async function fetchProspects() {
+ loading.value = true
+ error.value = null
+ try {
+ const params = new URLSearchParams()
+ if (filterDomainId.value) params.set('domain_id', String(filterDomainId.value))
+ const res = await fetch(`${API_BASE}/prospects?${params}`)
+ if (!res.ok) throw new Error(`HTTP ${res.status}`)
+ prospects.value = await res.json()
+ } catch (err: any) {
+ error.value = err.message
+ const toast = useToastStore()
+ toast.error(`Failed to fetch prospects: ${err.message}`)
+ } finally {
+ loading.value = false
+ }
+ }
 
-  async function createProspect(payload: ProspectCreate) {
-    loading.value = true
-    error.value = null
-    try {
-      const res = await fetch(`${API_BASE}/prospects`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) {
-        const data = (await res.json()) as ApiError
-        throw new Error(data.error || `HTTP ${res.status}`)
-      }
-      const prospect = (await res.json()) as Prospect
-      prospects.value.unshift(prospect)
-      return prospect
-    } catch (err: any) {
-      error.value = err.message
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
+ async function createProspect(payload: ProspectCreate) {
+ loading.value = true
+ error.value = null
+ try {
+ const res = await fetch(`${API_BASE}/prospects`, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify(payload),
+ })
+ if (!res.ok) {
+ const data = (await res.json()) as ApiError
+ throw new Error(data.error || `HTTP ${res.status}`)
+ }
+ const prospect = (await res.json()) as Prospect
+ prospects.value.unshift(prospect)
+ const toast = useToastStore()
+ toast.success('Prospect added')
+ return prospect
+ } catch (err: any) {
+ error.value = err.message
+ const toast = useToastStore()
+ toast.error(`Failed to add prospect: ${err.message}`)
+ throw err
+ } finally {
+ loading.value = false
+ }
+ }
 
-  async function updateProspect(id: number, payload: ProspectUpdate) {
-    loading.value = true
-    error.value = null
-    try {
-      const res = await fetch(`${API_BASE}/prospects/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) {
-        const data = (await res.json()) as ApiError
-        throw new Error(data.error || `HTTP ${res.status}`)
-      }
-      const updated = (await res.json()) as Prospect
-      const idx = prospects.value.findIndex((p) => p.id === id)
-      if (idx !== -1) prospects.value[idx] = updated
-      return updated
-    } catch (err: any) {
-      error.value = err.message
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
+ async function updateProspect(id: number, payload: ProspectUpdate) {
+ loading.value = true
+ error.value = null
+ try {
+ const res = await fetch(`${API_BASE}/prospects/${id}`, {
+ method: 'PUT',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify(payload),
+ })
+ if (!res.ok) {
+ const data = (await res.json()) as ApiError
+ throw new Error(data.error || `HTTP ${res.status}`)
+ }
+ const updated = (await res.json()) as Prospect
+ const idx = prospects.value.findIndex((p) => p.id === id)
+ if (idx !== -1) prospects.value[idx] = updated
+ const toast = useToastStore()
+ toast.success('Prospect updated')
+ return updated
+ } catch (err: any) {
+ error.value = err.message
+ const toast = useToastStore()
+ toast.error(`Failed to update prospect: ${err.message}`)
+ throw err
+ } finally {
+ loading.value = false
+ }
+ }
 
-  async function deleteProspect(id: number) {
-    loading.value = true
-    error.value = null
-    try {
-      const res = await fetch(`${API_BASE}/prospects/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      prospects.value = prospects.value.filter((p) => p.id !== id)
-    } catch (err: any) {
-      error.value = err.message
-      throw err
-    } finally {
-      loading.value = false
+ async function deleteProspect(id: number) {
+ loading.value = true
+ error.value = null
+ try {
+ const res = await fetch(`${API_BASE}/prospects/${id}`, { method: 'DELETE' })
+ if (!res.ok) throw new Error(`HTTP ${res.status}`)
+ prospects.value = prospects.value.filter((p) => p.id !== id)
+ const toast = useToastStore()
+ toast.success('Prospect deleted')
+ } catch (err: any) {
+ error.value = err.message
+ const toast = useToastStore()
+ toast.error(`Failed to delete prospect: ${err.message}`)
+ throw err
+ } finally {
+ loading.value = false
     }
   }
 

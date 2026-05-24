@@ -4,6 +4,7 @@ import { initUser, User } from './User.js'
 import { initDomain, Domain } from './Domain.js'
 import { initLedger, Ledger } from './Ledger.js'
 import { initProspect, Prospect } from './Prospect.js'
+import { initNotification, Notification } from './Notification.js'
 
 const env = process.env.NODE_ENV || 'development'
 
@@ -25,6 +26,7 @@ initUser(sequelize)
 initDomain(sequelize)
 initLedger(sequelize)
 initProspect(sequelize)
+initNotification(sequelize)
 
 // Define associations (PRD foreign keys)
 Domain.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
@@ -36,5 +38,11 @@ Domain.hasMany(Ledger, { foreignKey: 'domain_id', as: 'ledgerEntries' })
 Prospect.belongsTo(Domain, { foreignKey: 'domain_id', as: 'domain' })
 Domain.hasMany(Prospect, { foreignKey: 'domain_id', as: 'prospects' })
 
-export { sequelize, User, Domain, Ledger, Prospect }
-export default { sequelize, User, Domain, Ledger, Prospect }
+Notification.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
+User.hasMany(Notification, { foreignKey: 'user_id', as: 'notifications' })
+
+Notification.belongsTo(Domain, { foreignKey: 'domain_id', as: 'domain' })
+Domain.hasMany(Notification, { foreignKey: 'domain_id', as: 'notifications' })
+
+export { sequelize, User, Domain, Ledger, Prospect, Notification }
+export default { sequelize, User, Domain, Ledger, Prospect, Notification }

@@ -3,6 +3,8 @@ import { onMounted, ref } from 'vue'
 import { useDomainsStore } from '@/stores/domains'
 import DomainModal from '@/components/DomainModal.vue'
 import CsvImportModal from '@/components/CsvImportModal.vue'
+import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import type { Domain, DomainStatus } from '@/types'
 
 const store = useDomainsStore()
@@ -234,25 +236,24 @@ function daysBadge(domain: Domain) {
           </tbody>
         </table>
 
-        <!-- Empty state -->
-        <div class="text-center py-5" v-if="!store.loading && !store.pagedDomains.length">
-          <i class="bi bi-globe fs-1 text-muted"></i>
-          <p class="mt-2 text-muted">{{ store.searchQuery || store.filterTld || store.filterRegistrar || store.filterStatus ? 'No domains match your filters' : 'No domains yet. Add your first domain!' }}</p>
-          <button class="btn btn-primary btn-sm" @click="openAdd" v-if="!store.searchQuery && !store.filterTld">
-            <i class="bi bi-plus-lg me-1"></i>Add Domain
-          </button>
-        </div>
+ <!-- Empty state -->
+ <EmptyState
+ v-if="!store.loading && !store.pagedDomains.length"
+ :icon="store.searchQuery || store.filterTld || store.filterRegistrar || store.filterStatus ? 'bi-funnel' : 'bi-globe'"
+ :message="store.searchQuery || store.filterTld || store.filterRegistrar || store.filterStatus ? 'No domains match your filters' : 'No domains yet. Add your first domain!'"
+ :action-label="(!store.searchQuery && !store.filterTld) ? 'Add Domain' : ''"
+ @action="openAdd"
+ />
 
-        <!-- Loading -->
-        <div class="text-center py-5" v-if="store.loading">
-          <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-          <p class="mt-2 text-muted small">Loading domains…</p>
-        </div>
+ <!-- Loading -->
+ <div class="p-4" v-if="store.loading">
+ <LoadingSkeleton :lines="6" height="20px" />
+ </div>
 
-        <!-- Error -->
-        <div class="alert alert-danger m-3" v-if="store.error">
-          <i class="bi bi-exclamation-triangle me-1"></i>{{ store.error }}
-        </div>
+ <!-- Error -->
+ <div class="alert alert-danger m-3" v-if="store.error">
+ <i class="bi bi-exclamation-triangle me-1"></i>{{ store.error }}
+ </div>
       </div>
 
       <!-- Pagination -->

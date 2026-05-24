@@ -21,7 +21,7 @@ Follow these guidelines when working on this project.
 1. **Output only code** - No explanations unless explicitly asked
 2. **Use existing code** - Maximize reuse of existing implementations
 3. **No explanations** - Don't explain what you're doing unless asked
-4. **Use pnpm** - Always use `pnpm` (not `npm`) for all frontend package operations
+4. **Use npm** - Always use `npm` for all package operations
 5. **Be brief** - Focus on the task, avoid detailed explanations
 6. **No assumptions** - Look up code or ask; never assume what's available
 7. **Testing**: We use Vitest so make sure all tests pass before pushing the code, unless the user allow

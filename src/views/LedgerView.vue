@@ -3,6 +3,8 @@ import { onMounted, ref, computed } from 'vue'
 import { useLedgerStore } from '@/stores/ledger'
 import { useDomainsStore } from '@/stores/domains'
 import LedgerEntryModal from '@/components/LedgerEntryModal.vue'
+import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import type { LedgerEntry, TransactionType } from '@/types'
 
 const store = useLedgerStore()
@@ -212,12 +214,17 @@ const typeOptions: TransactionType[] = ['purchase', 'renewal', 'transfer', 'sale
     <!-- Transaction Table -->
     <div class="card border-0 shadow-sm">
       <div class="card-body p-0">
-        <div v-if="store.loading" class="text-center py-5 text-muted">Loading…</div>
-        <div v-else-if="store.filteredEntries.length === 0" class="text-center py-5 text-muted">
-          <div class="mb-2">No ledger entries found.</div>
-          <button class="btn btn-sm btn-outline-primary" @click="openAdd">+ Add your first entry</button>
-        </div>
-        <div v-else class="table-responsive">
+ <div v-if="store.loading" class="p-4">
+ <LoadingSkeleton :lines="6" height="18px" />
+ </div>
+ <EmptyState
+ v-else-if="store.filteredEntries.length === 0"
+ icon="bi-receipt"
+ message="No ledger entries found."
+ action-label="Add your first entry"
+ @action="openAdd"
+ />
+ <div v-else class="table-responsive">
           <table class="table table-sm table-hover mb-0 align-middle">
             <thead class="table-light">
               <tr>
@@ -249,9 +256,14 @@ const typeOptions: TransactionType[] = ['purchase', 'renewal', 'transfer', 'sale
               </tr>
             </tbody>
           </table>
-        </div>
+ </div>
 
-        <!-- Pagination -->
+ <!-- Error -->
+ <div class="alert alert-danger m-3" v-if="store.error">
+ <i class="bi bi-exclamation-triangle me-1"></i>{{ store.error }}
+ </div>
+
+ <!-- Pagination -->
         <div v-if="totalPages > 1" class="d-flex justify-content-between align-items-center px-3 py-2 border-top">
           <span class="text-muted small">
             Showing {{ (page - 1) * perPage + 1 }}–{{ Math.min(page * perPage, store.filteredEntries.length) }} of {{ store.filteredEntries.length }}

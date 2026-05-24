@@ -4,6 +4,8 @@ import { useProspectsStore } from '@/stores/prospects'
 import { useDomainsStore } from '@/stores/domains'
 import ProspectModal from '@/components/ProspectModal.vue'
 import OutreachDraftModal from '@/components/OutreachDraftModal.vue'
+import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
+import EmptyState from '@/components/EmptyState.vue'
 import type { Prospect, OutreachStatus, LeadScore, Domain } from '@/types'
 
 const store = useProspectsStore()
@@ -223,12 +225,17 @@ const scoreOptions: LeadScore[] = ['hot', 'warm', 'cold']
     <!-- Prospect Table -->
     <div class="card border-0 shadow-sm">
       <div class="card-body p-0">
-        <div v-if="store.loading" class="text-center py-5 text-muted">Loading…</div>
-        <div v-else-if="store.filteredProspects.length === 0" class="text-center py-5 text-muted">
-          <div class="mb-2">No prospects found.</div>
-          <button class="btn btn-sm btn-outline-primary" @click="openAdd">+ Add your first prospect</button>
-        </div>
-        <div v-else class="table-responsive">
+ <div v-if="store.loading" class="p-4">
+ <LoadingSkeleton :lines="6" height="18px" />
+ </div>
+ <EmptyState
+ v-else-if="store.filteredProspects.length === 0"
+ icon="bi-people"
+ message="No prospects found."
+ action-label="Add your first prospect"
+ @action="openAdd"
+ />
+ <div v-else class="table-responsive">
           <table class="table table-sm table-hover mb-0 align-middle">
             <thead class="table-light">
               <tr>
@@ -270,12 +277,17 @@ const scoreOptions: LeadScore[] = ['hot', 'warm', 'cold']
               </tr>
             </tbody>
           </table>
-        </div>
+ </div>
 
-        <!-- Pagination -->
-        <div v-if="totalPages > 1" class="d-flex justify-content-between align-items-center px-3 py-2 border-top">
-          <span class="text-muted small">
-            Showing {{ (page - 1) * perPage + 1 }}–{{ Math.min(page * perPage, store.filteredProspects.length) }} of {{ store.filteredProspects.length }}
+ <!-- Error -->
+ <div class="alert alert-danger m-3" v-if="store.error">
+ <i class="bi bi-exclamation-triangle me-1"></i>{{ store.error }}
+ </div>
+
+ <!-- Pagination -->
+ <div v-if="totalPages > 1" class="d-flex justify-content-between align-items-center px-3 py-2 border-top">
+ <span class="text-muted small">
+ Showing {{ (page - 1) * perPage + 1 }}–{{ Math.min(page * perPage, store.filteredProspects.length) }} of {{ store.filteredProspects.length }}
           </span>
           <div class="btn-group btn-group-sm">
             <button class="btn btn-outline-secondary" :disabled="page === 1" @click="page--">←</button>

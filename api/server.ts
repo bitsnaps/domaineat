@@ -4,7 +4,7 @@
  * Use this for any non-Netlify hosting:
  *   Railway, Koyeb, Fly.io, Render, SiteGround, VPS, Docker, PM2, etc.
  *
- *   pnpm start          → node dist/server.js (after build)
+ * npm start → node dist/server.js (after build)
  *   npx tsx api/server.ts  → run directly in dev
  *
  * Environment:
@@ -29,7 +29,7 @@ app.get('*', async (c) => {
     const html = await fs.readFile(indexPath, 'utf-8')
     return c.html(html)
   } catch {
-    return c.text('Frontend not built — run pnpm build first', 503)
+    return c.text('Frontend not built — run npm run build first', 503)
   }
 })
 

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useToastStore } from '@/stores/toast'
 import type {
   LedgerEntry,
   LedgerEntryCreate,
@@ -25,70 +26,84 @@ export const useLedgerStore = defineStore('ledger', () => {
 
   // ─── Actions ────────────────────────────────────────────────────────────
 
-  async function fetchEntries() {
-    loading.value = true
-    error.value = null
-    try {
-      const params = new URLSearchParams()
-      if (filterDomainId.value) params.set('domain_id', String(filterDomainId.value))
-      const res = await fetch(`${API_BASE}/ledger?${params}`)
-      if (!res.ok) throw new Error((await res.json() as ApiError).error)
-      entries.value = await res.json()
-    } catch (err: any) {
-      error.value = err.message
-    } finally {
-      loading.value = false
-    }
-  }
+async function fetchEntries() {
+ loading.value = true
+ error.value = null
+ try {
+ const params = new URLSearchParams()
+ if (filterDomainId.value) params.set('domain_id', String(filterDomainId.value))
+ const res = await fetch(`${API_BASE}/ledger?${params}`)
+ if (!res.ok) throw new Error((await res.json() as ApiError).error)
+ entries.value = await res.json()
+ } catch (err: any) {
+ error.value = err.message
+ const toast = useToastStore()
+ toast.error(`Failed to fetch entries: ${err.message}`)
+ } finally {
+ loading.value = false
+ }
+ }
 
-  async function createEntry(payload: LedgerEntryCreate) {
-    error.value = null
-    try {
-      const res = await fetch(`${API_BASE}/ledger`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error((await res.json() as ApiError).error)
-      const entry = await res.json()
-      entries.value.unshift(entry)
-      return entry
-    } catch (err: any) {
-      error.value = err.message
-      throw err
-    }
-  }
+ async function createEntry(payload: LedgerEntryCreate) {
+ error.value = null
+ try {
+ const res = await fetch(`${API_BASE}/ledger`, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify(payload),
+ })
+ if (!res.ok) throw new Error((await res.json() as ApiError).error)
+ const entry = await res.json()
+ entries.value.unshift(entry)
+ const toast = useToastStore()
+ toast.success('Ledger entry added')
+ return entry
+ } catch (err: any) {
+ error.value = err.message
+ const toast = useToastStore()
+ toast.error(`Failed to add entry: ${err.message}`)
+ throw err
+ }
+ }
 
-  async function updateEntry(id: number, payload: Partial<LedgerEntryCreate>) {
-    error.value = null
-    try {
-      const res = await fetch(`${API_BASE}/ledger/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error((await res.json() as ApiError).error)
-      const updated = await res.json()
-      const idx = entries.value.findIndex((e) => e.id === id)
-      if (idx !== -1) entries.value[idx] = updated
-      return updated
-    } catch (err: any) {
-      error.value = err.message
-      throw err
-    }
-  }
+ async function updateEntry(id: number, payload: Partial<LedgerEntryCreate>) {
+ error.value = null
+ try {
+ const res = await fetch(`${API_BASE}/ledger/${id}`, {
+ method: 'PATCH',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify(payload),
+ })
+ if (!res.ok) throw new Error((await res.json() as ApiError).error)
+ const updated = await res.json()
+ const idx = entries.value.findIndex((e) => e.id === id)
+ if (idx !== -1) entries.value[idx] = updated
+ const toast = useToastStore()
+ toast.success('Ledger entry updated')
+ return updated
+ } catch (err: any) {
+ error.value = err.message
+ const toast = useToastStore()
+ toast.error(`Failed to update entry: ${err.message}`)
+ throw err
+ }
+ }
 
-  async function deleteEntry(id: number) {
-    error.value = null
-    try {
-      const res = await fetch(`${API_BASE}/ledger/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error((await res.json() as ApiError).error)
-      entries.value = entries.value.filter((e) => e.id !== id)
-    } catch (err: any) {
-      error.value = err.message
-      throw err
-    }
-  }
+ async function deleteEntry(id: number) {
+ error.value = null
+ try {
+ const res = await fetch(`${API_BASE}/ledger/${id}`, { method: 'DELETE' })
+ if (!res.ok) throw new Error((await res.json() as ApiError).error)
+ entries.value = entries.value.filter((e) => e.id !== id)
+ const toast = useToastStore()
+ toast.success('Ledger entry deleted')
+ } catch (err: any) {
+ error.value = err.message
+ const toast = useToastStore()
+ toast.error(`Failed to delete entry: ${err.message}`)
+ throw err
+ }
+ }
 
   function clearFilters() {
     filterDomainId.value = null

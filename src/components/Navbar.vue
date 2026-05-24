@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { useAppStateStore } from '@/stores/appState'
 const appState = useAppStateStore()
+
+function handleToggle() {
+  appState.toggleSidebar()
+}
 </script>
 
 <template>
@@ -8,7 +12,7 @@ const appState = useAppStateStore()
     <button
       class="btn btn-sm btn-outline-secondary me-3"
       data-testid="sidebar-hamburger"
-      @click="appState.toggleSidebar"
+      @click="handleToggle"
       :title="appState.sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
     >
       <i class="bi bi-list fs-5"></i>

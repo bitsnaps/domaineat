@@ -87,7 +87,7 @@ describe('DefaultLayout', () => {
     const wrapper = mountLayout()
     const links = wrapper.findAllComponents({ name: 'RouterLink' })
     const hrefs = links.map((l) => l.props('to'))
-    expect(hrefs).toContain('/')
+    expect(hrefs).toContain('/home')
     expect(hrefs).toContain('/domains')
     expect(hrefs).toContain('/ledger')
     expect(hrefs).toContain('/prospects')

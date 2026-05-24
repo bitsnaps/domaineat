@@ -1,0 +1,150 @@
+/**
+ * scheduler.ts — Background task scheduler logic
+ *
+ * Pure functions for scheduled tasks, designed to be called from:
+ * - Netlify scheduled function (every 10 min)
+ * - POST /api/scheduler/run (manual trigger)
+ *
+ * Tasks:
+ * 1. Domain expiration checks — mark expired, create notifications
+ * 2. Currency exchange rate updates — cache rates
+ * 3. Daily AI call counter resets
+ */
+import { Domain, User, Notification } from './models/index.js'
+
+// ─── Cached Exchange Rates ────────────────────────────────────────────
+
+const FALLBACK_RATES: Record<string, number> = {
+  USD: 1, EUR: 0.92, GBP: 0.79, CAD: 1.36, AUD: 1.53, JPY: 149.5, CNY: 7.24, INR: 83.1,
+}
+
+let cachedRates: Record<string, number> | null = null
+let ratesCachedAt: Date | null = null
+
+/** Get currently cached exchange rates (null if never fetched) */
+export function getCachedRates(): Record<string, number> | null {
+  return cachedRates
+}
+
+// ─── 1. Domain Expiration Checks ──────────────────────────────────────
+
+export interface ExpirationCheckResult {
+  checked: number
+  expired: number
+  notifications: number
+}
+
+export async function runExpirationChecks(): Promise<ExpirationCheckResult> {
+  const now = new Date()
+  const thirtyDays = new Date(now)
+  thirtyDays.setDate(thirtyDays.getDate() + 30)
+  const sevenDays = new Date(now)
+  sevenDays.setDate(sevenDays.getDate() + 7)
+
+  // Find all active domains
+  const allDomains = await Domain.findAll({ where: { status: 'active' } })
+  let expiredCount = 0
+  let notificationCount = 0
+
+  for (const domain of allDomains) {
+    const raw = domain.get({ plain: true }) as any
+    const expiryDate = raw.expiry_date ? new Date(raw.expiry_date) : null
+    if (!expiryDate) continue
+
+    // 1. Mark as expired if past due
+    if (expiryDate <= now) {
+      await domain.update({ status: 'expired' })
+      expiredCount++
+    }
+
+    // 2. Create notification if expiring within 30 days
+    if (expiryDate <= thirtyDays && expiryDate > now) {
+      // Check for existing undismissed notification for this domain
+      const existing = await Notification.findAll({
+        where: { domain_id: raw.id, type: 'expiration_warning', dismissed: false },
+      })
+      if (existing.length === 0) {
+        const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+        const level = expiryDate <= sevenDays ? 'urgent' : 'warning'
+        await Notification.create({
+          user_id: raw.user_id,
+          domain_id: raw.id,
+          type: 'expiration_warning',
+          level,
+          message: `${raw.domain_name} expires in ${daysUntilExpiry} day${daysUntilExpiry !== 1 ? 's' : ''}`,
+          dismissed: false,
+        })
+        notificationCount++
+      }
+    }
+  }
+
+  return { checked: allDomains.length, expired: expiredCount, notifications: notificationCount }
+}
+
+// ─── 2. Currency Exchange Rate Update ──────────────────────────────────
+
+export interface CurrencyUpdateResult {
+  rates: Record<string, number>
+  source: 'live' | 'fallback'
+}
+
+export async function runCurrencyUpdate(): Promise<CurrencyUpdateResult> {
+  try {
+    const res = await fetch('https://api.exchangerate.host/latest?base=USD', {
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) throw new Error('Upstream error')
+    const data = await res.json() as { rates?: Record<string, number> }
+    const rates = data.rates || FALLBACK_RATES
+    cachedRates = rates
+    ratesCachedAt = new Date()
+    return { rates, source: 'live' }
+  } catch {
+    cachedRates = FALLBACK_RATES
+    ratesCachedAt = new Date()
+    return { rates: FALLBACK_RATES, source: 'fallback' }
+  }
+}
+
+// ─── 3. Daily AI Call Counter Reset ───────────────────────────────────
+
+export interface DailyAiResetResult {
+  reset: number
+}
+
+export async function runDailyAiReset(): Promise<DailyAiResetResult> {
+  const [count] = await User.update(
+    { daily_ai_calls: 0 },
+    { where: {} }
+  )
+  return { reset: count }
+}
+
+// ─── Run All Tasks ─────────────────────────────────────────────────────
+
+export interface SchedulerRunResult {
+  expirationChecks: ExpirationCheckResult
+  currencyUpdate: CurrencyUpdateResult
+  dailyAiReset: DailyAiResetResult
+  runAt: string
+}
+
+export async function runAllTasks(tasks?: string[]): Promise<Partial<SchedulerRunResult> & { runAt: string }> {
+  const runAt = new Date().toISOString()
+  const result: Partial<SchedulerRunResult> & { runAt: string } = { runAt }
+
+  const shouldRun = (task: string) => !tasks || tasks.length === 0 || tasks.includes(task)
+
+  if (shouldRun('expiration')) {
+    result.expirationChecks = await runExpirationChecks()
+  }
+  if (shouldRun('currency')) {
+    result.currencyUpdate = await runCurrencyUpdate()
+  }
+  if (shouldRun('ai_reset')) {
+    result.dailyAiReset = await runDailyAiReset()
+  }
+
+  return result
+}

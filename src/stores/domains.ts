@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useToastStore } from '@/stores/toast'
 import type {
   Domain,
   DomainCreate,
@@ -142,81 +143,95 @@ export const useDomainsStore = defineStore('domains', () => {
 
   // ─── Actions ───────────────────────────────────────────────────────────
 
-  async function fetchDomains(userId: number) {
-    loading.value = true
-    error.value = null
-    try {
-      const res = await fetch(`${API_BASE}/domains?user_id=${userId}`)
-      if (!res.ok) {
-        const data: ApiError = await res.json()
-        throw new Error(data.error || `HTTP ${res.status}`)
-      }
-      domains.value = await res.json()
-    } catch (e: any) {
-      error.value = e.message
-    } finally {
-      loading.value = false
-    }
-  }
+async function fetchDomains(userId: number) {
+ loading.value = true
+ error.value = null
+ try {
+ const res = await fetch(`${API_BASE}/domains?user_id=${userId}`)
+ if (!res.ok) {
+ const data: ApiError = await res.json()
+ throw new Error(data.error || `HTTP ${res.status}`)
+ }
+ domains.value = await res.json()
+ } catch (e: any) {
+ error.value = e.message
+ const toast = useToastStore()
+ toast.error(`Failed to fetch domains: ${e.message}`)
+ } finally {
+ loading.value = false
+ }
+ }
 
-  async function createDomain(payload: DomainCreate): Promise<Domain | null> {
-    error.value = null
-    try {
-      const res = await fetch(`${API_BASE}/domains`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) {
-        const data: ApiError = await res.json()
-        throw new Error(data.error || `HTTP ${res.status}`)
-      }
-      const domain: Domain = await res.json()
-      domains.value.unshift(domain)
-      return domain
-    } catch (e: any) {
-      error.value = e.message
-      return null
-    }
-  }
+ async function createDomain(payload: DomainCreate): Promise<Domain | null> {
+ error.value = null
+ try {
+ const res = await fetch(`${API_BASE}/domains`, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify(payload),
+ })
+ if (!res.ok) {
+ const data: ApiError = await res.json()
+ throw new Error(data.error || `HTTP ${res.status}`)
+ }
+ const domain: Domain = await res.json()
+ domains.value.unshift(domain)
+ const toast = useToastStore()
+ toast.success('Domain added successfully')
+ return domain
+ } catch (e: any) {
+ error.value = e.message
+ const toast = useToastStore()
+ toast.error(`Failed to add domain: ${e.message}`)
+ return null
+ }
+ }
 
-  async function updateDomain(id: number, payload: DomainUpdate): Promise<Domain | null> {
-    error.value = null
-    try {
-      const res = await fetch(`${API_BASE}/domains/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) {
-        const data: ApiError = await res.json()
-        throw new Error(data.error || `HTTP ${res.status}`)
-      }
-      const updated: Domain = await res.json()
-      const idx = domains.value.findIndex((d) => d.id === id)
-      if (idx !== -1) domains.value[idx] = updated
-      return updated
-    } catch (e: any) {
-      error.value = e.message
-      return null
-    }
-  }
+ async function updateDomain(id: number, payload: DomainUpdate): Promise<Domain | null> {
+ error.value = null
+ try {
+ const res = await fetch(`${API_BASE}/domains/${id}`, {
+ method: 'PUT',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify(payload),
+ })
+ if (!res.ok) {
+ const data: ApiError = await res.json()
+ throw new Error(data.error || `HTTP ${res.status}`)
+ }
+ const updated: Domain = await res.json()
+ const idx = domains.value.findIndex((d) => d.id === id)
+ if (idx !== -1) domains.value[idx] = updated
+ const toast = useToastStore()
+ toast.success('Domain updated')
+ return updated
+ } catch (e: any) {
+ error.value = e.message
+ const toast = useToastStore()
+ toast.error(`Failed to update domain: ${e.message}`)
+ return null
+ }
+ }
 
-  async function deleteDomain(id: number): Promise<boolean> {
-    error.value = null
-    try {
-      const res = await fetch(`${API_BASE}/domains/${id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        const data: ApiError = await res.json()
-        throw new Error(data.error || `HTTP ${res.status}`)
-      }
-      domains.value = domains.value.filter((d) => d.id !== id)
-      return true
-    } catch (e: any) {
-      error.value = e.message
-      return false
-    }
-  }
+ async function deleteDomain(id: number): Promise<boolean> {
+ error.value = null
+ try {
+ const res = await fetch(`${API_BASE}/domains/${id}`, { method: 'DELETE' })
+ if (!res.ok) {
+ const data: ApiError = await res.json()
+ throw new Error(data.error || `HTTP ${res.status}`)
+ }
+ domains.value = domains.value.filter((d) => d.id !== id)
+ const toast = useToastStore()
+ toast.success('Domain deleted')
+ return true
+ } catch (e: any) {
+ error.value = e.message
+ const toast = useToastStore()
+ toast.error(`Failed to delete domain: ${e.message}`)
+ return false
+ }
+ }
 
   function clearFilters() {
     filterTld.value = ''

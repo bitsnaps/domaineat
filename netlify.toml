@@ -1,7 +1,11 @@
 [build]
-  command = "pnpm install --frozen-lockfile && pnpm run build"
-  publish = "dist"
+ command = "npm ci && npm run build"
+ publish = "dist"
 
 [functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
+ directory = "netlify/functions"
+ node_bundler = "esbuild"
+
+# Scheduled function — runs every 10 minutes
+[functions."scheduler"]
+ schedule = "*/10 * * * *"

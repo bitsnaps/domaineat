@@ -3,21 +3,132 @@
  *
  * This module defines routes and middleware ONLY — no runtime coupling.
  * It is imported by:
- *   - api/server.ts    → standalone Node server (Railway, Koyeb, VPS, Docker)
- *   - netlify/functions/api.ts → Netlify serverless adapter
+ * - api/server.ts → standalone Node server (Railway, Koyeb, VPS, Docker)
+ * - netlify/functions/api.ts → Netlify serverless adapter
  *
  * Environment variables (DATABASE_URL, etc.) must be loaded by the
  * entrypoint BEFORE importing this module.
  */
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { sequelize, Domain, Ledger, Prospect, User } from './models/index.js'
+import { sequelize, Domain, Ledger, Prospect, User, Notification } from './models/index.js'
 import { hashPassword, verifyPassword, signJwt, verifyJwt, TIER_LIMITS } from './auth.js'
+import { runAllTasks } from './scheduler.js'
+import { validateEnvVars } from './env.validation.js'
+
+// Validate required environment variables on startup
+validateEnvVars()
 
 export const app = new Hono()
 
-// Middleware
+// ─── Security Middleware ─────────────────────────────────────────────────
+
+// HTTPS enforcement in production (checks X-Forwarded-Proto for Netlify/proxy)
+app.use('/api/*', async (c, next) => {
+  if (process.env.NODE_ENV === 'production') {
+    const proto = c.req.header('X-Forwarded-Proto')
+    if (proto && proto !== 'https') {
+      const url = new URL(c.req.url)
+      url.protocol = 'https:'
+      return c.redirect(url.toString(), 301)
+    }
+  }
+  return next()
+})
+
+// Security headers
+app.use('/api/*', async (c, next) => {
+  await next()
+  c.header('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload')
+  c.header('X-Content-Type-Options', 'nosniff')
+  c.header('X-Frame-Options', 'DENY')
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
+  c.header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'")
+})
+
+// Request size limiting (max 1MB body)
+app.use('/api/*', async (c, next) => {
+  const contentLength = c.req.header('Content-Length')
+  if (contentLength && parseInt(contentLength, 10) > 1_048_576) {
+    return c.json({ error: 'Request body too large (max 1MB)' }, 413)
+  }
+  return next()
+})
+
+// In-memory rate limiter for auth routes
+const authRateLimitMap = new Map<string, { count: number; resetAt: number }>()
+const AUTH_RATE_LIMIT = 10 // max requests per window
+const AUTH_RATE_WINDOW = 60_000 // 1 minute window
+
+app.use('/api/auth/*', async (c, next) => {
+  const ip = c.req.header('X-Forwarded-For')?.split(',')[0]?.trim()
+    || c.req.header('X-Real-IP')
+    || 'unknown'
+  const key = `auth:${ip}`
+  const now = Date.now()
+
+  let entry = authRateLimitMap.get(key)
+  if (!entry || now > entry.resetAt) {
+    entry = { count: 0, resetAt: now + AUTH_RATE_WINDOW }
+    authRateLimitMap.set(key, entry)
+  }
+
+  entry.count++
+
+  if (entry.count > AUTH_RATE_LIMIT) {
+    return c.json({ error: 'Too many requests. Please try again later.' }, 429)
+  }
+
+  // Periodic cleanup of stale entries (every ~100 requests)
+  if (Math.random() < 0.01) {
+    for (const [k, v] of authRateLimitMap) {
+      if (now > v.resetAt) authRateLimitMap.delete(k)
+    }
+  }
+
+  return next()
+})
+
+// CORS
 app.use('/api/*', cors())
+
+// ─── Auth Middleware ──────────────────────────────────────────────────
+// Public routes that skip authentication
+const PUBLIC_PATHS = ['/api/health', '/api/auth/register', '/api/auth/login', '/api/auth/me']
+
+app.use('/api/*', async (c, next) => {
+  const path = new URL(c.req.url).pathname
+
+  // Skip auth for public routes
+  if (PUBLIC_PATHS.some((p) => path === p) || path.startsWith('/api/auth/')) {
+    return next()
+  }
+
+  // Extract Bearer token
+  const auth = c.req.header('Authorization')
+  if (!auth?.startsWith('Bearer ')) {
+    return c.json({ error: 'Authorization token required' }, 401)
+  }
+
+  const token = auth.slice(7)
+  if (!token) {
+    return c.json({ error: 'Authorization token required' }, 401)
+  }
+
+  // Verify JWT
+  const payload = verifyJwt(token)
+  if (!payload) {
+    return c.json({ error: 'Invalid or expired token' }, 401)
+  }
+
+  // Inject user context for downstream routes
+  c.set('userId', payload.userId)
+  c.set('email', payload.email)
+  c.set('tier', payload.tier)
+  c.set('user', payload)
+
+  return next()
+})
 
 // ─── Auth Routes ───────────────────────────────────────────────────────
 
@@ -44,31 +155,31 @@ app.post('/api/auth/register', async (c) => {
     tier: 'free',
   } as any)
 
-  const token = await signJwt({ userId: user.id, email: user.email, tier: user.tier })
-  return c.json({
-    token,
-    user: { id: user.id, email: user.email, tier: user.tier },
-  }, 201)
+ const token = signJwt({ userId: user.id, email: user.email, tier: user.tier })
+ return c.json({
+   token,
+   user: { id: user.id, email: user.email, tier: user.tier },
+ }, 201)
 })
 
 // Login
 app.post('/api/auth/login', async (c) => {
-  const { email, password } = await c.req.json()
-  if (!email || !password) {
-    return c.json({ error: 'Email and password are required' }, 400)
-  }
+ const { email, password } = await c.req.json()
+ if (!email || !password) {
+   return c.json({ error: 'Email and password are required' }, 400)
+ }
 
-  const user = await User.findOne({ where: { email } })
-  if (!user) {
-    return c.json({ error: 'Invalid email or password' }, 401)
-  }
+ const user = await User.findOne({ where: { email } })
+ if (!user) {
+   return c.json({ error: 'Invalid email or password' }, 401)
+ }
 
-  const valid = await verifyPassword(password, user.password_hash)
-  if (!valid) {
-    return c.json({ error: 'Invalid email or password' }, 401)
-  }
+ const valid = await verifyPassword(password, user.password_hash)
+ if (!valid) {
+   return c.json({ error: 'Invalid email or password' }, 401)
+ }
 
-  const token = await signJwt({ userId: user.id, email: user.email, tier: user.tier })
+ const token = signJwt({ userId: user.id, email: user.email, tier: user.tier })
   return c.json({
     token,
     user: { id: user.id, email: user.email, tier: user.tier },
@@ -82,7 +193,7 @@ app.get('/api/auth/me', async (c) => {
     return c.json({ error: 'Authorization header required' }, 401)
   }
 
-  const payload = await verifyJwt(auth.slice(7))
+  const payload = verifyJwt(auth.slice(7))
   if (!payload) {
     return c.json({ error: 'Invalid or expired token' }, 401)
   }
@@ -125,6 +236,19 @@ app.get('/api/domains', async (c) => {
 })
 
 app.post('/api/domains', async (c) => {
+  // Tier-based domain limit enforcement
+  const user = c.get('user') as { userId: number; email: string; tier: string } | undefined
+  if (user) {
+    const tier = (user.tier || 'free') as keyof typeof TIER_LIMITS
+    const limit = TIER_LIMITS[tier]?.domains ?? TIER_LIMITS.free.domains
+    if (limit !== Infinity) {
+      const currentCount = await Domain.count({ where: { user_id: user.userId } })
+      if (currentCount >= limit) {
+        return c.json({ error: `Domain limit reached (${limit} for ${tier} tier). Upgrade to add more.` }, 403)
+      }
+    }
+  }
+
   const body = await c.req.json()
   try {
     const domain = await Domain.create(body)
@@ -511,7 +635,9 @@ app.patch('/api/users/:id/ai-settings', async (c) => {
 
 // Check if user has AI configured
 app.get('/api/users/:id/ai-status', async (c) => {
-  const user = await User.findByPk(c.req.param('id'))
+  const user = await User.findByPk(c.req.param('id'), {
+    attributes: { exclude: ['password_hash', 'llm_api_key_encrypted'] },
+  })
   if (!user) return c.json({ error: 'User not found' }, 404)
 
   const configured = !!(user.llm_provider && user.llm_api_key_encrypted)
@@ -535,7 +661,9 @@ app.post('/api/ai/draft-outreach', async (c) => {
     return c.json({ error: 'user_id, domain_name, and prospect_domain are required' }, 400)
   }
 
-  const user = await User.findByPk(user_id)
+  const user = await User.findByPk(user_id, {
+    attributes: { exclude: ['password_hash'] },
+  })
   if (!user) return c.json({ error: 'User not found' }, 404)
 
   if (!user.llm_provider || !user.llm_api_key_encrypted) {
@@ -639,4 +767,36 @@ async function callLlm(provider: string, apiKey: string, model: string | null, p
   return data.choices?.[0]?.message?.content || ''
 }
 
+// ─── Scheduler ──────────────────────────────────────────────────────
 
+// Manual trigger for scheduler tasks (authenticated)
+app.post('/api/scheduler/run', async (c) => {
+  let body: { tasks?: string[] } = {}
+  try {
+    body = await c.req.json()
+  } catch { /* empty body is fine — runs all tasks */ }
+
+  const result = await runAllTasks(body.tasks)
+  return c.json(result)
+})
+
+// ─── Notifications ──────────────────────────────────────────────────
+
+app.get('/api/notifications', async (c) => {
+  const userId = c.req.query('user_id')
+  const where: any = userId ? { user_id: Number(userId) } : {}
+
+  const notifications = await Notification.findAll({
+    where,
+    order: [['created_at', 'DESC']],
+  })
+  return c.json(notifications)
+})
+
+app.patch('/api/notifications/:id/dismiss', async (c) => {
+  const notification = await Notification.findByPk(c.req.param('id'))
+  if (!notification) return c.json({ error: 'Notification not found' }, 404)
+
+  await notification.update({ dismissed: true })
+  return c.json(notification)
+})

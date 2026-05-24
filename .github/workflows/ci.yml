@@ -16,24 +16,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        # version is read from packageManager field in package.json
-
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: pnpm
+          cache: npm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Run tests
-        run: pnpm test
+        run: npm test
 
-      - name: Build
-        run: pnpm run build
+      - name: Build frontend
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "✘ Build failed: dist/ directory not found"
+            exit 1
+          fi
+          echo "✓ Build verified: dist/ directory exists"
 
       - name: Upload dist artifact
         if: github.ref == 'refs/heads/master' && github.event_name == 'push'

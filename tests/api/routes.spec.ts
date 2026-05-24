@@ -1,8 +1,18 @@
 /**
  * API route tests — tests the platform-agnostic api/app.ts
  * by mocking the DB module at the models boundary.
+ *
+ * Updated: all protected routes now require a valid JWT Bearer token
+ * (auth middleware was added in P7-4).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { signJwt } from '../../api/auth.js'
+
+// Helper to generate auth headers for protected routes
+function authHeaders(extra?: Record<string, string>) {
+  const token = signJwt({ userId: 1, email: 'test@test.com', tier: 'premium' })
+  return { Authorization: `Bearer ${token}`, ...extra }
+}
 
 // Mock the db module before importing the app
 const mockDomains: any[] = []
@@ -13,9 +23,18 @@ vi.mock('../../api/models/index.js', () => ({
   sequelize: {
     authenticate: vi.fn(),
   },
-  User: {},
+  User: {
+    findByPk: vi.fn(async (id: number | string) => {
+      // Return a user for auth-related tests
+      if (String(id) === '1') return { id: 1, email: 'test@test.com', tier: 'premium', password_hash: 'hash', llm_api_key_encrypted: null, toJSON: () => ({ id: 1, email: 'test@test.com', tier: 'premium' }) }
+      return null
+    }),
+    findOne: vi.fn(async () => null),
+    create: vi.fn(async (data: any) => ({ id: 1, ...data })),
+  },
   Domain: {
     findAll: vi.fn(async () => mockDomains),
+    count: vi.fn(async () => mockDomains.length),
     findByPk: vi.fn(async (id: number | string) => mockDomains.find((d) => String(d.id) === String(id)) || null),
     create: vi.fn(async (data: any) => {
       const domain = { id: mockDomains.length + 1, ...data, update: vi.fn(), destroy: vi.fn() }
@@ -30,6 +49,7 @@ vi.mock('../../api/models/index.js', () => ({
       mockLedger.push(entry)
       return entry
     }),
+    findByPk: vi.fn(async (id: number | string) => mockLedger.find((e) => String(e.id) === String(id)) || null),
   },
   Prospect: {
     findAll: vi.fn(async () => mockProspects),
@@ -39,6 +59,14 @@ vi.mock('../../api/models/index.js', () => ({
       mockProspects.push(prospect)
       return prospect
     }),
+  },
+}))
+
+// Mock bcryptjs for auth routes
+vi.mock('bcryptjs', () => ({
+  default: {
+    hash: vi.fn(async () => '$2a$10$hashedpassword'),
+    compare: vi.fn(async () => true),
   },
 }))
 
@@ -53,7 +81,7 @@ describe('API Routes (real api/app.ts)', () => {
     mockProspects.length = 0
   })
 
-  // ─── Health ──────────────────────────────────────────────────
+  // ─── Health (public — no auth needed) ────────────────────────
 
   it('GET /api/health returns ok when DB is connected', async () => {
     const res = await app.request('/api/health')
@@ -73,10 +101,10 @@ describe('API Routes (real api/app.ts)', () => {
     expect(data.database).toBe('disconnected')
   })
 
-  // ─── Domains ─────────────────────────────────────────────────
+  // ─── Domains (protected — auth required) ──────────────────────
 
   it('GET /api/domains requires user_id', async () => {
-    const res = await app.request('/api/domains')
+    const res = await app.request('/api/domains', { headers: authHeaders() })
     expect(res.status).toBe(400)
     const data = await res.json()
     expect(data.error).toContain('user_id')
@@ -84,7 +112,7 @@ describe('API Routes (real api/app.ts)', () => {
 
   it('GET /api/domains returns domains for a user', async () => {
     mockDomains.push({ id: 1, user_id: 1, domain_name: 'example.com' })
-    const res = await app.request('/api/domains?user_id=1')
+    const res = await app.request('/api/domains?user_id=1', { headers: authHeaders() })
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data).toBeInstanceOf(Array)
@@ -93,7 +121,7 @@ describe('API Routes (real api/app.ts)', () => {
   it('POST /api/domains creates a domain', async () => {
     const res = await app.request('/api/domains', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ user_id: 1, domain_name: 'newdomain.io' }),
     })
     expect(res.status).toBe(201)
@@ -103,12 +131,12 @@ describe('API Routes (real api/app.ts)', () => {
 
   it('GET /api/domains/:id returns a domain', async () => {
     mockDomains.push({ id: 42, domain_name: 'found.com' })
-    const res = await app.request('/api/domains/42')
+    const res = await app.request('/api/domains/42', { headers: authHeaders() })
     expect(res.status).toBe(200)
   })
 
   it('GET /api/domains/:id returns 404 when not found', async () => {
-    const res = await app.request('/api/domains/9999')
+    const res = await app.request('/api/domains/9999', { headers: authHeaders() })
     expect(res.status).toBe(404)
   })
 
@@ -117,7 +145,7 @@ describe('API Routes (real api/app.ts)', () => {
     mockDomains.push(domain)
     const res = await app.request('/api/domains/1', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ domain_name: 'new.com' }),
     })
     expect(res.status).toBe(200)
@@ -127,7 +155,7 @@ describe('API Routes (real api/app.ts)', () => {
   it('PUT /api/domains/:id returns 404 when not found', async () => {
     const res = await app.request('/api/domains/9999', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ domain_name: 'x.com' }),
     })
     expect(res.status).toBe(404)
@@ -136,13 +164,13 @@ describe('API Routes (real api/app.ts)', () => {
   it('DELETE /api/domains/:id deletes a domain', async () => {
     const domain = { id: 1, destroy: vi.fn() }
     mockDomains.push(domain)
-    const res = await app.request('/api/domains/1', { method: 'DELETE' })
+    const res = await app.request('/api/domains/1', { method: 'DELETE', headers: authHeaders() })
     expect(res.status).toBe(200)
     expect(domain.destroy).toHaveBeenCalled()
   })
 
   it('DELETE /api/domains/:id returns 404 when not found', async () => {
-    const res = await app.request('/api/domains/9999', { method: 'DELETE' })
+    const res = await app.request('/api/domains/9999', { method: 'DELETE', headers: authHeaders() })
     expect(res.status).toBe(404)
   })
 
@@ -151,7 +179,7 @@ describe('API Routes (real api/app.ts)', () => {
     ;(Domain.create as any).mockRejectedValueOnce(new Error('notNull Violation'))
     const res = await app.request('/api/domains', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ domain_name: '' }),
     })
     expect(res.status).toBe(400)
@@ -159,24 +187,24 @@ describe('API Routes (real api/app.ts)', () => {
     expect(data.error).toContain('notNull')
   })
 
-  // ─── Ledger ──────────────────────────────────────────────────
+  // ─── Ledger (protected — auth required) ───────────────────────
 
   it('GET /api/ledger returns entries', async () => {
-    const res = await app.request('/api/ledger')
+    const res = await app.request('/api/ledger', { headers: authHeaders() })
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data).toBeInstanceOf(Array)
   })
 
   it('GET /api/ledger filters by domain_id', async () => {
-    const res = await app.request('/api/ledger?domain_id=1')
+    const res = await app.request('/api/ledger?domain_id=1', { headers: authHeaders() })
     expect(res.status).toBe(200)
   })
 
   it('POST /api/ledger creates an entry', async () => {
     const res = await app.request('/api/ledger', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ domain_id: 1, amount: 9.99, transaction_type: 'renewal' }),
     })
     expect(res.status).toBe(201)
@@ -187,30 +215,30 @@ describe('API Routes (real api/app.ts)', () => {
     ;(Ledger.create as any).mockRejectedValueOnce(new Error('validation failed'))
     const res = await app.request('/api/ledger', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({}),
     })
     expect(res.status).toBe(400)
   })
 
-  // ─── Prospects ───────────────────────────────────────────────
+  // ─── Prospects (protected — auth required) ────────────────────
 
   it('GET /api/prospects returns prospects', async () => {
-    const res = await app.request('/api/prospects')
+    const res = await app.request('/api/prospects', { headers: authHeaders() })
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data).toBeInstanceOf(Array)
   })
 
   it('GET /api/prospects filters by domain_id', async () => {
-    const res = await app.request('/api/prospects?domain_id=1')
+    const res = await app.request('/api/prospects?domain_id=1', { headers: authHeaders() })
     expect(res.status).toBe(200)
   })
 
   it('POST /api/prospects creates a prospect', async () => {
     const res = await app.request('/api/prospects', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ domain_id: 1, contact_name: 'Jane', contact_email: 'jane@x.com' }),
     })
     expect(res.status).toBe(201)
@@ -221,7 +249,7 @@ describe('API Routes (real api/app.ts)', () => {
     ;(Prospect.create as any).mockRejectedValueOnce(new Error('validation error'))
     const res = await app.request('/api/prospects', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({}),
     })
     expect(res.status).toBe(400)
@@ -232,7 +260,7 @@ describe('API Routes (real api/app.ts)', () => {
     mockProspects.push(prospect)
     const res = await app.request('/api/prospects/1', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ outreach_status: 'contacted' }),
     })
     expect(res.status).toBe(200)
@@ -242,7 +270,7 @@ describe('API Routes (real api/app.ts)', () => {
   it('PUT /api/prospects/:id returns 404 when not found', async () => {
     const res = await app.request('/api/prospects/9999', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ outreach_status: 'contacted' }),
     })
     expect(res.status).toBe(404)
@@ -251,13 +279,13 @@ describe('API Routes (real api/app.ts)', () => {
   it('DELETE /api/prospects/:id deletes a prospect', async () => {
     const prospect = { id: 1, destroy: vi.fn() }
     mockProspects.push(prospect)
-    const res = await app.request('/api/prospects/1', { method: 'DELETE' })
+    const res = await app.request('/api/prospects/1', { method: 'DELETE', headers: authHeaders() })
     expect(res.status).toBe(200)
     expect(prospect.destroy).toHaveBeenCalled()
   })
 
   it('DELETE /api/prospects/:id returns 404 when not found', async () => {
-    const res = await app.request('/api/prospects/9999', { method: 'DELETE' })
+    const res = await app.request('/api/prospects/9999', { method: 'DELETE', headers: authHeaders() })
     expect(res.status).toBe(404)
   })
 })

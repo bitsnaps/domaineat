@@ -1,16 +1,13 @@
 /**
  * Auth utilities — JWT signing/verification + password hashing.
- * Uses jose (JWT) + bcryptjs (hashing) — pure JS, no native deps.
+ * Uses jsonwebtoken (JWT) + bcryptjs (hashing) — pure JS, no native deps.
  */
 import bcrypt from 'bcryptjs'
-import { SignJWT, jwtVerify } from 'jose'
+import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'dev-secret-change-in-production'
-)
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production'
 
 const JWT_EXPIRES_IN = '7d'
-const JWT_ALG = 'HS256'
 
 /** Hash a plaintext password */
 export async function hashPassword(password: string): Promise<string> {
@@ -23,19 +20,14 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 /** Sign a JWT with user payload */
-export async function signJwt(payload: { userId: number; email: string; tier: string }): Promise<string> {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: JWT_ALG })
-    .setIssuedAt()
-    .setExpirationTime(JWT_EXPIRES_IN)
-    .sign(JWT_SECRET)
+export function signJwt(payload: { userId: number; email: string; tier: string }): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
 }
 
-/** Verify and decode a JWT */
-export async function verifyJwt(token: string): Promise<{ userId: number; email: string; tier: string } | null> {
+/** Verify and decode a JWT — returns null if invalid/expired */
+export function verifyJwt(token: string): { userId: number; email: string; tier: string } | null {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET)
-    return payload as unknown as { userId: number; email: string; tier: string }
+    return jwt.verify(token, JWT_SECRET) as { userId: number; email: string; tier: string }
   } catch {
     return null
   }

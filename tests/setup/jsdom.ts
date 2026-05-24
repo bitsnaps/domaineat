@@ -1,5 +1,11 @@
 import { vi } from 'vitest'
 
+// Ensure TextEncoder/TextDecoder are available globally (required by jose JWT library)
+import { TextEncoder, TextDecoder } from 'util'
+if (typeof globalThis.TextEncoder === 'undefined') {
+  Object.assign(globalThis, { TextEncoder, TextDecoder })
+}
+
 // Mock window.matchMedia for jsdom
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
