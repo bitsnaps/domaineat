@@ -38,12 +38,14 @@ export function initLedger(sequelize: Sequelize): typeof Ledger {
         allowNull: true,
       },
     },
-    {
-      sequelize,
-      tableName: 'ledger',
-      timestamps: false,
-      underscored: true,
-    }
+ {
+ sequelize,
+ tableName: 'ledger',
+ timestamps: true,
+ createdAt: 'created_at',
+ updatedAt: 'updated_at',
+ underscored: true,
+ }
   )
   return Ledger
 }
