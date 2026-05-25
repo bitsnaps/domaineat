@@ -10,15 +10,25 @@ const env = process.env.NODE_ENV || 'development'
 
 // Create Sequelize instance from DATABASE_URL env var (NeonDB / any Postgres)
 // NOTE: dotenv/config must be loaded by the entrypoint BEFORE this module is imported.
-const sequelize = new Sequelize(process.env.DATABASE_URL!, {
-  dialect: 'postgres',
-  dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false,
-    },
-  },
-  logging: env === 'development' ? console.log : false,
+const databaseUrl = process.env.DATABASE_URL
+
+if (!databaseUrl) {
+	throw new Error(
+		'DATABASE_URL environment variable is not set. ' +
+		'For Netlify: set it in Site settings → Environment variables. ' +
+		'For local dev: add it to your .env file.'
+	)
+}
+
+const sequelize = new Sequelize(databaseUrl, {
+	dialect: 'postgres',
+	dialectOptions: {
+		ssl: {
+			require: true,
+			rejectUnauthorized: false,
+		},
+	},
+	logging: env === 'development' ? console.log : false,
 })
 
 // Initialize models

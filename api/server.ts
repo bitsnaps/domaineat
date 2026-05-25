@@ -14,7 +14,12 @@
 import 'dotenv/config'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
-import { app } from './app.js'
+import { validateEnvVars } from './env.validation.js'
+
+// Validate env vars BEFORE importing the app (which imports models → Sequelize)
+validateEnvVars()
+
+const { app } = await import('./app.js')
 
 // Serve Vite build output as static files (SPA fallback via index.html)
 // On Netlify this is handled by the CDN — this code only runs on standalone servers.

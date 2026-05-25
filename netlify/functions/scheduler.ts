@@ -10,25 +10,31 @@
  * [functions."scheduler"]
  * schedule = "0-59/10 * * * *" (every 10 min)
  */
-import { runAllTasks } from '../../api/scheduler.js'
-import { sequelize } from '../../api/models/index.js'
+import 'dotenv/config'
+import { validateEnvVars } from '../../api/env.validation.js'
+
+// Validate env vars BEFORE importing models (which need DATABASE_URL)
+validateEnvVars()
+
+const { runAllTasks } = await import('../../api/scheduler.js')
+const { sequelize } = await import('../../api/models/index.js')
 
 // Ensure DB connection is ready
 await sequelize.authenticate()
 
 export default async () => {
-  console.log('[scheduler] Starting scheduled run...')
+	console.log('[scheduler] Starting scheduled run...')
 
-  const now = new Date()
-  const isMidnight = now.getUTCHours() === 0 && now.getUTCMinutes() < 10
+	const now = new Date()
+	const isMidnight = now.getUTCHours() === 0 && now.getUTCMinutes() < 10
 
-  // Always run expiration + currency; only reset AI counters near midnight
-  const tasks = isMidnight
-    ? ['expiration', 'currency', 'ai_reset']
-    : ['expiration', 'currency']
+	// Always run expiration + currency; only reset AI counters near midnight
+	const tasks = isMidnight
+		? ['expiration', 'currency', 'ai_reset']
+		: ['expiration', 'currency']
 
-  const result = await runAllTasks(tasks)
+	const result = await runAllTasks(tasks)
 
-  console.log('[scheduler] Completed:', JSON.stringify(result, null, 2))
-  return { statusCode: 200, body: JSON.stringify(result) }
+	console.log('[scheduler] Completed:', JSON.stringify(result, null, 2))
+	return { statusCode: 200, body: JSON.stringify(result) }
 }

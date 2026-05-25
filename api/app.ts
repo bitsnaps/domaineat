@@ -14,10 +14,9 @@ import { cors } from 'hono/cors'
 import { sequelize, Domain, Ledger, Prospect, User, Notification } from './models/index.js'
 import { hashPassword, verifyPassword, signJwt, verifyJwt, TIER_LIMITS } from './auth.js'
 import { runAllTasks } from './scheduler.js'
-import { validateEnvVars } from './env.validation.js'
-
-// Validate required environment variables on startup
-validateEnvVars()
+// Env validation is handled by the entrypoint (netlify/functions/api.ts or api/server.ts)
+// BEFORE this module is imported, so that models/index.ts can safely read DATABASE_URL.
+// Do NOT call validateEnvVars() here — static imports above already loaded models.
 
 export const app = new Hono()
 
