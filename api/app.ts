@@ -18,7 +18,16 @@ import { runAllTasks } from './scheduler.js'
 // BEFORE this module is imported, so that models/index.ts can safely read DATABASE_URL.
 // Do NOT call validateEnvVars() here — static imports above already loaded models.
 
-export const app = new Hono()
+type JwtPayload = { userId: number; email: string; tier: string }
+
+type Variables = {
+	userId: number
+	email: string
+	tier: string
+	user: JwtPayload
+}
+
+export const app = new Hono<{ Variables: Variables }>()
 export { sequelize }
 
 // ─── Security Middleware ─────────────────────────────────────────────────
@@ -221,13 +230,6 @@ app.get('/api/auth/me', async (c) => {
   return c.json(user)
 })
 
-// Auth middleware helper — extracts user from Bearer token
-async function getAuthUser(c: any): Promise<{ userId: number; email: string; tier: string } | null> {
-  const auth = c.req.header('Authorization')
-  if (!auth?.startsWith('Bearer ')) return null
-  return verifyJwt(auth.slice(7))
-}
-
 // Health check
 app.get('/api/health', async (c) => {
   try {
@@ -241,112 +243,116 @@ app.get('/api/health', async (c) => {
 // ─── Domains ───────────────────────────────────────────────────────────
 
 app.get('/api/domains', async (c) => {
-  const userId = c.req.query('user_id')
-  if (!userId) return c.json({ error: 'user_id query parameter required' }, 400)
-
-  const domains = await Domain.findAll({
-    where: { user_id: Number(userId) },
-    order: [['created_at', 'DESC']],
-  })
-  return c.json(domains)
+ const userId = c.get('userId')
+ const domains = await Domain.findAll({
+ where: { user_id: userId },
+ order: [['created_at', 'DESC']],
+ })
+ return c.json(domains)
 })
 
 app.post('/api/domains', async (c) => {
-  // Tier-based domain limit enforcement
-  const user = c.get('user') as { userId: number; email: string; tier: string } | undefined
-  if (user) {
-    const tier = (user.tier || 'free') as keyof typeof TIER_LIMITS
-    const limit = TIER_LIMITS[tier]?.domains ?? TIER_LIMITS.free.domains
-    if (limit !== Infinity) {
-      const currentCount = await Domain.count({ where: { user_id: user.userId } })
-      if (currentCount >= limit) {
-        return c.json({ error: `Domain limit reached (${limit} for ${tier} tier). Upgrade to add more.` }, 403)
-      }
-    }
+ const authUser = c.get('user')
+ const tier = (authUser.tier || 'free') as keyof typeof TIER_LIMITS
+ const limit = TIER_LIMITS[tier]?.domains ?? TIER_LIMITS.free.domains
+ if (limit !== Infinity) {
+  const currentCount = await Domain.count({ where: { user_id: authUser.userId } })
+  if (currentCount >= limit) {
+  return c.json({ error: `Domain limit reached (${limit} for ${tier} tier). Upgrade to add more.` }, 403)
   }
+ }
 
-  const body = await c.req.json()
-  try {
-    const domain = await Domain.create(body)
-    return c.json(domain, 201)
-  } catch (err: any) {
-    return c.json({ error: err.message }, 400)
-  }
+ const body = await c.req.json()
+ // Always use the authenticated user's ID from the JWT
+ body.user_id = authUser.userId
+ try {
+  const domain = await Domain.create(body)
+  return c.json(domain, 201)
+ } catch (err: any) {
+  return c.json({ error: err.message }, 400)
+ }
 })
 
 app.get('/api/domains/:id', async (c) => {
-  const domain = await Domain.findByPk(c.req.param('id'))
-  if (!domain) return c.json({ error: 'Domain not found' }, 404)
-  return c.json(domain)
+ const userId = c.get('userId')
+ const domain = await Domain.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+ if (!domain) return c.json({ error: 'Domain not found' }, 404)
+ return c.json(domain)
 })
 
 app.put('/api/domains/:id', async (c) => {
-  const domain = await Domain.findByPk(c.req.param('id'))
-  if (!domain) return c.json({ error: 'Domain not found' }, 404)
+ const userId = c.get('userId')
+ const domain = await Domain.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+ if (!domain) return c.json({ error: 'Domain not found' }, 404)
 
-  const body = await c.req.json()
-  await domain.update(body)
-  return c.json(domain)
+ const body = await c.req.json()
+ await domain.update(body)
+ return c.json(domain)
 })
 
 app.delete('/api/domains/:id', async (c) => {
-  const domain = await Domain.findByPk(c.req.param('id'))
-  if (!domain) return c.json({ error: 'Domain not found' }, 404)
+ const userId = c.get('userId')
+ const domain = await Domain.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+ if (!domain) return c.json({ error: 'Domain not found' }, 404)
 
-  await domain.destroy()
-  return c.json({ deleted: true }, 200)
+ await domain.destroy()
+ return c.json({ deleted: true }, 200)
 })
 
 // Domain-scoped ledger entries
 app.get('/api/domains/:id/ledger', async (c) => {
-  const domain = await Domain.findByPk(c.req.param('id'))
-  if (!domain) return c.json({ error: 'Domain not found' }, 404)
+ const userId = c.get('userId')
+ const domain = await Domain.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+ if (!domain) return c.json({ error: 'Domain not found' }, 404)
 
-  const entries = await Ledger.findAll({
-    where: { domain_id: domain.id },
-    order: [['transaction_date', 'DESC']],
-  })
-  return c.json(entries)
+ const entries = await Ledger.findAll({
+ where: { domain_id: domain.id },
+ order: [['transaction_date', 'DESC']],
+ })
+ return c.json(entries)
 })
 
 // Domain-scoped prospects
 app.get('/api/domains/:id/prospects', async (c) => {
-  const domain = await Domain.findByPk(c.req.param('id'))
-  if (!domain) return c.json({ error: 'Domain not found' }, 404)
+ const userId = c.get('userId')
+ const domain = await Domain.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+ if (!domain) return c.json({ error: 'Domain not found' }, 404)
 
-  const prospects = await Prospect.findAll({
-    where: { domain_id: domain.id },
-    order: [['created_at', 'DESC']],
-  })
-  return c.json(prospects)
+ const prospects = await Prospect.findAll({
+ where: { domain_id: domain.id },
+ order: [['created_at', 'DESC']],
+ })
+ return c.json(prospects)
 })
 
 // DNS + SSL check
 app.get('/api/domains/:id/dns-check', async (c) => {
-  const domain = await Domain.findByPk(c.req.param('id'))
-  if (!domain) return c.json({ error: 'Domain not found' }, 404)
+ const userId = c.get('userId')
+ const domain = await Domain.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+ if (!domain) return c.json({ error: 'Domain not found' }, 404)
 
-  const { fullDnsCheck } = await import('./dns-check.js')
-  try {
-    const result = await fullDnsCheck(domain.getDataValue('domain_name'))
-    return c.json(result)
-  } catch (err: any) {
-    return c.json({ error: `DNS check failed: ${err.message}` }, 502)
-  }
+ const { fullDnsCheck } = await import('./dns-check.js')
+ try {
+ const result = await fullDnsCheck(domain.getDataValue('domain_name'))
+ return c.json(result)
+ } catch (err: any) {
+ return c.json({ error: `DNS check failed: ${err.message}` }, 502)
+ }
 })
 
 // Domain analysis (keyword parse, alt extensions, RDAP)
 app.get('/api/domains/:id/analyze', async (c) => {
-  const domain = await Domain.findByPk(c.req.param('id'))
-  if (!domain) return c.json({ error: 'Domain not found' }, 404)
+ const userId = c.get('userId')
+ const domain = await Domain.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+ if (!domain) return c.json({ error: 'Domain not found' }, 404)
 
-  const { analyzeDomain } = await import('./domain-analysis.js')
-  try {
-    const result = await analyzeDomain(domain.getDataValue('domain_name'))
-    return c.json(result)
-  } catch (err: any) {
-    return c.json({ error: `Domain analysis failed: ${err.message}` }, 502)
-  }
+ const { analyzeDomain } = await import('./domain-analysis.js')
+ try {
+ const result = await analyzeDomain(domain.getDataValue('domain_name'))
+ return c.json(result)
+ } catch (err: any) {
+ return c.json({ error: `Domain analysis failed: ${err.message}` }, 502)
+ }
 })
 
 // Standalone domain analysis (no DB record needed)
@@ -368,78 +374,134 @@ app.post('/api/analyze-domain', async (c) => {
 // ─── Ledger ────────────────────────────────────────────────────────────
 
 app.get('/api/ledger', async (c) => {
-  const domainId = c.req.query('domain_id')
-  const where = domainId ? { domain_id: Number(domainId) } : {}
+ const userId = c.get('userId')
+ const domainId = c.req.query('domain_id')
 
-  const entries = await Ledger.findAll({
-    where,
-    order: [['transaction_date', 'DESC']],
-  })
-  return c.json(entries)
+ // Get all domain IDs owned by this user
+ const userDomainIds = (await Domain.findAll({
+ where: { user_id: userId },
+ attributes: ['id'],
+ })).map(d => d.id)
+
+ if (userDomainIds.length === 0) return c.json([])
+
+ const where: any = { domain_id: domainId ? Number(domainId) : userDomainIds }
+ // If a specific domain_id is requested, verify it belongs to this user
+ if (domainId && !userDomainIds.includes(Number(domainId))) {
+ return c.json({ error: 'Domain not found' }, 404)
+ }
+
+ const entries = await Ledger.findAll({
+ where,
+ order: [['transaction_date', 'DESC']],
+ })
+ return c.json(entries)
 })
 
 app.post('/api/ledger', async (c) => {
-  const body = await c.req.json()
-  try {
-    const entry = await Ledger.create(body)
-    return c.json(entry, 201)
-  } catch (err: any) {
-    return c.json({ error: err.message }, 400)
-  }
+ const userId = c.get('userId')
+ const body = await c.req.json()
+ // Verify the domain belongs to this user
+ const domain = await Domain.findOne({ where: { id: body.domain_id, user_id: userId } })
+ if (!domain) return c.json({ error: 'Domain not found' }, 404)
+ try {
+ const entry = await Ledger.create(body)
+ return c.json(entry, 201)
+ } catch (err: any) {
+ return c.json({ error: err.message }, 400)
+ }
 })
 
 app.patch('/api/ledger/:id', async (c) => {
-  const entry = await Ledger.findByPk(c.req.param('id'))
-  if (!entry) return c.json({ error: 'Ledger entry not found' }, 404)
+ const userId = c.get('userId')
+ const entry = await Ledger.findByPk(c.req.param('id'))
+ if (!entry) return c.json({ error: 'Ledger entry not found' }, 404)
 
-  const body = await c.req.json()
-  await entry.update(body)
-  return c.json(entry)
+ // Verify ownership through domain
+ const domain = await Domain.findOne({ where: { id: entry.domain_id, user_id: userId } })
+ if (!domain) return c.json({ error: 'Ledger entry not found' }, 404)
+
+ const body = await c.req.json()
+ await entry.update(body)
+ return c.json(entry)
 })
 
 app.delete('/api/ledger/:id', async (c) => {
-  const entry = await Ledger.findByPk(c.req.param('id'))
-  if (!entry) return c.json({ error: 'Ledger entry not found' }, 404)
+ const userId = c.get('userId')
+ const entry = await Ledger.findByPk(c.req.param('id'))
+ if (!entry) return c.json({ error: 'Ledger entry not found' }, 404)
 
-  await entry.destroy()
-  return c.json({ ok: true })
+ // Verify ownership through domain
+ const domain = await Domain.findOne({ where: { id: entry.domain_id, user_id: userId } })
+ if (!domain) return c.json({ error: 'Ledger entry not found' }, 404)
+
+ await entry.destroy()
+ return c.json({ ok: true })
 })
 
 // ─── Prospects ─────────────────────────────────────────────────────────
 
 app.get('/api/prospects', async (c) => {
-  const domainId = c.req.query('domain_id')
-  const where = domainId ? { domain_id: Number(domainId) } : {}
+ const userId = c.get('userId')
+ const domainId = c.req.query('domain_id')
 
-  const prospects = await Prospect.findAll({
-    where,
-    order: [['created_at', 'DESC']],
-  })
-  return c.json(prospects)
+ // Get all domain IDs owned by this user
+ const userDomainIds = (await Domain.findAll({
+ where: { user_id: userId },
+ attributes: ['id'],
+ })).map(d => d.id)
+
+ if (userDomainIds.length === 0) return c.json([])
+
+ const where: any = { domain_id: domainId ? Number(domainId) : userDomainIds }
+ // If a specific domain_id is requested, verify it belongs to this user
+ if (domainId && !userDomainIds.includes(Number(domainId))) {
+ return c.json({ error: 'Domain not found' }, 404)
+ }
+
+ const prospects = await Prospect.findAll({
+ where,
+ order: [['created_at', 'DESC']],
+ })
+ return c.json(prospects)
 })
 
 app.post('/api/prospects', async (c) => {
-  const body = await c.req.json()
-  try {
-    const prospect = await Prospect.create(body)
-    return c.json(prospect, 201)
-  } catch (err: any) {
-    return c.json({ error: err.message }, 400)
-  }
+ const userId = c.get('userId')
+ const body = await c.req.json()
+ // Verify the domain belongs to this user
+ const domain = await Domain.findOne({ where: { id: body.domain_id, user_id: userId } })
+ if (!domain) return c.json({ error: 'Domain not found' }, 404)
+ try {
+ const prospect = await Prospect.create(body)
+ return c.json(prospect, 201)
+ } catch (err: any) {
+ return c.json({ error: err.message }, 400)
+ }
 })
 
 app.put('/api/prospects/:id', async (c) => {
-  const prospect = await Prospect.findByPk(c.req.param('id'))
-  if (!prospect) return c.json({ error: 'Prospect not found' }, 404)
+ const userId = c.get('userId')
+ const prospect = await Prospect.findByPk(c.req.param('id'))
+ if (!prospect) return c.json({ error: 'Prospect not found' }, 404)
 
-  const body = await c.req.json()
-  await prospect.update(body)
-  return c.json(prospect)
+ // Verify ownership through domain
+ const domain = await Domain.findOne({ where: { id: prospect.domain_id, user_id: userId } })
+ if (!domain) return c.json({ error: 'Prospect not found' }, 404)
+
+ const body = await c.req.json()
+ await prospect.update(body)
+ return c.json(prospect)
 })
 
 app.delete('/api/prospects/:id', async (c) => {
-  const prospect = await Prospect.findByPk(c.req.param('id'))
-  if (!prospect) return c.json({ error: 'Prospect not found' }, 404)
+ const userId = c.get('userId')
+ const prospect = await Prospect.findByPk(c.req.param('id'))
+ if (!prospect) return c.json({ error: 'Prospect not found' }, 404)
+
+ // Verify ownership through domain
+ const domain = await Domain.findOne({ where: { id: prospect.domain_id, user_id: userId } })
+ if (!domain) return c.json({ error: 'Prospect not found' }, 404)
 
  await prospect.destroy()
  return c.json({ deleted: true }, 200)
@@ -618,17 +680,26 @@ app.post('/api/bulk', async (c) => {
 
 // Get user profile + AI settings
 app.get('/api/users/:id', async (c) => {
-  const user = await User.findByPk(c.req.param('id'), {
-    attributes: { exclude: ['password_hash', 'llm_api_key_encrypted'] },
-  })
-  if (!user) return c.json({ error: 'User not found' }, 404)
-  return c.json(user)
+ const authUserId = c.get('userId')
+ // Users can only read their own profile
+ if (Number(c.req.param('id')) !== authUserId) {
+ return c.json({ error: 'Forbidden' }, 403)
+ }
+ const user = await User.findByPk(authUserId, {
+ attributes: { exclude: ['password_hash', 'llm_api_key_encrypted'] },
+ })
+ if (!user) return c.json({ error: 'User not found' }, 404)
+ return c.json(user)
 })
 
 // Update user AI settings
 app.patch('/api/users/:id/ai-settings', async (c) => {
-  const user = await User.findByPk(c.req.param('id'))
-  if (!user) return c.json({ error: 'User not found' }, 404)
+ const authUserId = c.get('userId')
+ if (Number(c.req.param('id')) !== authUserId) {
+ return c.json({ error: 'Forbidden' }, 403)
+ }
+ const user = await User.findByPk(authUserId)
+ if (!user) return c.json({ error: 'User not found' }, 404)
 
   const body = await c.req.json()
   const allowed = ['llm_provider', 'llm_model', 'llm_api_key_encrypted']
@@ -651,9 +722,13 @@ app.patch('/api/users/:id/ai-settings', async (c) => {
 
 // Check if user has AI configured
 app.get('/api/users/:id/ai-status', async (c) => {
-  const user = await User.findByPk(c.req.param('id'), {
-    attributes: { exclude: ['password_hash', 'llm_api_key_encrypted'] },
-  })
+ const authUserId = c.get('userId')
+ if (Number(c.req.param('id')) !== authUserId) {
+ return c.json({ error: 'Forbidden' }, 403)
+ }
+ const user = await User.findByPk(authUserId, {
+ attributes: { exclude: ['password_hash', 'llm_api_key_encrypted'] },
+ })
   if (!user) return c.json({ error: 'User not found' }, 404)
 
   const configured = !!(user.llm_provider && user.llm_api_key_encrypted)
@@ -671,16 +746,17 @@ app.get('/api/users/:id/ai-status', async (c) => {
 // ─── AI Draft Outreach ─────────────────────────────────────────────────
 
 app.post('/api/ai/draft-outreach', async (c) => {
-  const { user_id, domain_name, prospect_domain, company_name, contact_email } = await c.req.json()
+ const authUser = c.get('user')
+ const { domain_name, prospect_domain, company_name, contact_email } = await c.req.json()
 
-  if (!user_id || !domain_name || !prospect_domain) {
-    return c.json({ error: 'user_id, domain_name, and prospect_domain are required' }, 400)
-  }
+ if (!domain_name || !prospect_domain) {
+ return c.json({ error: 'domain_name and prospect_domain are required' }, 400)
+ }
 
-  const user = await User.findByPk(user_id, {
-    attributes: { exclude: ['password_hash'] },
-  })
-  if (!user) return c.json({ error: 'User not found' }, 404)
+ const user = await User.findByPk(authUser.userId, {
+ attributes: { exclude: ['password_hash'] },
+ })
+ if (!user) return c.json({ error: 'User not found' }, 404)
 
   if (!user.llm_provider || !user.llm_api_key_encrypted) {
     return c.json({ error: 'AI not configured. Set your LLM provider and API key in Settings.' }, 400)
@@ -799,20 +875,24 @@ app.post('/api/scheduler/run', async (c) => {
 // ─── Notifications ──────────────────────────────────────────────────
 
 app.get('/api/notifications', async (c) => {
-  const userId = c.req.query('user_id')
-  const where: any = userId ? { user_id: Number(userId) } : {}
+ const userId = c.get('userId')
 
-  const notifications = await Notification.findAll({
-    where,
-    order: [['created_at', 'DESC']],
-  })
-  return c.json(notifications)
+ const notifications = await Notification.findAll({
+ where: { user_id: userId },
+ order: [['created_at', 'DESC']],
+ })
+ return c.json(notifications)
 })
 
 app.patch('/api/notifications/:id/dismiss', async (c) => {
-  const notification = await Notification.findByPk(c.req.param('id'))
-  if (!notification) return c.json({ error: 'Notification not found' }, 404)
+ const userId = c.get('userId')
+ const notification = await Notification.findByPk(c.req.param('id'))
+ if (!notification) return c.json({ error: 'Notification not found' }, 404)
+ // Verify ownership
+ if (notification.user_id !== userId) {
+ return c.json({ error: 'Notification not found' }, 404)
+ }
 
-  await notification.update({ dismissed: true })
-  return c.json(notification)
+ await notification.update({ dismissed: true })
+ return c.json(notification)
 })

@@ -33,7 +33,7 @@ async function generateDraft() {
 
 	try {
 		const res = await api.post('/ai/draft-outreach', {
-			user_id: auth.user?.id,
+			// user_id removed — server extracts from JWT
 			domain_name: props.domain.domain_name,
 			prospect_domain: props.prospect.prospect_domain,
 			company_name: props.prospect.company_name,

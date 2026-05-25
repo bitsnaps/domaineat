@@ -141,11 +141,11 @@ export const useDomainsStore = defineStore('domains', () => {
 
 	// ─── Actions ───────────────────────────────────────────────────────────
 
-	async function fetchDomains(userId: number) {
+	async function fetchDomains() {
 		loading.value = true
 		error.value = null
 		try {
-			const res = await api.get('/domains', { params: { user_id: userId } })
+			const res = await api.get('/domains')
 			domains.value = res.data
 		} catch (e: any) {
 			const msg = e.response?.data?.error || e.message

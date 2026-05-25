@@ -47,7 +47,7 @@ const perPage = 15
 
 onMounted(async () => {
   const userId = auth.user?.id
-  await Promise.all([store.fetchProspects(), userId ? domains.fetchDomains(userId) : Promise.resolve()])
+  await Promise.all([store.fetchProspects(), domains.fetchDomains()])
 })
 
 // Paginated

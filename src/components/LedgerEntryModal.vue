@@ -54,7 +54,7 @@ watch(
 
 onMounted(() => {
   const userId = auth.user?.id
-  if (userId && domains.domains.length === 0) domains.fetchDomains(userId)
+  if (domains.domains.length === 0) domains.fetchDomains()
 })
 
 function resetForm() {

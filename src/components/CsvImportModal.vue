@@ -106,9 +106,8 @@ function parseCsv() {
 }
 
 async function doImport() {
-  const domains = validRows.value.map((r) => ({
-    user_id: 1, // Will be replaced by auth context
-    domain_name: r.domain_name,
+ const domains = validRows.value.map((r) => ({
+ domain_name: r.domain_name,
     registrar: r.registrar,
     acquisition_date: r.acquisition_date || new Date().toISOString().slice(0, 10),
     expiry_date: r.expiry_date,

@@ -18,7 +18,7 @@ const editingDomain = ref<Domain | null>(null)
 
 onMounted(() => {
   const userId = auth.user?.id
-  if (userId) store.fetchDomains(userId)
+  store.fetchDomains()
 })
 
 function openAdd() {
@@ -40,7 +40,7 @@ async function handleSave(payload: any) {
   if (editingDomain.value) {
     await store.updateDomain(editingDomain.value.id, payload)
   } else {
-    await store.createDomain({ user_id: auth.user?.id!, ...payload })
+    await store.createDomain(payload)
   }
   closeModal()
 }

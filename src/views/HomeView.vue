@@ -129,7 +129,7 @@ onMounted(async () => {
   const userId = auth.user?.id
   if (userId) {
     await Promise.all([
-      domainsStore.fetchDomains(userId),
+      domainsStore.fetchDomains(),
       ledgerStore.fetchEntries(),
       prospectsStore.fetchProspects(),
     ])
