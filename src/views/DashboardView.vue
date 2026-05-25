@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
+// Mobile nav toggle (replaces Bootstrap JS collapse)
+const navOpen = ref(false)
+
+function toggleNav() {
+	navOpen.value = !navOpen.value
+}
+
+function closeNav() {
+	navOpen.value = false
+}
+
 // Animated counter for stats
 const stats = ref([
   { value: 0, target: 847, label: 'Domains Tracked', suffix: '+' },
@@ -125,21 +136,21 @@ const pricingPlans = [
     <nav class="navbar navbar-expand-lg fixed-top">
       <div class="container">
         <router-link to="/" class="navbar-brand">Domain<span>eat</span></router-link>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav ms-auto align-items-center">
-            <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
-            <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
-            <li class="nav-item ms-lg-3">
-              <router-link to="/domains" class="btn btn-nav">Log in</router-link>
-            </li>
-            <li class="nav-item ms-2">
-              <router-link to="/domains" class="btn btn-nav btn-nav-primary">Get Started</router-link>
-            </li>
-          </ul>
-        </div>
+ <button class="navbar-toggler" type="button" :aria-expanded="navOpen" aria-label="Toggle navigation" @click="toggleNav">
+ <span class="navbar-toggler-icon"></span>
+ </button>
+ <div class="navbar-collapse" :class="{ collapse: !navOpen }" id="navbarNav">
+ <ul class="navbar-nav ms-auto align-items-center">
+ <li class="nav-item"><a class="nav-link" href="#features" @click="closeNav">Features</a></li>
+ <li class="nav-item"><a class="nav-link" href="#pricing" @click="closeNav">Pricing</a></li>
+ <li class="nav-item ms-lg-3">
+ <router-link to="/domains" class="btn btn-nav" @click="closeNav">Log in</router-link>
+ </li>
+ <li class="nav-item ms-2">
+ <router-link to="/domains" class="btn btn-nav btn-nav-primary" @click="closeNav">Get Started</router-link>
+ </li>
+ </ul>
+ </div>
       </div>
     </nav>
 
@@ -359,9 +370,59 @@ const pricingPlans = [
 }
 
 .btn-nav-primary:hover {
-  background: var(--gray-900);
-  border-color: var(--gray-900);
-  color: #fff !important;
+ background: var(--gray-900);
+ border-color: var(--gray-900);
+ color: #fff !important;
+}
+
+/* ── Mobile nav toggle (Vue-driven, no Bootstrap JS) ─── */
+.navbar-toggler {
+ border: none;
+ padding: 0.5rem 0.75rem;
+}
+
+.navbar-toggler:focus {
+ box-shadow: none;
+}
+
+/* On mobile, collapsed nav is hidden; open nav slides down */
+@media (max-width: 991.98px) {
+ .navbar-collapse.collapse {
+ display: none !important;
+ }
+
+ .navbar-collapse:not(.collapse) {
+ display: flex !important;
+ flex-direction: column;
+ padding: 1rem 0;
+ border-top: 1px solid rgba(203, 213, 225, 0.3);
+ animation: navSlideDown 0.25s ease-out;
+ }
+
+ .navbar-collapse:not(.collapse) .navbar-nav {
+ flex-direction: column;
+ width: 100%;
+ gap: 0.25rem;
+ }
+
+ .navbar-collapse:not(.collapse) .nav-item {
+ width: 100%;
+ }
+
+ .navbar-collapse:not(.collapse) .nav-link {
+ padding: 0.75rem 0 !important;
+ }
+}
+
+@keyframes navSlideDown {
+ from {
+ opacity: 0;
+ transform: translateY(-8px);
+ }
+ to {
+ opacity: 1;
+ transform: translateY(0);
+ }
 }
 
 /* ── Hero Section ────────────────────────────────────────────── */
