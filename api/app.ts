@@ -133,56 +133,72 @@ app.use('/api/*', async (c, next) => {
 
 // Register
 app.post('/api/auth/register', async (c) => {
-  const { email, password } = await c.req.json()
-  if (!email || !password) {
-    return c.json({ error: 'Email and password are required' }, 400)
-  }
-  if (password.length < 8) {
-    return c.json({ error: 'Password must be at least 8 characters' }, 400)
-  }
+	try {
+		const { email, password, confirmPassword } = await c.req.json()
+		if (!email || !password) {
+			return c.json({ error: 'Email and password are required' }, 400)
+		}
+		if (password.length < 8) {
+			return c.json({ error: 'Password must be at least 8 characters' }, 400)
+		}
+		if (!confirmPassword) {
+			return c.json({ error: 'Password confirmation is required' }, 400)
+		}
+		if (password !== confirmPassword) {
+			return c.json({ error: 'Passwords do not match' }, 400)
+		}
 
-  // Check if email already exists
-  const existing = await User.findOne({ where: { email } })
-  if (existing) {
-    return c.json({ error: 'Email already registered' }, 409)
-  }
+		// Check if email already exists
+		const existing = await User.findOne({ where: { email } })
+		if (existing) {
+			return c.json({ error: 'Email already registered' }, 409)
+		}
 
-  const hashed = await hashPassword(password)
-  const user = await User.create({
-    email,
-    password_hash: hashed,
-    tier: 'free',
-  } as any)
+		const hashed = await hashPassword(password)
+		const user = await User.create({
+			email,
+			password_hash: hashed,
+			tier: 'free',
+		} as any)
 
- const token = signJwt({ userId: user.id, email: user.email, tier: user.tier })
- return c.json({
-   token,
-   user: { id: user.id, email: user.email, tier: user.tier },
- }, 201)
+		const token = signJwt({ userId: user.id, email: user.email, tier: user.tier })
+		return c.json({
+			token,
+			user: { id: user.id, email: user.email, tier: user.tier },
+		}, 201)
+	} catch (err: any) {
+		console.error('Register error:', err)
+		return c.json({ error: 'Registration failed. Please try again.' }, 500)
+	}
 })
 
 // Login
 app.post('/api/auth/login', async (c) => {
- const { email, password } = await c.req.json()
- if (!email || !password) {
-   return c.json({ error: 'Email and password are required' }, 400)
- }
+	try {
+		const { email, password } = await c.req.json()
+		if (!email || !password) {
+			return c.json({ error: 'Email and password are required' }, 400)
+		}
 
- const user = await User.findOne({ where: { email } })
- if (!user) {
-   return c.json({ error: 'Invalid email or password' }, 401)
- }
+		const user = await User.findOne({ where: { email } })
+		if (!user) {
+			return c.json({ error: 'Invalid email or password' }, 401)
+		}
 
- const valid = await verifyPassword(password, user.password_hash)
- if (!valid) {
-   return c.json({ error: 'Invalid email or password' }, 401)
- }
+		const valid = await verifyPassword(password, user.password_hash)
+		if (!valid) {
+			return c.json({ error: 'Invalid email or password' }, 401)
+		}
 
- const token = signJwt({ userId: user.id, email: user.email, tier: user.tier })
-  return c.json({
-    token,
-    user: { id: user.id, email: user.email, tier: user.tier },
-  })
+		const token = signJwt({ userId: user.id, email: user.email, tier: user.tier })
+		return c.json({
+			token,
+			user: { id: user.id, email: user.email, tier: user.tier },
+		})
+	} catch (err: any) {
+		console.error('Login error:', err)
+		return c.json({ error: 'Login failed. Please try again.' }, 500)
+	}
 })
 
 // Get current user from token

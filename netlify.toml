@@ -10,7 +10,7 @@
 # cannot detect at bundle time. Mark these as external so Netlify
 # includes them as un-bundled node_modules alongside the function.
 [functions."*"]
- external_node_modules = ["pg", "pg-hstore", "pg-native", "pg-connection-string", "pg-types", "pg-int8", "pg-numeric", "pg-pass", "postgres-array", "postgres-bytea", "postgres-date", "postgres-interval", "packet-reader", "packet-writer", "buffer-writer", "split2", "readable-stream"]
+ external_node_modules = ["pg", "pg-hstore", "pg-native", "pg-connection-string", "pg-types", "pg-int8", "pg-numeric", "pg-pass", "postgres-array", "postgres-bytea", "postgres-date", "postgres-interval", "packet-reader", "packet-writer", "buffer-writer", "split2", "readable-stream", "bcryptjs", "jsonwebtoken", "dotenv"]
 
 # Scheduled function — runs every 10 minutes
 [functions."scheduler"]

@@ -75,14 +75,14 @@ describe('Auth Middleware', () => {
       expect(res.status).not.toBe(401)
     })
 
-    it('POST /api/auth/register is accessible without token', async () => {
-      const res = await app.request('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'new@test.com', password: 'password123' }),
-      })
-      expect(res.status).not.toBe(401)
-    })
+ it('POST /api/auth/register is accessible without token', async () => {
+ const res = await app.request('/api/auth/register', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ email: 'new@test.com', password: 'password123', confirmPassword: 'password123' }),
+ })
+ expect(res.status).not.toBe(401)
+ })
 
     it('POST /api/auth/login is accessible without token', async () => {
       mockUsers.push({ id: 1, email: 'test@test.com', password_hash: 'hash', tier: 'free' })
@@ -330,8 +330,66 @@ describe('Auth Middleware', () => {
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: 3, domain_name: 'a.com', prospect_domain: 'b.com' }),
       })
-      // Should NOT be 429 — enterprise has no limit
-      expect(res.status).not.toBe(429)
-    })
-  })
+ // Should NOT be 429 — enterprise has no limit
+ expect(res.status).not.toBe(429)
+ })
+ })
+
+ // ─── Registration — confirmPassword validation ────────────────
+
+ describe('Registration — confirmPassword validation', () => {
+ it('rejects registration without confirmPassword', async () => {
+ const res = await app.request('/api/auth/register', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ email: 'noconfirm@test.com', password: 'password123' }),
+ })
+ expect(res.status).toBe(400)
+ const data = await res.json()
+ expect(data.error).toMatch(/confirmation|required/i)
+ })
+
+ it('rejects registration when passwords do not match', async () => {
+ const res = await app.request('/api/auth/register', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ email: 'mismatch@test.com', password: 'password123', confirmPassword: 'different456' }),
+ })
+ expect(res.status).toBe(400)
+ const data = await res.json()
+ expect(data.error).toMatch(/match/i)
+ })
+
+ it('accepts registration when passwords match', async () => {
+ const res = await app.request('/api/auth/register', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ email: 'match@test.com', password: 'password123', confirmPassword: 'password123' }),
+ })
+ expect(res.status).toBe(201)
+ })
+
+ it('rejects short password even with matching confirmPassword', async () => {
+ const res = await app.request('/api/auth/register', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ email: 'short@test.com', password: 'short', confirmPassword: 'short' }),
+ })
+ expect(res.status).toBe(400)
+ const data = await res.json()
+ expect(data.error).toMatch(/8 characters/i)
+ })
+
+ it('rejects duplicate email registration', async () => {
+ mockUsers.push({ id: 99, email: 'dup@test.com', password_hash: 'hash', tier: 'free' })
+ const res = await app.request('/api/auth/register', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ email: 'dup@test.com', password: 'password123', confirmPassword: 'password123' }),
+ })
+ expect(res.status).toBe(409)
+ const data = await res.json()
+ expect(data.error).toMatch(/already|exists/i)
+ })
+ })
 })

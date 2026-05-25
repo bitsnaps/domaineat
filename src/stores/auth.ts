@@ -35,16 +35,16 @@ export const useAuthStore = defineStore('auth', () => {
     return fetch(url, { ...options, headers })
   }
 
-  /** Register a new user */
-  async function register(email: string, password: string) {
-    loading.value = true
-    error.value = null
-    try {
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
+ /** Register a new user */
+ async function register(email: string, password: string, confirmPassword: string) {
+ loading.value = true
+ error.value = null
+ try {
+ const res = await fetch(`${API_BASE}/auth/register`, {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify({ email, password, confirmPassword }),
+ })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
 
