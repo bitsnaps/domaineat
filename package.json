@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.0.3",
+    "axios": "^1.16.1",
     "bcryptjs": "^3.0.3",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",

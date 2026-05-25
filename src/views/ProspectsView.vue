@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { useProspectsStore } from '@/stores/prospects'
 import { useDomainsStore } from '@/stores/domains'
+import { useAuthStore } from '@/stores/auth'
 import ProspectModal from '@/components/ProspectModal.vue'
 import OutreachDraftModal from '@/components/OutreachDraftModal.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
@@ -10,8 +11,7 @@ import type { Prospect, OutreachStatus, LeadScore, Domain } from '@/types'
 
 const store = useProspectsStore()
 const domains = useDomainsStore()
-
-const USER_ID = 1
+const auth = useAuthStore()
 
 // Modal state
 const showModal = ref(false)
@@ -46,7 +46,8 @@ const page = ref(1)
 const perPage = 15
 
 onMounted(async () => {
-  await Promise.all([store.fetchProspects(), domains.fetchDomains(USER_ID)])
+  const userId = auth.user?.id
+  await Promise.all([store.fetchProspects(), userId ? domains.fetchDomains(userId) : Promise.resolve()])
 })
 
 // Paginated

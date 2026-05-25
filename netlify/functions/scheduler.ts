@@ -6,9 +6,7 @@
  * 2. Updates cached currency exchange rates
  * 3. Resets daily AI call counters (at midnight UTC)
  *
- * Configured in netlify.toml:
- * [functions."scheduler"]
- * schedule = "0-59/10 * * * *" (every 10 min)
+ * Schedule configured in netlify.toml: every 10 min
  */
 import 'dotenv/config'
 import { validateEnvVars } from '../../api/env.validation.js'

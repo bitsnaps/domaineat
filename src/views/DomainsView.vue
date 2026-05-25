@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useDomainsStore } from '@/stores/domains'
+import { useAuthStore } from '@/stores/auth'
 import DomainModal from '@/components/DomainModal.vue'
 import CsvImportModal from '@/components/CsvImportModal.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
@@ -8,17 +9,16 @@ import EmptyState from '@/components/EmptyState.vue'
 import type { Domain, DomainStatus } from '@/types'
 
 const store = useDomainsStore()
+const auth = useAuthStore()
 
 // Modal state
 const showModal = ref(false)
 const showCsvModal = ref(false)
 const editingDomain = ref<Domain | null>(null)
 
-// Hardcoded user_id — will be replaced by auth context
-const USER_ID = 1
-
 onMounted(() => {
-  store.fetchDomains(USER_ID)
+  const userId = auth.user?.id
+  if (userId) store.fetchDomains(userId)
 })
 
 function openAdd() {
@@ -40,7 +40,7 @@ async function handleSave(payload: any) {
   if (editingDomain.value) {
     await store.updateDomain(editingDomain.value.id, payload)
   } else {
-    await store.createDomain({ user_id: USER_ID, ...payload })
+    await store.createDomain({ user_id: auth.user?.id!, ...payload })
   }
   closeModal()
 }

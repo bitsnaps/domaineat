@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { useLedgerStore } from '@/stores/ledger'
 import { useDomainsStore } from '@/stores/domains'
+import { useAuthStore } from '@/stores/auth'
 import LedgerEntryModal from '@/components/LedgerEntryModal.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -9,8 +10,7 @@ import type { LedgerEntry, TransactionType } from '@/types'
 
 const store = useLedgerStore()
 const domains = useDomainsStore()
-
-const USER_ID = 1
+const auth = useAuthStore()
 
 // Modal state
 const showModal = ref(false)
@@ -21,7 +21,8 @@ const page = ref(1)
 const perPage = 15
 
 onMounted(async () => {
-  await Promise.all([store.fetchEntries(), domains.fetchDomains(USER_ID)])
+  const userId = auth.user?.id
+  await Promise.all([store.fetchEntries(), userId ? domains.fetchDomains(userId) : Promise.resolve()])
 })
 
 // Paginated entries

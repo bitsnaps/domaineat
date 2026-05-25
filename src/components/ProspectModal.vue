@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import { useDomainsStore } from '@/stores/domains'
+import { useAuthStore } from '@/stores/auth'
 import type { Prospect, ProspectCreate, OutreachStatus } from '@/types'
 
 const props = defineProps<{
@@ -13,7 +14,7 @@ const emit = defineEmits<{
 }>()
 
 const domains = useDomainsStore()
-const USER_ID = 1
+const auth = useAuthStore()
 
 // Form state
 const domainId = ref<number | null>(null)
@@ -54,7 +55,8 @@ watch(
 )
 
 onMounted(() => {
-  if (domains.domains.length === 0) domains.fetchDomains(USER_ID)
+  const userId = auth.user?.id
+  if (userId && domains.domains.length === 0) domains.fetchDomains(userId)
 })
 
 function resetForm() {
