@@ -123,18 +123,17 @@ const tierBadge = computed(() => {
 })
 
 // ─── Data Loading ───────────────────────────────────────────────────────
-
 onMounted(async () => {
-  loading.value = true
-  const userId = auth.user?.id
-  if (userId) {
-    await Promise.all([
-      domainsStore.fetchDomains(),
-      ledgerStore.fetchEntries(),
-      prospectsStore.fetchProspects(),
-    ])
-  }
-  loading.value = false
+ loading.value = true
+
+ if (domainsStore.domains.length === 0) domainsStore.fetchDomains()
+ await Promise.all([
+ domainsStore.fetchDomains(),
+ ledgerStore.fetchEntries(),
+ prospectsStore.fetchProspects(),
+ ])
+
+ loading.value = false
 })
 </script>
 

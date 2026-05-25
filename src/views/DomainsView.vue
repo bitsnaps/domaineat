@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useDomainsStore } from '@/stores/domains'
-import { useAuthStore } from '@/stores/auth'
 import DomainModal from '@/components/DomainModal.vue'
 import CsvImportModal from '@/components/CsvImportModal.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
@@ -9,7 +8,6 @@ import EmptyState from '@/components/EmptyState.vue'
 import type { Domain, DomainStatus } from '@/types'
 
 const store = useDomainsStore()
-const auth = useAuthStore()
 
 // Modal state
 const showModal = ref(false)
@@ -17,8 +15,7 @@ const showCsvModal = ref(false)
 const editingDomain = ref<Domain | null>(null)
 
 onMounted(() => {
-  const userId = auth.user?.id
-  store.fetchDomains()
+	if (store.domains.length === 0) store.fetchDomains()
 })
 
 function openAdd() {

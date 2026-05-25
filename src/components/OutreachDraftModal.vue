@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
 import api from '@/lib/api'
 import type { Prospect, Domain, AiDraftResponse } from '@/types'
-
-const auth = useAuthStore()
 
 const props = defineProps<{
 	prospect: Prospect
