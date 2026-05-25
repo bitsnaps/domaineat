@@ -7,8 +7,8 @@
  * 3. Resets daily AI call counters (at midnight UTC)
  *
  * Configured in netlify.toml:
- *   [functions."scheduler"]
- *     schedule = "*/10 * * * *"
+ * [functions."scheduler"]
+ * schedule = "0-59/10 * * * *" (every 10 min)
  */
 import { runAllTasks } from '../../api/scheduler.js'
 import { sequelize } from '../../api/models/index.js'
