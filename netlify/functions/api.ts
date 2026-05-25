@@ -23,6 +23,16 @@ validateEnvVars()
 
 // Dynamic import ensures the app (and its transitive model imports)
 // only loads AFTER env validation has passed.
-const { app } = await import('../../api/app.js')
+const { app, sequelize } = await import('../../api/app.js')
+
+// Ensure DB tables exist on cold start.
+// Uses sync({ alter: true }) to create missing tables and add missing columns
+// without dropping data. Safe for serverless where migrations may not have run.
+try {
+	await sequelize.sync({ alter: true })
+	console.log('DB sync complete')
+} catch (err) {
+	console.error('DB sync failed:', err)
+}
 
 export default handle(app)

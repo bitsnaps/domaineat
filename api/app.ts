@@ -19,6 +19,7 @@ import { runAllTasks } from './scheduler.js'
 // Do NOT call validateEnvVars() here — static imports above already loaded models.
 
 export const app = new Hono()
+export { sequelize }
 
 // ─── Security Middleware ─────────────────────────────────────────────────
 
