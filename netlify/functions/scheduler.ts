@@ -13,6 +13,10 @@
 import 'dotenv/config'
 import { validateEnvVars } from '../../api/env.validation.js'
 
+// Force esbuild to include pg in the bundle — Sequelize loads it dynamically
+import 'pg'
+import 'pg-hstore'
+
 // Validate env vars BEFORE importing models (which need DATABASE_URL)
 validateEnvVars()
 
