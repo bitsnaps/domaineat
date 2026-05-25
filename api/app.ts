@@ -243,12 +243,20 @@ app.get('/api/health', async (c) => {
 // ─── Domains ───────────────────────────────────────────────────────────
 
 app.get('/api/domains', async (c) => {
- const userId = c.get('userId')
- const domains = await Domain.findAll({
- where: { user_id: userId },
- order: [['created_at', 'DESC']],
- })
- return c.json(domains)
+	try {
+		const userId = c.get('userId')
+		if (!userId) {
+			return c.json({ error: 'User ID not found in auth context' }, 401)
+		}
+		const domains = await Domain.findAll({
+			where: { user_id: userId },
+			order: [['created_at', 'DESC']],
+		})
+		return c.json(domains)
+	} catch (err: any) {
+		console.error('Domains list error:', err)
+		return c.json({ error: 'Failed to fetch domains', detail: err.message }, 500)
+	}
 })
 
 app.post('/api/domains', async (c) => {
