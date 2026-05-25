@@ -207,7 +207,7 @@ app.post('/api/auth/login', async (c) => {
 		})
 	} catch (err: any) {
 		console.error('Login error:', err)
-		return c.json({ error: 'Login failed. Please try again.' }, 500)
+		return c.json({ error: 'Login failed. Please try again.', detail: err.message }, 500)
 	}
 })
 
