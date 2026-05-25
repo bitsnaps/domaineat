@@ -4,7 +4,8 @@
 
 [functions]
  directory = "netlify/functions"
- node_bundler = "esbuild"
+ # Use zisi bundler — esbuild tree-shakes pg (Sequelize loads it dynamically via require())
+ node_bundler = "zisi"
 
 # Scheduled function — runs every 10 minutes
 [functions."scheduler"]

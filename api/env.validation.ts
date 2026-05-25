@@ -30,16 +30,16 @@ const ENV_VARS: EnvVarDef[] = [
     required: true,
     description: 'AES-256 encryption key for encrypting stored API keys (32-byte hex string)',
   },
-  {
-    name: 'GODADDY_API_KEY',
-    required: true,
-    description: 'GoDaddy API key for domain registration/management',
-  },
-  {
-    name: 'GODADDY_SECRET_KEY',
-    required: true,
-    description: 'GoDaddy API secret key (paired with GODADDY_API_KEY)',
-  },
+ {
+ name: 'GODADDY_API_KEY',
+ required: false,
+ description: 'GoDaddy API key for domain registration/management (required only for GoDaddy integration)',
+ },
+ {
+ name: 'GODADDY_SECRET_KEY',
+ required: false,
+ description: 'GoDaddy API secret key (paired with GODADDY_API_KEY)',
+ },
   {
     name: 'NODE_ENV',
     required: false,
