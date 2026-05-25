@@ -8,8 +8,9 @@ export class User extends Model {
   declare llm_provider: string | null
   declare llm_model: string | null
   declare llm_api_key_encrypted: string | null
-  declare daily_ai_calls: number
-  declare created_at: Date
+ declare daily_ai_calls: number
+ declare created_at: Date
+ declare updated_at: Date
 }
 
 export function initUser(sequelize: Sequelize): typeof User {
@@ -48,21 +49,19 @@ export function initUser(sequelize: Sequelize): typeof User {
         type: DataTypes.TEXT,
         allowNull: true,
       },
-      daily_ai_calls: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0,
-      },
-      created_at: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
-      },
-    },
-    {
-      sequelize,
-      tableName: 'users',
-      timestamps: false,
-      underscored: true,
-    }
+ daily_ai_calls: {
+ type: DataTypes.INTEGER,
+ defaultValue: 0,
+ },
+ },
+ {
+ sequelize,
+ tableName: 'users',
+ timestamps: true,
+ createdAt: 'created_at',
+ updatedAt: 'updated_at',
+ underscored: true,
+ }
   )
   return User
 }
