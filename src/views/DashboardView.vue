@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
 
 // Mobile nav toggle (replaces Bootstrap JS collapse)
 const navOpen = ref(false)
@@ -140,15 +143,22 @@ const pricingPlans = [
  <span class="navbar-toggler-icon"></span>
  </button>
  <div class="navbar-collapse" :class="{ collapse: !navOpen }" id="navbarNav">
- <ul class="navbar-nav ms-auto align-items-center">
- <li class="nav-item"><a class="nav-link" href="#features" @click="closeNav">Features</a></li>
- <li class="nav-item"><a class="nav-link" href="#pricing" @click="closeNav">Pricing</a></li>
- <li class="nav-item ms-lg-3">
- <router-link to="/domains" class="btn btn-nav" @click="closeNav">Log in</router-link>
- </li>
- <li class="nav-item ms-2">
- <router-link to="/domains" class="btn btn-nav btn-nav-primary" @click="closeNav">Get Started</router-link>
- </li>
+		<ul class="navbar-nav ms-auto align-items-center">
+				<li class="nav-item"><a class="nav-link" href="#features" @click="closeNav">Features</a></li>
+				<li class="nav-item"><a class="nav-link" href="#pricing" @click="closeNav">Pricing</a></li>
+				<li v-if="auth.isLoggedIn" class="nav-item ms-lg-3">
+					<router-link to="/home" class="btn btn-nav btn-nav-primary" @click="closeNav">
+						<i class="bi bi-grid-1x2-fill me-1"></i> Dashboard
+					</router-link>
+				</li>
+				<template v-else>
+					<li class="nav-item ms-lg-3">
+						<router-link to="/domains" class="btn btn-nav" @click="closeNav">Log in</router-link>
+					</li>
+					<li class="nav-item ms-2">
+						<router-link to="/domains" class="btn btn-nav btn-nav-primary" @click="closeNav">Get Started</router-link>
+					</li>
+				</template>
  </ul>
  </div>
       </div>
@@ -168,9 +178,9 @@ const pricingPlans = [
             <h1>Your Domain Portfolio.<br><span class="text-gradient">Finally Organized.</span></h1>
             <p>Domaineat is the intelligent command center for domain investors. Track portfolios, manage finances, find buyers, and never miss a renewal — all in one beautiful dashboard.</p>
             <div class="hero-cta justify-content-center">
-              <router-link to="/domains" class="btn btn-hero btn-hero-primary">
-                Start Free <i class="bi bi-arrow-right"></i>
-              </router-link>
+		<router-link :to="auth.isLoggedIn ? '/home' : '/domains'" class="btn btn-hero btn-hero-primary">
+				{{ auth.isLoggedIn ? 'Go to Dashboard' : 'Start Free' }} <i class="bi bi-arrow-right"></i>
+			</router-link>
               <a href="#features" class="btn btn-hero btn-hero-secondary">
                 <i class="bi bi-play-circle"></i> Watch Demo
               </a>
@@ -291,9 +301,9 @@ const pricingPlans = [
         <div class="cta-content">
           <h2>Ready to Dominate Your Domain Portfolio?</h2>
           <p>Join hundreds of domain investors who already manage their portfolios smarter.</p>
-          <router-link to="/domains" class="btn btn-cta">
-            Get Started Free <i class="bi bi-arrow-right"></i>
-          </router-link>
+		<router-link :to="auth.isLoggedIn ? '/home' : '/domains'" class="btn btn-cta">
+				{{ auth.isLoggedIn ? 'Go to Dashboard' : 'Get Started Free' }} <i class="bi bi-arrow-right"></i>
+			</router-link>
         </div>
       </div>
     </section>
