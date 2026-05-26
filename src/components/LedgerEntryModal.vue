@@ -84,9 +84,9 @@ function submit() {
 </script>
 
 <template>
-  <div class="modal-backdrop" @click.self="emit('close')">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0 shadow">
+ <div class="modal-overlay" @click.self="emit('close')">
+  <div class="modal-dialog modal-dialog-centered">
+   <div class="modal-content border-0 shadow">
         <div class="modal-header border-0 pb-0">
           <h5 class="modal-title fw-semibold">{{ entry ? 'Edit Entry' : 'Add Entry' }}</h5>
           <button type="button" class="btn-close" @click="emit('close')"></button>
@@ -157,20 +157,20 @@ function submit() {
 </template>
 
 <style scoped>
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1050;
+.modal-overlay {
+ position: fixed;
+ inset: 0;
+ background: rgba(0, 0, 0, 0.4);
+ backdrop-filter: blur(4px);
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ z-index: 1050;
 }
 .modal-dialog {
-  width: 100%;
-  max-width: 480px;
-  margin: 1rem;
+ width: 100%;
+ max-width: 480px;
+ margin: 1rem;
 }
 :root { --indigo: #6366f1; }
 </style>

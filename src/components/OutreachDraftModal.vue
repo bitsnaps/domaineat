@@ -69,7 +69,7 @@ function saveAndClose() {
 </script>
 
 <template>
-	<div class="modal-backdrop" @click.self="emit('close')">
+	<div class="modal-overlay" @click.self="emit('close')">
 		<div class="modal-dialog modal-dialog-centered modal-lg">
 			<div class="modal-content border-0 shadow">
 				<div class="modal-header border-0 pb-0">
@@ -139,7 +139,7 @@ function saveAndClose() {
 </template>
 
 <style scoped>
-.modal-backdrop {
+.modal-overlay {
 	position: fixed;
 	inset: 0;
 	background: rgba(0, 0, 0, 0.4);

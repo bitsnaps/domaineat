@@ -36,6 +36,14 @@ vi.mock('../../api/models/index.js', () => ({
     findAll: vi.fn(async () => mockDomains),
     count: vi.fn(async () => mockDomains.length),
     findByPk: vi.fn(async (id: number | string) => mockDomains.find((d) => String(d.id) === String(id)) || null),
+    findOne: vi.fn(async (opts: any) => {
+      if (!opts?.where) return null
+      return mockDomains.find((d) => {
+        if (opts.where.id !== undefined && String(d.id) !== String(opts.where.id)) return false
+        if (opts.where.user_id !== undefined && d.user_id !== opts.where.user_id) return false
+        return true
+      }) || null
+    }),
     create: vi.fn(async (data: any) => {
       const domain = { id: mockDomains.length + 1, ...data, update: vi.fn(), destroy: vi.fn() }
       mockDomains.push(domain)
@@ -45,7 +53,7 @@ vi.mock('../../api/models/index.js', () => ({
   Ledger: {
     findAll: vi.fn(async () => mockLedger),
     create: vi.fn(async (data: any) => {
-      const entry = { id: mockLedger.length + 1, ...data }
+      const entry = { id: mockLedger.length + 1, ...data, update: vi.fn(), destroy: vi.fn() }
       mockLedger.push(entry)
       return entry
     }),
@@ -103,16 +111,16 @@ describe('API Routes (real api/app.ts)', () => {
 
   // ─── Domains (protected — auth required) ──────────────────────
 
-  it('GET /api/domains requires user_id', async () => {
+  it('GET /api/domains returns domains for authenticated user', async () => {
     const res = await app.request('/api/domains', { headers: authHeaders() })
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(200)
     const data = await res.json()
-    expect(data.error).toContain('user_id')
+    expect(data).toBeInstanceOf(Array)
   })
 
   it('GET /api/domains returns domains for a user', async () => {
     mockDomains.push({ id: 1, user_id: 1, domain_name: 'example.com' })
-    const res = await app.request('/api/domains?user_id=1', { headers: authHeaders() })
+    const res = await app.request('/api/domains', { headers: authHeaders() })
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data).toBeInstanceOf(Array)
@@ -130,7 +138,7 @@ describe('API Routes (real api/app.ts)', () => {
   })
 
   it('GET /api/domains/:id returns a domain', async () => {
-    mockDomains.push({ id: 42, domain_name: 'found.com' })
+    mockDomains.push({ id: 42, user_id: 1, domain_name: 'found.com' })
     const res = await app.request('/api/domains/42', { headers: authHeaders() })
     expect(res.status).toBe(200)
   })
@@ -141,7 +149,7 @@ describe('API Routes (real api/app.ts)', () => {
   })
 
   it('PUT /api/domains/:id updates a domain', async () => {
-    const domain = { id: 1, domain_name: 'old.com', update: vi.fn() }
+    const domain = { id: 1, user_id: 1, domain_name: 'old.com', update: vi.fn() }
     mockDomains.push(domain)
     const res = await app.request('/api/domains/1', {
       method: 'PUT',
@@ -162,7 +170,7 @@ describe('API Routes (real api/app.ts)', () => {
   })
 
   it('DELETE /api/domains/:id deletes a domain', async () => {
-    const domain = { id: 1, destroy: vi.fn() }
+    const domain = { id: 1, user_id: 1, destroy: vi.fn() }
     mockDomains.push(domain)
     const res = await app.request('/api/domains/1', { method: 'DELETE', headers: authHeaders() })
     expect(res.status).toBe(200)
@@ -202,6 +210,7 @@ describe('API Routes (real api/app.ts)', () => {
   })
 
   it('POST /api/ledger creates an entry', async () => {
+    mockDomains.push({ id: 1, user_id: 1, domain_name: 'test.com' })
     const res = await app.request('/api/ledger', {
       method: 'POST',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -211,12 +220,13 @@ describe('API Routes (real api/app.ts)', () => {
   })
 
   it('POST /api/ledger returns 400 on error', async () => {
+    mockDomains.push({ id: 1, user_id: 1, domain_name: 'test.com' })
     const { Ledger } = await import('../../api/models/index.js')
     ;(Ledger.create as any).mockRejectedValueOnce(new Error('validation failed'))
     const res = await app.request('/api/ledger', {
       method: 'POST',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({}),
+      body: JSON.stringify({ domain_id: 1 }),
     })
     expect(res.status).toBe(400)
   })
@@ -236,6 +246,7 @@ describe('API Routes (real api/app.ts)', () => {
   })
 
   it('POST /api/prospects creates a prospect', async () => {
+    mockDomains.push({ id: 1, user_id: 1, domain_name: 'test.com' })
     const res = await app.request('/api/prospects', {
       method: 'POST',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -245,18 +256,20 @@ describe('API Routes (real api/app.ts)', () => {
   })
 
   it('POST /api/prospects returns 400 on error', async () => {
+    mockDomains.push({ id: 1, user_id: 1, domain_name: 'test.com' })
     const { Prospect } = await import('../../api/models/index.js')
     ;(Prospect.create as any).mockRejectedValueOnce(new Error('validation error'))
     const res = await app.request('/api/prospects', {
       method: 'POST',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({}),
+      body: JSON.stringify({ domain_id: 1 }),
     })
     expect(res.status).toBe(400)
   })
 
   it('PUT /api/prospects/:id updates a prospect', async () => {
-    const prospect = { id: 1, update: vi.fn() }
+    mockDomains.push({ id: 1, user_id: 1, domain_name: 'test.com' })
+    const prospect = { id: 1, domain_id: 1, update: vi.fn() }
     mockProspects.push(prospect)
     const res = await app.request('/api/prospects/1', {
       method: 'PUT',
@@ -277,7 +290,8 @@ describe('API Routes (real api/app.ts)', () => {
   })
 
   it('DELETE /api/prospects/:id deletes a prospect', async () => {
-    const prospect = { id: 1, destroy: vi.fn() }
+    mockDomains.push({ id: 1, user_id: 1, domain_name: 'test.com' })
+    const prospect = { id: 1, domain_id: 1, destroy: vi.fn() }
     mockProspects.push(prospect)
     const res = await app.request('/api/prospects/1', { method: 'DELETE', headers: authHeaders() })
     expect(res.status).toBe(200)
