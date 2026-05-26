@@ -1,36 +1,40 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { createPinia, setActivePinia } from 'pinia'
 import DashboardView from '@/views/DashboardView.vue'
 
 describe('DashboardView (Landing Page)', () => {
-  let router: ReturnType<typeof createRouter>
+ let router: ReturnType<typeof createRouter>
+ let pinia: ReturnType<typeof createPinia>
 
-  beforeEach(async () => {
-    vi.useFakeTimers()
-    router = createRouter({
-      history: createMemoryHistory(),
-      routes: [
-        { path: '/', name: 'dashboard', component: DashboardView },
-      ],
-    })
-    router.push('/')
-    await router.isReady()
-  })
+ beforeEach(async () => {
+ vi.useFakeTimers()
+ pinia = createPinia()
+ setActivePinia(pinia)
+ router = createRouter({
+ history: createMemoryHistory(),
+ routes: [
+ { path: '/', name: 'dashboard', component: DashboardView },
+ ],
+ })
+ router.push('/')
+ await router.isReady()
+ })
 
-  afterEach(() => {
-    vi.useRealTimers()
-  })
+ afterEach(() => {
+ vi.useRealTimers()
+ })
 
-  const mountView = () =>
-    mount(DashboardView, {
-      global: {
-        plugins: [router],
-        stubs: {
-          RouterLink: { template: '<a><slot /></a>' },
-        },
-      },
-    })
+ const mountView = () =>
+ mount(DashboardView, {
+ global: {
+ plugins: [pinia, router],
+ stubs: {
+ RouterLink: { template: '<a><slot /></a>' },
+ },
+ },
+ })
 
   it('renders the hero section', () => {
     const wrapper = mountView()
