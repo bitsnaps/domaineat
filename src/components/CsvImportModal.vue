@@ -136,11 +136,11 @@ function downloadTemplate() {
 <template>
   <div class="modal-overlay" @click.self="emit('close')">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content" style="border-radius: 0.875rem; border: none; box-shadow: 0 25px 60px rgba(0,0,0,0.15);">
-        <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title" style="font-family: var(--font-display); font-weight: 600;">
-            Import Domains from CSV
-          </h5>
+ <div class="modal-content">
+ <div class="modal-header">
+ <h5 class="modal-title">
+ Import Domains from CSV
+ </h5>
           <button type="button" class="btn-close" @click="emit('close')"></button>
         </div>
 
@@ -232,24 +232,5 @@ function downloadTemplate() {
 </template>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1050;
-}
-
-.btn-primary {
-  background: var(--primary);
-  border-color: var(--primary);
-}
-
-.btn-primary:hover {
-  background: var(--primary-dark);
-  border-color: var(--primary-dark);
-}
+/* All modal styles are now global in style.css */
 </style>

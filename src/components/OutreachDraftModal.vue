@@ -69,13 +69,13 @@ function saveAndClose() {
 </script>
 
 <template>
-	<div class="modal-overlay" @click.self="emit('close')">
-		<div class="modal-dialog modal-dialog-centered modal-lg">
-			<div class="modal-content border-0 shadow">
-				<div class="modal-header border-0 pb-0">
-					<h5 class="modal-title fw-semibold">
-						Outreach Draft \u2014 {{ prospect.prospect_domain }}
-					</h5>
+ <div class="modal-overlay" @click.self="emit('close')">
+ <div class="modal-dialog modal-dialog-centered modal-lg">
+ <div class="modal-content">
+ <div class="modal-header">
+ <h5 class="modal-title">
+ Outreach Draft — {{ prospect.prospect_domain }}
+ </h5>
 					<button type="button" class="btn-close" @click="emit('close')"></button>
 				</div>
 				<div class="modal-body">
@@ -127,11 +127,11 @@ function saveAndClose() {
 						></textarea>
 					</div>
 				</div>
-				<div class="modal-footer border-0 pt-0">
-					<button class="btn btn-sm btn-outline-secondary" @click="emit('close')">Cancel</button>
-					<button v-if="hasDraft" class="btn btn-sm text-white" style="background: #6366f1;" @click="saveAndClose">
-						Save Draft
-					</button>
+ <div class="modal-footer">
+ <button class="btn btn-outline-secondary" @click="emit('close')">Cancel</button>
+ <button v-if="hasDraft" class="btn btn-primary" @click="saveAndClose">
+ Save Draft
+ </button>
 				</div>
 			</div>
 		</div>
@@ -139,14 +139,5 @@ function saveAndClose() {
 </template>
 
 <style scoped>
-.modal-overlay {
-	position: fixed;
-	inset: 0;
-	background: rgba(0, 0, 0, 0.4);
-	backdrop-filter: blur(4px);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 1050;
-}
+/* All modal styles are now global in style.css */
 </style>

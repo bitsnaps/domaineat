@@ -85,10 +85,10 @@ function submit() {
 
 <template>
  <div class="modal-overlay" @click.self="emit('close')">
-  <div class="modal-dialog modal-dialog-centered">
-   <div class="modal-content border-0 shadow">
-        <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title fw-semibold">{{ entry ? 'Edit Entry' : 'Add Entry' }}</h5>
+ <div class="modal-dialog modal-dialog-centered">
+ <div class="modal-content">
+ <div class="modal-header">
+ <h5 class="modal-title">{{ entry ? 'Edit Entry' : 'Add Entry' }}</h5>
           <button type="button" class="btn-close" @click="emit('close')"></button>
         </div>
         <div class="modal-body">
@@ -145,11 +145,11 @@ function submit() {
             </div>
           </form>
         </div>
-        <div class="modal-footer border-0 pt-0">
-          <button class="btn btn-sm btn-outline-secondary" @click="emit('close')">Cancel</button>
-          <button class="btn btn-sm text-white" style="background: var(--indigo);" @click="submit">
-            {{ entry ? 'Save Changes' : 'Add Entry' }}
-          </button>
+ <div class="modal-footer">
+ <button class="btn btn-outline-secondary" @click="emit('close')">Cancel</button>
+ <button class="btn btn-primary" @click="submit">
+ {{ entry ? 'Save Changes' : 'Add Entry' }}
+ </button>
         </div>
       </div>
     </div>
@@ -157,20 +157,5 @@ function submit() {
 </template>
 
 <style scoped>
-.modal-overlay {
- position: fixed;
- inset: 0;
- background: rgba(0, 0, 0, 0.4);
- backdrop-filter: blur(4px);
- display: flex;
- align-items: center;
- justify-content: center;
- z-index: 1050;
-}
-.modal-dialog {
- width: 100%;
- max-width: 480px;
- margin: 1rem;
-}
-:root { --indigo: #6366f1; }
+/* All modal styles are now global in style.css */
 </style>
