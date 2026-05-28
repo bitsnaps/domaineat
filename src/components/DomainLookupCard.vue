@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ExtensionCheckResult } from '@/types'
+import { formatDate } from '@/lib/format'
 
 defineProps<{
 	result: ExtensionCheckResult
@@ -39,7 +40,7 @@ defineEmits<{
 					<i class="bi bi-building me-1"></i>{{ result.registrar }}
 				</div>
 				<div v-if="result.expiryDate">
-					<i class="bi bi-calendar me-1"></i>Exp: {{ result.expiryDate }}
+					<i class="bi bi-calendar me-1"></i>Exp: {{ formatDate(result.expiryDate) }}
 				</div>
 			</div>
 			<div v-else class="small text-success mt-auto">

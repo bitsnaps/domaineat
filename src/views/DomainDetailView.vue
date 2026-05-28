@@ -255,11 +255,11 @@ function formatDate(d: string) {
 							</div>
 							<div v-if="lookupStore.validateResult.whois?.creationDate" class="col-sm-6">
 								<div class="small text-muted">Created (RDAP)</div>
-								<div class="small fw-semibold">{{ lookupStore.validateResult.whois.creationDate }}</div>
+								<div class="small fw-semibold">{{ formatDate(lookupStore.validateResult.whois.creationDate) }}</div>
 							</div>
 							<div v-if="lookupStore.validateResult.whois?.expiryDate" class="col-sm-6">
 								<div class="small text-muted">Expires (RDAP)</div>
-								<div class="small fw-semibold">{{ lookupStore.validateResult.whois.expiryDate }}</div>
+								<div class="small fw-semibold">{{ formatDate(lookupStore.validateResult.whois.expiryDate) }}</div>
 							</div>
 							<div v-if="lookupStore.validateResult.whois?.status?.length" class="col-12">
 								<div class="small text-muted mb-1">Registry Status</div>
@@ -275,7 +275,7 @@ function formatDate(d: string) {
 									{{ lookupStore.validateResult.dns.resolved ? 'Resolves' : 'No resolution' }}
 								</span>
 								<span v-if="lookupStore.validateResult.dns.ip" class="small text-muted">IP: <code>{{ lookupStore.validateResult.dns.ip }}</code></span>
-								<span v-if="lookupStore.validateResult.dns.ssl_expiry" class="small text-muted ms-3">SSL: {{ lookupStore.validateResult.dns.ssl_expiry }}</span>
+								<span v-if="lookupStore.validateResult.dns.ssl_expiry" class="small text-muted ms-3">SSL: {{ formatDate(lookupStore.validateResult.dns.ssl_expiry) }}</span>
 							</div>
 						</div>
 					</div>

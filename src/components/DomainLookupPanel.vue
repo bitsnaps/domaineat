@@ -6,6 +6,7 @@ import DomainLookupCard from '@/components/DomainLookupCard.vue'
 import TldSelector from '@/components/TldSelector.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import type { ExtensionCheckResult } from '@/types'
+import { formatDate } from '@/lib/format'
 
 const store = useLookupStore()
 const auth = useAuthStore()
@@ -219,9 +220,9 @@ function statusLabel(available: boolean | null) {
 								<td class="text-muted small">
 									{{ result.registrar || '—' }}
 								</td>
-								<td class="text-muted small">
-									{{ result.expiryDate || '—' }}
-								</td>
+							<td class="text-muted small">
+								{{ formatDate(result.expiryDate) }}
+							</td>
 							</tr>
 						</tbody>
 					</table>
@@ -254,11 +255,11 @@ function statusLabel(available: boolean | null) {
 							</div>
 							<div v-if="store.validateResult.whois.creationDate" class="col-sm-6 col-md-3">
 								<div class="small text-muted">Created</div>
-								<div class="fw-semibold">{{ store.validateResult.whois.creationDate }}</div>
+								<div class="fw-semibold">{{ formatDate(store.validateResult.whois.creationDate) }}</div>
 							</div>
 							<div v-if="store.validateResult.whois.expiryDate" class="col-sm-6 col-md-3">
 								<div class="small text-muted">Expires</div>
-								<div class="fw-semibold">{{ store.validateResult.whois.expiryDate }}</div>
+								<div class="fw-semibold">{{ formatDate(store.validateResult.whois.expiryDate) }}</div>
 							</div>
 							<div v-if="store.validateResult.whois.status?.length" class="col-sm-6 col-md-3">
 								<div class="small text-muted">Status</div>
@@ -304,7 +305,7 @@ function statusLabel(available: boolean | null) {
 							</div>
 							<div v-if="store.validateResult.dns.ssl_expiry" class="col-sm-6 col-md-3">
 								<div class="small text-muted">SSL Expiry</div>
-								<div class="fw-semibold">{{ store.validateResult.dns.ssl_expiry }}</div>
+								<div class="fw-semibold">{{ formatDate(store.validateResult.dns.ssl_expiry) }}</div>
 							</div>
 							<div v-if="store.validateResult.dns.nameservers?.length" class="col-12">
 								<div class="small text-muted mb-1">DNS Nameservers</div>

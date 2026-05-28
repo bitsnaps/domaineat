@@ -23,7 +23,7 @@ const auth = useAuthStore()
 
 		<!-- Page content -->
 		<main class="lookup-main">
-			<slot />
+			<RouterView />
 		</main>
 	</div>
 </template>
