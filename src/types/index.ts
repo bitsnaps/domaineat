@@ -224,3 +224,32 @@ export interface RateLimitInfo {
 	used: number
 	tier: string
 }
+
+// ─── Domain Appraisal ─────────────────────────────────────────────────
+
+export type AppraisalGrade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F'
+
+export interface AppraisalSignal {
+	score: number		// 0–10
+	label: string		// e.g. "3 chars (excellent)", "Contains hyphen (penalty)"
+	passed: boolean		// green check vs red X in UI
+}
+
+export interface DomainAppraisal {
+	grade: AppraisalGrade
+	range: { low: number; high: number }
+	signals: {
+		length: AppraisalSignal
+		tld: AppraisalSignal
+		dictionary: AppraisalSignal
+		brandable: AppraisalSignal
+		clean: AppraisalSignal
+	}
+}
+
+export interface EnhancedAppraisal extends DomainAppraisal {
+	enhanced: true
+	comparableSales: { domain: string; price: number; date: string }[]
+	searchVolume: number | null
+	externalAppraisal: { source: string; value: number } | null
+}
