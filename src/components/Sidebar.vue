@@ -32,7 +32,7 @@ const appState = useAppStateStore()
 				</router-link>
 			</li>
 			<li class="nav-item">
-				<router-link to="/search" class="nav-link d-flex align-items-center" active-class="active"
+				<router-link to="/lookup" class="nav-link d-flex align-items-center" active-class="active"
 					:title="appState.sidebarCollapsed ? 'Lookup' : ''">
 					<i class="bi bi-search sidebar-icon"></i>
 					<span class="sidebar-label ms-3">Lookup</span>

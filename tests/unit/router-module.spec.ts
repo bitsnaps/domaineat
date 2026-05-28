@@ -54,16 +54,22 @@ describe('Router module', () => {
 		expect(route?.meta?.public).toBe(true)
 	})
 
- it('has exactly 9 named routes', () => {
- const named = router.getRoutes().filter((r) => r.name)
-	expect(named.length).toBe(9)
- })
+	it('has exactly 10 named routes', () => {
+		const named = router.getRoutes().filter((r) => r.name)
+		expect(named.length).toBe(10)
+	})
 
- it('has a route named home at /home', () => {
- const route = router.getRoutes().find((r) => r.name === 'home')
- expect(route).toBeDefined()
- expect(route?.path).toBe('/home')
- })
+	it('has a route named home at /home', () => {
+		const route = router.getRoutes().find((r) => r.name === 'home')
+		expect(route).toBeDefined()
+		expect(route?.path).toBe('/home')
+	})
+
+	it('has a route named lookup at /lookup', () => {
+		const route = router.getRoutes().find((r) => r.name === 'lookup')
+		expect(route).toBeDefined()
+		expect(route?.path).toBe('/lookup')
+	})
 
   it('uses createWebHistory', () => {
     // Router should be in history mode (not hash)
