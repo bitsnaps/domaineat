@@ -30,7 +30,6 @@ const { app, sequelize } = await import('../../api/app.js')
 // without dropping data. Safe for serverless where migrations may not have run.
 try {
 	await sequelize.sync({ alter: true })
-	console.log('DB sync complete')
 } catch (err) {
 	console.error('DB sync failed:', err)
 }

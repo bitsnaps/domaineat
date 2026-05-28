@@ -25,8 +25,6 @@ const { sequelize } = await import('../../api/models/index.js')
 await sequelize.authenticate()
 
 export default async () => {
-	console.log('[scheduler] Starting scheduled run...')
-
 	const now = new Date()
 	const isMidnight = now.getUTCHours() === 0 && now.getUTCMinutes() < 10
 
@@ -37,6 +35,5 @@ export default async () => {
 
 	const result = await runAllTasks(tasks)
 
-	console.log('[scheduler] Completed:', JSON.stringify(result, null, 2))
 	return { statusCode: 200, body: JSON.stringify(result) }
 }

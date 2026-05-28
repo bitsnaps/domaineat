@@ -88,7 +88,7 @@ export function validateEnvVars(): void {
     } else {
       console.warn(`${message} — allowed in development, but MUST be set before deploying`)
     }
-  } else {
-    console.log('[env] ✓  All required environment variables are set')
-  }
+ } else if (process.env.NODE_ENV !== 'test') {
+ console.log('[env] ✓ All required environment variables are set')
+ }
 }
