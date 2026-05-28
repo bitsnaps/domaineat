@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import type { ExtensionCheckResult } from '@/types'
 import { formatDate } from '@/lib/format'
+import { appraise } from '@/lib/appraise'
+import AppraisalBadge from '@/components/AppraisalBadge.vue'
+import { computed } from 'vue'
 
-defineProps<{
+const props = defineProps<{
 	result: ExtensionCheckResult
 }>()
 
 defineEmits<{
 	click: []
 }>()
+
+const appraisal = computed(() => appraise(props.result.domain))
 </script>
 
 <template>
@@ -26,13 +31,16 @@ defineEmits<{
 				{{ result.domain }}
 			</h6>
 
-			<!-- Status badge -->
-			<span
-				class="badge align-self-start mb-2"
-				:class="result.available ? 'bg-success' : 'bg-secondary'"
-			>
-				{{ result.available ? 'Available' : 'Taken' }}
-			</span>
+			<!-- Badges: status + appraisal -->
+			<div class="d-flex align-items-center gap-1 mb-2">
+				<span
+					class="badge"
+					:class="result.available ? 'bg-success' : 'bg-secondary'"
+				>
+					{{ result.available ? 'Available' : 'Taken' }}
+				</span>
+				<AppraisalBadge :grade="appraisal.grade" :range="appraisal.range" size="sm" />
+			</div>
 
 			<!-- Details -->
 			<div v-if="!result.available" class="small text-muted mt-auto">

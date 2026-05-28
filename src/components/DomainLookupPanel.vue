@@ -3,10 +3,12 @@ import { ref, computed } from 'vue'
 import { useLookupStore, type LookupHistoryEntry } from '@/stores/lookup'
 import { useAuthStore } from '@/stores/auth'
 import DomainLookupCard from '@/components/DomainLookupCard.vue'
+import AppraisalBadge from '@/components/AppraisalBadge.vue'
 import TldSelector from '@/components/TldSelector.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
-import type { ExtensionCheckResult } from '@/types'
+import type { ExtensionCheckResult, DomainAppraisal } from '@/types'
 import { formatDate } from '@/lib/format'
+import { appraise } from '@/lib/appraise'
 
 const store = useLookupStore()
 const auth = useAuthStore()
@@ -90,6 +92,27 @@ function statusLabel(available: boolean | null) {
 	if (available === true) return 'Available'
 	if (available === false) return 'Taken'
 	return 'Unknown'
+}
+
+// ─── Appraisal helpers ──────────────────────────────────────────────
+
+/** Compute appraisal for the current validate result */
+const validateAppraisal = computed<DomainAppraisal | null>(() => {
+	if (!store.validateResult) return null
+	return appraise(store.validateResult.domain)
+})
+
+function formatRange(range: { low: number; high: number }): string {
+	const fmt = (n: number) => {
+		if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(0)}M`
+		if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`
+		return `$${n}`
+	}
+	return `${fmt(range.low)} – ${fmt(range.high)}`
+}
+
+function signalIcon(passed: boolean): string {
+	return passed ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-warning'
 }
 </script>
 
@@ -260,10 +283,11 @@ function statusLabel(available: boolean | null) {
 					<table class="table table-hover align-middle mb-0">
 						<thead class="table-light">
 							<tr>
-								<th style="width: 40%;">Domain</th>
-								<th style="width: 15%;">Status</th>
-								<th style="width: 25%;">Registrar</th>
-								<th style="width: 20%;">Expiry</th>
+								<th style="width: 35%;">Domain</th>
+								<th style="width: 12%;">Status</th>
+								<th style="width: 8%;">Grade</th>
+								<th style="width: 22%;">Registrar</th>
+								<th style="width: 18%;">Expiry</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -279,14 +303,17 @@ function statusLabel(available: boolean | null) {
 										<span class="fw-semibold">{{ result.domain }}</span>
 									</div>
 								</td>
-								<td>
-									<span
-										class="badge"
-										:class="result.available ? 'bg-success' : 'bg-secondary'"
-									>
-										{{ statusLabel(result.available) }}
-									</span>
-								</td>
+							<td>
+								<span
+									class="badge"
+									:class="result.available ? 'bg-success' : 'bg-secondary'"
+								>
+									{{ statusLabel(result.available) }}
+								</span>
+							</td>
+							<td>
+								<AppraisalBadge :grade="appraise(result.domain).grade" size="sm" />
+							</td>
 								<td class="text-muted small">
 									{{ result.registrar || '—' }}
 								</td>
@@ -358,9 +385,35 @@ function statusLabel(available: boolean | null) {
 								>{{ ns }}</span>
 							</div>
 						</div>
-					</div>
+				</div>
 
-					<!-- DNS Info -->
+				<!-- Domain Appraisal -->
+				<div v-if="validateAppraisal" class="mb-4">
+					<h6 class="fw-semibold mb-3">
+						<i class="bi bi-bar-chart-line me-2"></i>Domain Appraisal
+					</h6>
+					<div class="d-flex align-items-center gap-3 mb-3">
+						<AppraisalBadge :grade="validateAppraisal.grade" :range="validateAppraisal.range" size="lg" />
+						<div>
+							<div class="fw-semibold">{{ formatRange(validateAppraisal.range) }}</div>
+							<div class="small text-muted">Estimated market value range</div>
+						</div>
+					</div>
+					<div class="row g-2">
+						<div v-for="(signal, key) in validateAppraisal.signals" :key="key" class="col-sm-6 col-md-4">
+							<div class="d-flex align-items-center gap-2 p-2 rounded bg-light">
+								<i class="bi" :class="signalIcon(signal.passed)"></i>
+								<div class="flex-grow-1">
+									<div class="small fw-semibold text-capitalize">{{ key }}</div>
+									<div class="small text-muted">{{ signal.label }}</div>
+								</div>
+								<span class="badge bg-white text-dark border">{{ signal.score }}/10</span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- DNS Info -->
 					<div v-if="store.validateResult.dns">
 						<h6 class="fw-semibold mb-3">
 							<i class="bi bi-hdd-network me-2"></i>DNS Check
