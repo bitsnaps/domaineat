@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useLookupStore } from '@/stores/lookup'
+import { useLookupStore, type LookupHistoryEntry } from '@/stores/lookup'
 import { useAuthStore } from '@/stores/auth'
 import DomainLookupCard from '@/components/DomainLookupCard.vue'
 import TldSelector from '@/components/TldSelector.vue'
@@ -15,6 +15,15 @@ const searchInput = ref('')
 const selectedTlds = ref<string[]>([...store.defaultTlds])
 const mode = ref<'search' | 'validate'>('search')
 const viewMode = ref<'card' | 'list'>('card')
+const showHistory = ref(false)
+
+// Debounce: 1s cooldown after submitting
+const lastSubmitTime = ref(0)
+const DEBOUNCE_MS = 1000
+const submitCooldown = computed(() => {
+	if (lastSubmitTime.value === 0) return false
+	return Date.now() - lastSubmitTime.value < DEBOUNCE_MS
+})
 
 const inputPlaceholder = computed(() =>
 	mode.value === 'search'
@@ -25,8 +34,14 @@ const inputPlaceholder = computed(() =>
 const isLoggedIn = computed(() => auth.isLoggedIn)
 
 function handleSubmit() {
+	if (submitCooldown.value) return
 	const input = searchInput.value.trim().toLowerCase().replace(/^www\./, '')
 	if (!input) return
+
+	lastSubmitTime.value = Date.now()
+
+	// Reset previous results before new search
+	store.reset()
 
 	if (mode.value === 'validate') {
 		store.validateDomain(input)
@@ -39,11 +54,30 @@ function handleSubmit() {
 function handleCardClick(result: ExtensionCheckResult) {
 	mode.value = 'validate'
 	searchInput.value = result.domain
+	store.reset()
 	store.validateDomain(result.domain)
 }
 
 function handleRowClick(result: ExtensionCheckResult) {
 	handleCardClick(result)
+}
+
+function handleHistoryClick(entry: LookupHistoryEntry) {
+	searchInput.value = entry.query
+	mode.value = entry.mode
+	if (entry.mode === 'search' && entry.tlds) {
+		selectedTlds.value = [...entry.tlds]
+	}
+	store.restoreFromHistory(entry)
+	showHistory.value = false
+}
+
+function formatHistoryTime(ts: number): string {
+	const diff = Date.now() - ts
+	if (diff < 60000) return 'just now'
+	if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
+	if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
+	return formatDate(new Date(ts).toISOString())
 }
 
 function statusIcon(available: boolean | null) {
@@ -85,14 +119,14 @@ function statusLabel(available: boolean | null) {
 					<button
 						class="btn"
 						:class="mode === 'search' ? 'btn-primary' : 'btn-outline-primary'"
-						@click="mode = 'search'"
+						@click="mode = 'search'; store.reset()"
 					>
 						<i class="bi bi-grid me-1"></i>Multi-TLD Search
 					</button>
 					<button
 						class="btn"
 						:class="mode === 'validate' ? 'btn-primary' : 'btn-outline-primary'"
-						@click="mode = 'validate'"
+						@click="mode = 'validate'; store.reset()"
 					>
 						<i class="bi bi-zoom-in me-1"></i>Deep Validate
 					</button>
@@ -111,7 +145,8 @@ function statusLabel(available: boolean | null) {
 					<button
 						class="btn btn-primary px-4"
 						@click="handleSubmit"
-						:disabled="store.loading || !searchInput.trim()"
+						:disabled="store.loading || !searchInput.trim() || submitCooldown"
+						:title="submitCooldown ? 'Please wait a moment...' : 'Lookup'"
 					>
 						<span v-if="store.loading" class="spinner-border spinner-border-sm me-1"></span>
 						{{ store.loading ? 'Looking up...' : 'Lookup' }}
@@ -125,6 +160,38 @@ function statusLabel(available: boolean | null) {
 					:available="store.defaultTlds"
 					class="mt-3"
 				/>
+			</div>
+		</div>
+
+		<!-- Search History -->
+		<div v-if="store.history.length > 0" class="mb-3">
+			<button
+				class="btn btn-sm btn-outline-secondary"
+				@click="showHistory = !showHistory"
+			>
+				<i class="bi bi-clock-history me-1"></i>
+				Recent searches
+				<span class="badge bg-secondary ms-1">{{ store.history.length }}</span>
+				<i class="bi ms-1" :class="showHistory ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+			</button>
+			<div v-if="showHistory" class="card mt-2 shadow-sm">
+				<div class="list-group list-group-flush">
+					<button
+						v-for="(entry, idx) in store.history"
+						:key="idx"
+						class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+						@click="handleHistoryClick(entry)"
+					>
+						<div>
+							<i class="bi me-1" :class="entry.mode === 'search' ? 'bi-grid' : 'bi-zoom-in'"></i>
+							<span class="fw-semibold">{{ entry.query }}</span>
+							<span v-if="entry.mode === 'search' && entry.tlds" class="text-muted small ms-1">
+								.{{ entry.tlds.join(', .') }}
+							</span>
+						</div>
+						<span class="text-muted small">{{ formatHistoryTime(entry.timestamp) }}</span>
+					</button>
+				</div>
 			</div>
 		</div>
 
@@ -148,6 +215,9 @@ function statusLabel(available: boolean | null) {
 				<h5 class="mb-0">
 					Results for <strong>{{ store.searchResult.sld }}</strong>
 					<span class="badge bg-primary ms-2">{{ store.searchResult.results.length }} TLDs</span>
+					<span v-if="store.fromCache" class="badge bg-info ms-2" title="Result served from cache">
+						<i class="bi bi-lightning-fill me-1"></i>Cached
+					</span>
 				</h5>
 				<!-- View Mode Toggle -->
 				<div class="btn-group btn-group-sm" role="group">
@@ -220,9 +290,9 @@ function statusLabel(available: boolean | null) {
 								<td class="text-muted small">
 									{{ result.registrar || '—' }}
 								</td>
-							<td class="text-muted small">
-								{{ formatDate(result.expiryDate) }}
-							</td>
+								<td class="text-muted small">
+									{{ formatDate(result.expiryDate) }}
+								</td>
 							</tr>
 						</tbody>
 					</table>
@@ -234,7 +304,12 @@ function statusLabel(available: boolean | null) {
 		<div v-if="!store.loading && store.validateResult" class="mt-3">
 			<div class="card shadow-sm">
 				<div class="card-header d-flex justify-content-between align-items-center">
-					<h5 class="mb-0">{{ store.validateResult.domain }}</h5>
+					<h5 class="mb-0">
+						{{ store.validateResult.domain }}
+						<span v-if="store.fromCache" class="badge bg-info ms-2" title="Result served from cache">
+							<i class="bi bi-lightning-fill me-1"></i>Cached
+						</span>
+					</h5>
 					<span
 						class="badge fs-6"
 						:class="store.validateResult.available ? 'bg-success' : 'bg-secondary'"
