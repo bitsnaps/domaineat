@@ -35,7 +35,7 @@ export function verifyJwt(token: string): { userId: number; email: string; tier:
 
 /** Tier-based limits */
 export const TIER_LIMITS = {
-  free: { domains: 10, rdapDaily: 5, aiDaily: 5 },
+	free: { domains: 10, rdapDaily: 10, aiDaily: 5 },
   premium: { domains: 1000, rdapDaily: 100, aiDaily: 100 },
   enterprise: { domains: Infinity, rdapDaily: Infinity, aiDaily: Infinity },
 } as const

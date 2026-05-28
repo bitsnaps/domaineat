@@ -144,6 +144,7 @@ const pricingPlans = [
  </button>
  <div class="navbar-collapse" :class="{ collapse: !navOpen }" id="navbarNav">
 		<ul class="navbar-nav ms-auto align-items-center">
+				<li class="nav-item"><router-link to="/search" class="nav-link" @click="closeNav">Domain Lookup</router-link></li>
 				<li class="nav-item"><a class="nav-link" href="#features" @click="closeNav">Features</a></li>
 				<li class="nav-item"><a class="nav-link" href="#pricing" @click="closeNav">Pricing</a></li>
 				<li v-if="auth.isLoggedIn" class="nav-item ms-lg-3">

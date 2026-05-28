@@ -104,49 +104,49 @@ describe('RDAP Rate Limiting — Public Access', () => {
 
   // ─── Authenticated user rate limiting ───────────────────────────
 
-  it('authenticated free-tier user is tracked via daily_rdap_calls', async () => {
-    const { User } = await import('../../api/models/index.js')
-    const mockUser = {
-      id: 2,
-      email: 'free@test.com',
-      tier: 'free',
-      daily_rdap_calls: 4, // 1 away from limit of 5
-      increment: vi.fn(),
-    }
-    mockUserFinders[2] = mockUser
+	it('authenticated free-tier user is tracked via daily_rdap_calls', async () => {
+		const { User } = await import('../../api/models/index.js')
+		const mockUser = {
+			id: 2,
+			email: 'free@test.com',
+			tier: 'free',
+			daily_rdap_calls: 9, // 1 away from limit of 10
+			increment: vi.fn(),
+		}
+		mockUserFinders[2] = mockUser
 
-    const token = signJwt({ userId: 2, email: 'free@test.com', tier: 'free' })
-    const res = await app.request('/api/validate?domain=example.com', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+		const token = signJwt({ userId: 2, email: 'free@test.com', tier: 'free' })
+		const res = await app.request('/api/validate?domain=example.com', {
+			headers: { Authorization: `Bearer ${token}` },
+		})
 
-    // Should succeed — 4 < 5 limit
-    expect(res.status).not.toBe(429)
-    // increment should have been called
-    expect(mockUser.increment).toHaveBeenCalledWith('daily_rdap_calls')
-  })
+		// Should succeed — 9 < 10 limit
+		expect(res.status).not.toBe(429)
+		// increment should have been called
+		expect(mockUser.increment).toHaveBeenCalledWith('daily_rdap_calls')
+	})
 
-  it('authenticated free-tier user gets 429 when daily_rdap_calls >= 5', async () => {
-    const mockUser = {
-      id: 3,
-      email: 'free2@test.com',
-      tier: 'free',
-      daily_rdap_calls: 5, // at limit
-      increment: vi.fn(),
-    }
-    mockUserFinders[3] = mockUser
+	it('authenticated free-tier user gets 429 when daily_rdap_calls >= 10', async () => {
+		const mockUser = {
+			id: 3,
+			email: 'free2@test.com',
+			tier: 'free',
+			daily_rdap_calls: 10, // at limit
+			increment: vi.fn(),
+		}
+		mockUserFinders[3] = mockUser
 
-    const token = signJwt({ userId: 3, email: 'free2@test.com', tier: 'free' })
-    const res = await app.request('/api/validate?domain=example.com', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+		const token = signJwt({ userId: 3, email: 'free2@test.com', tier: 'free' })
+		const res = await app.request('/api/validate?domain=example.com', {
+			headers: { Authorization: `Bearer ${token}` },
+		})
 
-    expect(res.status).toBe(429)
-    const data = await res.json()
-    expect(data.error).toContain('limit')
-    expect(data.limit).toBe(5)
-    expect(data.tier).toBe('free')
-  })
+		expect(res.status).toBe(429)
+		const data = await res.json()
+		expect(data.error).toContain('limit')
+		expect(data.limit).toBe(10)
+		expect(data.tier).toBe('free')
+	})
 
   it('premium user has higher rdap limit (100/day)', async () => {
     const mockUser = {

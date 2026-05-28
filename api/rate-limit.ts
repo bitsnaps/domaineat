@@ -12,8 +12,8 @@
 import type { Context, Next } from 'hono'
 import { TIER_LIMITS } from './auth.js'
 
-/** Anonymous daily limit — higher than free tier (5) to encourage public use */
-export const ANON_RDAP_DAILY = 20
+/** Anonymous daily limit — generous for public use, encourages sign-up for more */
+export const ANON_RDAP_DAILY = 30
 
 /** In-memory IP→count map for anonymous rate limiting (resets on server restart) */
 const anonCounts = new Map<string, { count: number; resetAt: number }>()
