@@ -13,6 +13,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { sequelize, Domain, Ledger, Prospect, User, Notification } from './models/index.js'
 import { hashPassword, verifyPassword, signJwt, verifyJwt, TIER_LIMITS } from './auth.js'
+import { rdapRateLimit } from './rate-limit.js'
 import { runAllTasks } from './scheduler.js'
 // Env validation is handled by the entrypoint (netlify/functions/api.ts or api/server.ts)
 // BEFORE this module is imported, so that models/index.ts can safely read DATABASE_URL.
@@ -103,40 +104,31 @@ app.use('/api/*', cors())
 
 // ─── Auth Middleware ──────────────────────────────────────────────────
 // Public routes that skip authentication
-const PUBLIC_PATHS = ['/api/health', '/api/auth/register', '/api/auth/login', '/api/auth/me']
+const PUBLIC_PATHS = ['/api/health', '/api/auth/register', '/api/auth/login', '/api/auth/me', '/api/validate', '/api/search']
 
 app.use('/api/*', async (c, next) => {
-  const path = new URL(c.req.url).pathname
+	const path = new URL(c.req.url).pathname
+	const isPublic = PUBLIC_PATHS.some((p) => path === p) || path.startsWith('/api/auth/')
 
-  // Skip auth for public routes
-  if (PUBLIC_PATHS.some((p) => path === p) || path.startsWith('/api/auth/')) {
-    return next()
-  }
+	// Extract Bearer token (optional for public RDAP routes, required for others)
+	const auth = c.req.header('Authorization')
+	const token = auth?.startsWith('Bearer ') ? auth.slice(7) : null
 
-  // Extract Bearer token
-  const auth = c.req.header('Authorization')
-  if (!auth?.startsWith('Bearer ')) {
-    return c.json({ error: 'Authorization token required' }, 401)
-  }
+	if (token) {
+		const payload = verifyJwt(token)
+		if (payload) {
+			c.set('userId', payload.userId)
+			c.set('email', payload.email)
+			c.set('tier', payload.tier)
+			c.set('user', payload)
+		} else if (!isPublic) {
+			return c.json({ error: 'Invalid or expired token' }, 401)
+		}
+	} else if (!isPublic) {
+		return c.json({ error: 'Authorization token required' }, 401)
+	}
 
-  const token = auth.slice(7)
-  if (!token) {
-    return c.json({ error: 'Authorization token required' }, 401)
-  }
-
-  // Verify JWT
-  const payload = verifyJwt(token)
-  if (!payload) {
-    return c.json({ error: 'Invalid or expired token' }, 401)
-  }
-
-  // Inject user context for downstream routes
-  c.set('userId', payload.userId)
-  c.set('email', payload.email)
-  c.set('tier', payload.tier)
-  c.set('user', payload)
-
-  return next()
+	return next()
 })
 
 // ─── Auth Routes ───────────────────────────────────────────────────────
@@ -535,7 +527,10 @@ app.get('/api/exchange-rates', async (c) => {
   }
 })
 
-// ─── Domain Validation ─────────────────────────────────────────────────
+// ─── Domain Validation (public + rate-limited) ─────────────────────────
+
+app.use('/api/validate', rdapRateLimit())
+app.use('/api/search', rdapRateLimit())
 
 app.get('/api/validate', async (c) => {
   const domain = c.req.query('domain')

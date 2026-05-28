@@ -2,11 +2,13 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DomainModal from '@/components/DomainModal.vue'
+import { useLookupStore } from '@/stores/lookup'
 import api from '@/lib/api'
 import type { Domain, LedgerEntry, Prospect, DnsResult } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
+const lookupStore = useLookupStore()
 
 const domainId = computed(() => Number(route.params.id))
 
@@ -75,6 +77,11 @@ async function checkDns() {
 	} catch {
 		// Silently fail — DNS check is best-effort
 	}
+}
+
+async function fetchLiveRdap() {
+	if (!domain.value) return
+	await lookupStore.validateDomain(domain.value.domain_name)
 }
 
 async function handleDelete() {
@@ -200,6 +207,75 @@ function formatDate(d: string) {
 								<div v-if="dnsResult.ssl_expiry" class="small text-muted">
 									SSL Expiry: {{ formatDate(dnsResult.ssl_expiry) }}
 								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Live RDAP Data -->
+			<div class="card border-0 shadow-sm mb-4">
+				<div class="card-body">
+					<div class="d-flex justify-content-between align-items-center mb-3">
+						<h6 class="text-muted small fw-semibold text-uppercase mb-0">
+							<i class="bi bi-broadcast me-1"></i>Live RDAP Data
+						</h6>
+						<button
+							class="btn btn-outline-primary btn-sm"
+							@click="fetchLiveRdap"
+							:disabled="lookupStore.loading"
+						>
+							<span v-if="lookupStore.loading" class="spinner-border spinner-border-sm me-1"></span>
+							<i v-else class="bi bi-arrow-clockwise me-1"></i>Fetch Live
+						</button>
+					</div>
+
+					<!-- Error -->
+					<div v-if="lookupStore.error" class="alert alert-warning py-2 small mb-0">
+						<i class="bi bi-exclamation-triangle me-1"></i>{{ lookupStore.error }}
+					</div>
+
+					<!-- No data yet -->
+					<p v-if="!lookupStore.validateResult && !lookupStore.loading && !lookupStore.error" class="text-muted small mb-0">
+						Click "Fetch Live" to query the RDAP registry for real-time data.
+					</p>
+
+					<!-- Result -->
+					<div v-if="lookupStore.validateResult" class="mt-2">
+						<div class="row g-3">
+							<div class="col-sm-6">
+								<div class="small text-muted">Availability</div>
+								<span class="badge" :class="lookupStore.validateResult.available ? 'bg-success' : 'bg-secondary'">
+									{{ lookupStore.validateResult.available ? 'Available' : 'Registered' }}
+								</span>
+							</div>
+							<div v-if="lookupStore.validateResult.whois?.registrar" class="col-sm-6">
+								<div class="small text-muted">Registrar (RDAP)</div>
+								<div class="small fw-semibold">{{ lookupStore.validateResult.whois.registrar }}</div>
+							</div>
+							<div v-if="lookupStore.validateResult.whois?.creationDate" class="col-sm-6">
+								<div class="small text-muted">Created (RDAP)</div>
+								<div class="small fw-semibold">{{ lookupStore.validateResult.whois.creationDate }}</div>
+							</div>
+							<div v-if="lookupStore.validateResult.whois?.expiryDate" class="col-sm-6">
+								<div class="small text-muted">Expires (RDAP)</div>
+								<div class="small fw-semibold">{{ lookupStore.validateResult.whois.expiryDate }}</div>
+							</div>
+							<div v-if="lookupStore.validateResult.whois?.status?.length" class="col-12">
+								<div class="small text-muted mb-1">Registry Status</div>
+								<span v-for="s in lookupStore.validateResult.whois.status" :key="s" class="badge bg-light text-dark me-1 mb-1">{{ s }}</span>
+							</div>
+							<div v-if="lookupStore.validateResult.whois?.nameservers?.length" class="col-12">
+								<div class="small text-muted mb-1">RDAP Nameservers</div>
+								<span v-for="ns in lookupStore.validateResult.whois.nameservers" :key="ns" class="badge bg-info text-dark me-1">{{ ns }}</span>
+							</div>
+							<div v-if="lookupStore.validateResult.dns" class="col-12 mt-2 pt-2 border-top">
+								<div class="small text-muted mb-1">Live DNS</div>
+								<span :class="lookupStore.validateResult.dns.resolved ? 'text-success' : 'text-danger'" class="small fw-semibold me-3">
+									{{ lookupStore.validateResult.dns.resolved ? 'Resolves' : 'No resolution' }}
+								</span>
+								<span v-if="lookupStore.validateResult.dns.ip" class="small text-muted">IP: <code>{{ lookupStore.validateResult.dns.ip }}</code></span>
+								<span v-if="lookupStore.validateResult.dns.ssl_expiry" class="small text-muted ms-3">SSL: {{ lookupStore.validateResult.dns.ssl_expiry }}</span>
 							</div>
 						</div>
 					</div>

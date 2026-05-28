@@ -11,6 +11,9 @@ const DashboardView = () => import('@/views/DashboardView.vue')
 // Views — auth (no layout wrapper)
 const LoginView = () => import('@/views/LoginView.vue')
 
+// Views — public pages (no auth required)
+const DomainSearchView = () => import('@/views/DomainSearchView.vue')
+
 // Views — app pages (with sidebar)
 const HomeView = () => import('@/views/HomeView.vue')
 const DomainsView = () => import('@/views/DomainsView.vue')
@@ -28,13 +31,20 @@ const routes = [
       { path: '', name: 'dashboard', component: DashboardView },
     ],
   },
-  // Auth pages — no sidebar, public access
-  {
-    path: '/login',
-    name: 'login',
-    component: LoginView,
-    meta: { public: true },
-  },
+	// Auth pages — no sidebar, public access
+	{
+		path: '/login',
+		name: 'login',
+		component: LoginView,
+		meta: { public: true },
+	},
+	// Public domain search — no auth required
+	{
+		path: '/search',
+		name: 'search',
+		component: DomainSearchView,
+		meta: { public: true },
+	},
   // Authenticated app pages — sidebar + navbar
   {
     path: '/',
@@ -59,7 +69,7 @@ const router = createRouter({
 // ─── Navigation Guard ──────────────────────────────────────────────────
 
 // Routes that don't require authentication
-const publicRoutes = new Set(['dashboard', 'login'])
+const publicRoutes = new Set(['dashboard', 'login', 'search'])
 
 router.beforeEach((to) => {
   // Public routes are always accessible

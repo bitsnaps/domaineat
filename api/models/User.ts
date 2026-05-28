@@ -9,6 +9,7 @@ export class User extends Model {
 	declare llm_model: string | null
 	declare llm_api_key_encrypted: string | null
 	declare daily_ai_calls: number
+	declare daily_rdap_calls: number
 	declare created_at: Date
 }
 
@@ -48,10 +49,14 @@ export function initUser(sequelize: Sequelize): typeof User {
 				type: DataTypes.TEXT,
 				allowNull: true,
 			},
-			daily_ai_calls: {
-				type: DataTypes.INTEGER,
-				defaultValue: 0,
-			},
+		daily_ai_calls: {
+			type: DataTypes.INTEGER,
+			defaultValue: 0,
+		},
+		daily_rdap_calls: {
+			type: DataTypes.INTEGER,
+			defaultValue: 0,
+		},
 			created_at: {
 				type: DataTypes.DATE,
 				defaultValue: DataTypes.NOW,

@@ -41,15 +41,22 @@ describe('Router module', () => {
   expect(route?.path).toBe('/settings')
  })
 
- it('has a route named login at /login', () => {
-  const route = router.getRoutes().find((r) => r.name === 'login')
-  expect(route).toBeDefined()
-  expect(route?.path).toBe('/login')
- })
+	it('has a route named login at /login', () => {
+		const route = router.getRoutes().find((r) => r.name === 'login')
+		expect(route).toBeDefined()
+		expect(route?.path).toBe('/login')
+	})
 
- it('has exactly 7 named routes', () => {
+	it('has a route named search at /search', () => {
+		const route = router.getRoutes().find((r) => r.name === 'search')
+		expect(route).toBeDefined()
+		expect(route?.path).toBe('/search')
+		expect(route?.meta?.public).toBe(true)
+	})
+
+ it('has exactly 9 named routes', () => {
  const named = router.getRoutes().filter((r) => r.name)
- expect(named.length).toBe(8)
+	expect(named.length).toBe(9)
  })
 
  it('has a route named home at /home', () => {

@@ -162,10 +162,16 @@ describe('Auth Middleware', () => {
       expect(res.status).toBe(401)
     })
 
-    it('GET /api/validate returns 401 without token', async () => {
-      const res = await app.request('/api/validate?domain=test.com')
-      expect(res.status).toBe(401)
-    })
+	it('GET /api/validate is now public (no auth required)', async () => {
+		const res = await app.request('/api/validate?domain=test.com')
+		// /api/validate is a public RDAP route — no 401
+		expect(res.status).not.toBe(401)
+	})
+
+	it('GET /api/search is now public (no auth required)', async () => {
+		const res = await app.request('/api/search?domain=test')
+		expect(res.status).not.toBe(401)
+	})
   })
 
   // ─── Valid Token — Access Granted ──────────────────────────────

@@ -16,11 +16,20 @@ function authHeaders(extra?: Record<string, string>) {
 
 // Mock the DB module (required by app.ts)
 vi.mock('../../api/models/index.js', () => ({
-  sequelize: { authenticate: vi.fn() },
-  User: {},
-  Domain: { findAll: vi.fn(async () => []), count: vi.fn(async () => 0), findByPk: vi.fn(async () => null), create: vi.fn() },
+ sequelize: { authenticate: vi.fn() },
+ User: {
+ findByPk: vi.fn(async () => ({
+ id: 1, email: 'test@test.com', tier: 'premium',
+ daily_rdap_calls: 0, daily_ai_calls: 0,
+ increment: vi.fn(),
+ })),
+ findOne: vi.fn(async () => null),
+ create: vi.fn(async (data: any) => ({ id: 1, ...data })),
+ },
+ Domain: { findAll: vi.fn(async () => []), count: vi.fn(async () => 0), findByPk: vi.fn(async () => null), create: vi.fn() },
   Ledger: { findAll: vi.fn(async () => []), create: vi.fn() },
   Prospect: { findAll: vi.fn(async () => []), findByPk: vi.fn(async () => null), create: vi.fn() },
+ Notification: { findAll: vi.fn(async () => []), findByPk: vi.fn(async () => null), create: vi.fn() },
 }))
 
 // Mock bcryptjs for auth routes

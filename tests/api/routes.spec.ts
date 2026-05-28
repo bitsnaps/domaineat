@@ -23,12 +23,12 @@ vi.mock('../../api/models/index.js', () => ({
   sequelize: {
     authenticate: vi.fn(),
   },
-  User: {
-    findByPk: vi.fn(async (id: number | string) => {
-      // Return a user for auth-related tests
-      if (String(id) === '1') return { id: 1, email: 'test@test.com', tier: 'premium', password_hash: 'hash', llm_api_key_encrypted: null, toJSON: () => ({ id: 1, email: 'test@test.com', tier: 'premium' }) }
-      return null
-    }),
+ User: {
+ findByPk: vi.fn(async (id: number | string) => {
+ // Return a user for auth-related tests
+ if (String(id) === '1') return { id: 1, email: 'test@test.com', tier: 'premium', password_hash: 'hash', llm_api_key_encrypted: null, daily_rdap_calls: 0, daily_ai_calls: 0, increment: vi.fn(), toJSON: () => ({ id: 1, email: 'test@test.com', tier: 'premium' }) }
+ return null
+ }),
     findOne: vi.fn(async () => null),
     create: vi.fn(async (data: any) => ({ id: 1, ...data })),
   },
@@ -59,15 +59,16 @@ vi.mock('../../api/models/index.js', () => ({
     }),
     findByPk: vi.fn(async (id: number | string) => mockLedger.find((e) => String(e.id) === String(id)) || null),
   },
-  Prospect: {
-    findAll: vi.fn(async () => mockProspects),
-    findByPk: vi.fn(async (id: number | string) => mockProspects.find((p) => String(p.id) === String(id)) || null),
-    create: vi.fn(async (data: any) => {
-      const prospect = { id: mockProspects.length + 1, ...data, update: vi.fn(), destroy: vi.fn() }
-      mockProspects.push(prospect)
-      return prospect
-    }),
-  },
+ Prospect: {
+ findAll: vi.fn(async () => mockProspects),
+ findByPk: vi.fn(async (id: number | string) => mockProspects.find((p) => String(p.id) === String(id)) || null),
+ create: vi.fn(async (data: any) => {
+ const prospect = { id: mockProspects.length + 1, ...data, update: vi.fn(), destroy: vi.fn() }
+ mockProspects.push(prospect)
+ return prospect
+ }),
+ },
+ Notification: { findAll: vi.fn(async () => []), findByPk: vi.fn(async () => null), create: vi.fn() },
 }))
 
 // Mock bcryptjs for auth routes
