@@ -393,14 +393,21 @@ function signalIcon(passed: boolean): string {
 						<i class="bi bi-bar-chart-line me-2"></i>Domain Appraisal
 					</h6>
 					<div class="d-flex align-items-center gap-3 mb-3">
-						<AppraisalBadge :grade="validateAppraisal.grade" :range="validateAppraisal.range" size="lg" />
+						<AppraisalBadge
+							:grade="(store.appraisalResult ?? validateAppraisal).grade"
+							:range="(store.appraisalResult ?? validateAppraisal).range"
+							size="lg"
+						/>
 						<div>
-							<div class="fw-semibold">{{ formatRange(validateAppraisal.range) }}</div>
-							<div class="small text-muted">Estimated market value range</div>
+							<div class="fw-semibold">{{ formatRange((store.appraisalResult ?? validateAppraisal).range) }}</div>
+							<div class="small text-muted">
+								{{ store.appraisalResult ? 'Server-verified market value' : 'Estimated market value range' }}
+							</div>
 						</div>
 					</div>
+					<!-- Signal breakdown -->
 					<div class="row g-2">
-						<div v-for="(signal, key) in validateAppraisal.signals" :key="key" class="col-sm-6 col-md-4">
+						<div v-for="(signal, key) in (store.appraisalResult ?? validateAppraisal).signals" :key="key" class="col-sm-6 col-md-4">
 							<div class="d-flex align-items-center gap-2 p-2 rounded bg-light">
 								<i class="bi" :class="signalIcon(signal.passed)"></i>
 								<div class="flex-grow-1">
@@ -409,6 +416,33 @@ function signalIcon(passed: boolean): string {
 								</div>
 								<span class="badge bg-white text-dark border">{{ signal.score }}/10</span>
 							</div>
+						</div>
+					</div>
+					<!-- Market Appraisal button (Tier 2) -->
+					<div class="mt-3">
+						<button
+							v-if="!store.appraisalResult"
+							class="btn btn-outline-primary btn-sm"
+							:disabled="store.appraisalLoading"
+							@click="store.fetchAppraisal(store.validateResult.domain)"
+						>
+							<span v-if="store.appraisalLoading" class="spinner-border spinner-border-sm me-1"></span>
+							<i v-else class="bi bi-lightning-charge me-1"></i>
+							{{ store.appraisalLoading ? 'Verifying...' : 'Get Market Appraisal' }}
+						</button>
+						<div v-else class="d-flex align-items-center gap-2">
+							<span class="badge bg-info">
+								<i class="bi bi-patch-check me-1"></i>Server-verified
+							</span>
+							<button
+								class="btn btn-link btn-sm p-0 text-muted"
+								@click="store.clearAppraisal"
+							>
+								Reset to instant
+							</button>
+						</div>
+						<div v-if="store.appraisalError" class="small text-danger mt-1">
+							{{ store.appraisalError }}
 						</div>
 					</div>
 				</div>

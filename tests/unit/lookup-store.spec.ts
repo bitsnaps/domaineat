@@ -32,6 +32,9 @@ describe('Lookup Store', () => {
 		expect(store.history).toEqual([])
 		expect(store.cache.size).toBe(0)
 		expect(store.defaultTlds).toContain('com')
+		expect(store.appraisalResult).toBeNull()
+		expect(store.appraisalLoading).toBe(false)
+		expect(store.appraisalError).toBeNull()
 	})
 
 	// ─── Cache ────────────────────────────────────────────────────────
@@ -201,5 +204,75 @@ describe('Lookup Store', () => {
 
 		await store.validateDomain('!!!')
 		expect(store.error).toBe('Domain invalid')
+	})
+
+	// ─── Tier 2: Appraisal ───────────────────────────────────────────
+
+	describe('fetchAppraisal', () => {
+		it('fetches and stores appraisal result', async () => {
+			const mockAppraisal = {
+				grade: 'A',
+				range: { low: 1000, high: 5000 },
+				signals: {
+					length: { score: 8, label: '5 chars (very good)', passed: true },
+					tld: { score: 10, label: '.com', passed: true },
+					dictionary: { score: 8, label: 'Dictionary match', passed: true },
+					brandable: { score: 7, label: 'Good brandability', passed: true },
+					clean: { score: 10, label: 'No hyphens or numbers', passed: true },
+				},
+			}
+			mockedGet.mockResolvedValueOnce({ data: mockAppraisal })
+
+			await store.fetchAppraisal('shop.com')
+			expect(mockedGet).toHaveBeenCalledWith('/appraise', { params: { domain: 'shop.com' } })
+			expect(store.appraisalResult).toEqual(mockAppraisal)
+			expect(store.appraisalLoading).toBe(false)
+			expect(store.appraisalError).toBeNull()
+		})
+
+		it('sets loading state during fetch', async () => {
+			let resolveFetch!: (v: any) => void
+			const pending = new Promise((resolve) => { resolveFetch = resolve })
+			mockedGet.mockReturnValueOnce(pending)
+
+			const fetchPromise = store.fetchAppraisal('test.com')
+			expect(store.appraisalLoading).toBe(true)
+
+			resolveFetch({ data: { grade: 'B', range: { low: 100, high: 500 }, signals: {} } })
+			await fetchPromise
+			expect(store.appraisalLoading).toBe(false)
+		})
+
+		it('handles fetch errors', async () => {
+			mockedGet.mockRejectedValueOnce({ response: { data: { error: 'Invalid domain' } } })
+
+			await store.fetchAppraisal('bad!!')
+			expect(store.appraisalError).toBe('Invalid domain')
+			expect(store.appraisalResult).toBeNull()
+		})
+
+		it('clearAppraisal resets appraisal state', async () => {
+			const mockAppraisal = { grade: 'A', range: { low: 1000, high: 5000 }, signals: {} }
+			mockedGet.mockResolvedValueOnce({ data: mockAppraisal })
+
+			await store.fetchAppraisal('shop.com')
+			expect(store.appraisalResult).not.toBeNull()
+
+			store.clearAppraisal()
+			expect(store.appraisalResult).toBeNull()
+			expect(store.appraisalLoading).toBe(false)
+			expect(store.appraisalError).toBeNull()
+		})
+
+		it('reset() also clears appraisal state', async () => {
+			const mockAppraisal = { grade: 'A', range: { low: 1000, high: 5000 }, signals: {} }
+			mockedGet.mockResolvedValueOnce({ data: mockAppraisal })
+
+			await store.fetchAppraisal('shop.com')
+			expect(store.appraisalResult).not.toBeNull()
+
+			store.reset()
+			expect(store.appraisalResult).toBeNull()
+		})
 	})
 })

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '@/lib/api'
-import type { ValidateResponse, SearchResponse, RateLimitInfo } from '@/types'
+import type { ValidateResponse, SearchResponse, RateLimitInfo, DomainAppraisal } from '@/types'
 
 // ─── Cache / History types ──────────────────────────────────────────────
 
@@ -191,6 +191,7 @@ export const useLookupStore = defineStore('lookup', () => {
 		error.value = null
 		rateLimitInfo.value = null
 		fromCache.value = false
+		clearAppraisal()
 	}
 
 	/** Clear everything including history and cache */
@@ -198,6 +199,35 @@ export const useLookupStore = defineStore('lookup', () => {
 		reset()
 		history.value = []
 		cache.value.clear()
+	}
+
+	// ─── Tier 2: Server-side Appraisal ─────────────────────────────────
+
+	const appraisalResult = ref<DomainAppraisal | null>(null)
+	const appraisalLoading = ref(false)
+	const appraisalError = ref<string | null>(null)
+
+	/** Fetch a server-side appraisal for a domain (Tier 2) */
+	async function fetchAppraisal(domain: string) {
+		appraisalLoading.value = true
+		appraisalError.value = null
+		try {
+			const { data } = await api.get<DomainAppraisal>('/appraise', {
+				params: { domain },
+			})
+			appraisalResult.value = data
+		} catch (err: any) {
+			appraisalError.value = err.response?.data?.error || err.message || 'Appraisal failed'
+		} finally {
+			appraisalLoading.value = false
+		}
+	}
+
+	/** Clear just the appraisal state */
+	function clearAppraisal() {
+		appraisalResult.value = null
+		appraisalLoading.value = false
+		appraisalError.value = null
 	}
 
 	return {
@@ -210,9 +240,15 @@ export const useLookupStore = defineStore('lookup', () => {
 		fromCache,
 		defaultTlds,
 		history,
+		// Appraisal (Tier 2)
+		appraisalResult,
+		appraisalLoading,
+		appraisalError,
 		// Actions
 		validateDomain,
 		searchDomain,
+		fetchAppraisal,
+		clearAppraisal,
 		reset,
 		clearAll,
 		restoreFromHistory,
