@@ -332,6 +332,24 @@ const pricingPlans = [
 </template>
 
 <style scoped>
+/* ── Landing page fixed dark palette (does NOT flip in dark mode) ── */
+.landing {
+	--landing-darker: #020617;
+	--landing-dark: #0f172a;
+	--landing-text: #f8fafc;
+	--landing-text-muted: rgba(248, 250, 252, 0.6);
+	--landing-border: rgba(255, 255, 255, 0.08);
+	background: var(--gray-50);
+}
+
+:global([data-bs-theme='dark']) .landing {
+	--landing-darker: #0f172a;
+	--landing-dark: #1e293b;
+	--landing-text: #f1f5f9;
+	--landing-text-muted: rgba(241, 245, 249, 0.6);
+	--landing-border: rgba(255, 255, 255, 0.1);
+}
+
 /* ── Navigation ─────────────────────────────────────────────── */
 .navbar {
 	padding: 1.25rem 0;
@@ -451,10 +469,10 @@ const pricingPlans = [
 
 /* ── Hero Section ────────────────────────────────────────────── */
 .hero {
-  position: relative;
-  padding: 8rem 0 6rem;
-  background: var(--darker);
-  overflow: hidden;
+	position: relative;
+	padding: 8rem 0 6rem;
+	background: var(--landing-darker);
+	overflow: hidden;
 }
 
 .hero-bg {
@@ -509,21 +527,21 @@ const pricingPlans = [
 }
 
 .hero h1 {
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 5vw, 4.5rem);
-  font-weight: 700;
-  color: #fff;
+	font-family: var(--font-display);
+	font-size: clamp(2.5rem, 5vw, 4.5rem);
+	font-weight: 700;
+	color: var(--landing-text);
   line-height: 1.05;
   letter-spacing: -0.03em;
   margin-bottom: 1.5rem;
 }
 
 .hero p {
-  font-size: 1.125rem;
-  color: var(--gray-400);
-  max-width: 560px;
-  line-height: 1.7;
-  margin: 0 auto 2rem;
+	font-size: 1.125rem;
+	color: var(--landing-text-muted);
+	max-width: 560px;
+	line-height: 1.7;
+	margin: 0 auto 2rem;
 }
 
 .hero-cta {
@@ -548,28 +566,28 @@ const pricingPlans = [
 }
 
 .btn-hero-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: #fff;
+	background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+	color: var(--landing-text);
   box-shadow: 0 4px 24px rgba(99, 102, 241, 0.3);
 }
 
 .btn-hero-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
-  color: #fff;
+	transform: translateY(-2px);
+	box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+	color: var(--landing-text);
 }
 
 .btn-hero-secondary {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
+	background: rgba(255, 255, 255, 0.05);
+	color: var(--landing-text);
+	border: 1px solid var(--landing-border);
+	backdrop-filter: blur(10px);
 }
 
 .btn-hero-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.25);
-  color: #fff;
+	background: rgba(255, 255, 255, 0.1);
+	border-color: rgba(255, 255, 255, 0.25);
+	color: var(--landing-text);
 }
 
 .hero-note {
@@ -607,19 +625,19 @@ const pricingPlans = [
 }
 
 .dashboard-card {
-  background: var(--gray-900);
-  border-radius: 1.5rem;
-  border: 1px solid rgba(99, 102, 241, 0.15);
-  overflow: hidden;
-  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+	background: var(--landing-dark);
+	border-radius: 1.5rem;
+	border: 1px solid rgba(99, 102, 241, 0.15);
+	overflow: hidden;
+	box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
 }
 
 .dashboard-header {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+	padding: 1.25rem 1.5rem;
+	border-bottom: 1px solid var(--landing-border);
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
 }
 
 .dashboard-dots {
@@ -638,17 +656,17 @@ const pricingPlans = [
 .dot-green { background: #10b981; }
 
 .dashboard-title {
-  font-family: var(--font-display);
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--gray-400);
-  margin-left: 0.5rem;
+	font-family: var(--font-display);
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--landing-text-muted);
+	margin-left: 0.5rem;
 }
 
 .dashboard-active {
-  color: var(--gray-600);
-  font-size: 0.75rem;
-  font-weight: 600;
+	color: var(--landing-text-muted);
+	font-size: 0.75rem;
+	font-weight: 600;
 }
 
 .dashboard-body {
@@ -659,7 +677,7 @@ const pricingPlans = [
   display: flex;
   align-items: center;
   padding: 1rem 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+	border-bottom: 1px solid var(--landing-border);
   gap: 1rem;
 }
 
@@ -686,24 +704,24 @@ const pricingPlans = [
 }
 
 .domain-name {
-  font-family: var(--font-display);
-  font-weight: 600;
-  color: #fff;
-  font-size: 0.9375rem;
-  letter-spacing: -0.01em;
+	font-family: var(--font-display);
+	font-weight: 600;
+	color: var(--landing-text);
+	font-size: 0.9375rem;
+	letter-spacing: -0.01em;
 }
 
 .domain-registrar {
-  font-size: 0.75rem;
-  color: var(--gray-600);
-  font-weight: 500;
+	font-size: 0.75rem;
+	color: var(--landing-text-muted);
+	font-weight: 500;
 }
 
 .domain-price {
-  font-family: var(--font-display);
-  font-weight: 600;
-  color: var(--gray-300);
-  font-size: 0.875rem;
+	font-family: var(--font-display);
+	font-weight: 600;
+	color: var(--landing-text-muted);
+	font-size: 0.875rem;
   text-align: right;
 }
 
@@ -1019,10 +1037,10 @@ const pricingPlans = [
 
 /* ── CTA Section ─────────────────────────────────────────────── */
 .cta-section {
-  padding: 6rem 0;
-  background: var(--dark);
-  position: relative;
-  overflow: hidden;
+	padding: 6rem 0;
+	background: var(--landing-dark);
+	position: relative;
+	overflow: hidden;
 }
 
 .cta-section::before {
@@ -1042,16 +1060,16 @@ const pricingPlans = [
 }
 
 .cta-content h2 {
-  font-size: clamp(1.75rem, 3vw, 2.5rem);
-  color: #fff;
-  font-weight: 700;
-  margin-bottom: 1rem;
+	font-size: clamp(1.75rem, 3vw, 2.5rem);
+	color: var(--landing-text);
+	font-weight: 700;
+	margin-bottom: 1rem;
 }
 
 .cta-content p {
-  color: var(--gray-500);
-  font-size: 1.0625rem;
-  margin-bottom: 2rem;
+	color: var(--landing-text-muted);
+	font-size: 1.0625rem;
+	margin-bottom: 2rem;
 }
 
 .btn-cta {
@@ -1060,10 +1078,10 @@ const pricingPlans = [
   gap: 0.5rem;
   padding: 1rem 2.5rem;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: #fff;
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 1rem;
+	color: var(--landing-text);
+	font-family: var(--font-body);
+	font-weight: 600;
+	font-size: 1rem;
   border-radius: 1rem;
   border: none;
   box-shadow: 0 4px 24px rgba(99, 102, 241, 0.3);
@@ -1072,26 +1090,26 @@ const pricingPlans = [
 }
 
 .btn-cta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
-  color: #fff;
+	transform: translateY(-2px);
+	box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+	color: var(--landing-text);
 }
 
 /* ── Footer ──────────────────────────────────────────────────── */
 .footer {
-  padding: 3rem 0;
-  background: var(--darker);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  text-align: center;
+	padding: 3rem 0;
+	background: var(--landing-darker);
+	border-top: 1px solid var(--landing-border);
+	text-align: center;
 }
 
 .footer-brand {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: #fff;
-  margin-bottom: 0.5rem;
-  display: inline-block;
+	font-family: var(--font-display);
+	font-weight: 700;
+	font-size: 1.25rem;
+	color: var(--landing-text);
+	margin-bottom: 0.5rem;
+	display: inline-block;
 }
 
 .footer-brand span {
@@ -1099,8 +1117,8 @@ const pricingPlans = [
 }
 
 .footer-copy {
-  color: var(--gray-700);
-  font-size: 0.875rem;
+	color: var(--landing-text-muted);
+	font-size: 0.875rem;
 }
 
 /* ── Responsive ──────────────────────────────────────────────── */
@@ -1173,13 +1191,5 @@ const pricingPlans = [
 
 :global([data-bs-theme='dark']) .stat-divider {
 	background: var(--gray-300);
-}
-
-:global([data-bs-theme='dark']) .dashboard-card {
-	box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-}
-
-:global([data-bs-theme='dark']) .landing {
-	background: var(--gray-50);
 }
 </style>
