@@ -32,7 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
 			user.value = res.data.user
 			localStorage.setItem('auth_token', res.data.token)
 		} catch (err: any) {
-			error.value = err.response?.data?.error || err.message
+			error.value = err.friendlyMessage || err.response?.data?.error || err.message
 			throw err
 		} finally {
 			loading.value = false
@@ -49,7 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
 			user.value = res.data.user
 			localStorage.setItem('auth_token', res.data.token)
 		} catch (err: any) {
-			error.value = err.response?.data?.error || err.message
+			error.value = err.friendlyMessage || err.response?.data?.error || err.message
 			throw err
 		} finally {
 			loading.value = false

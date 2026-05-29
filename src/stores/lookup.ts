@@ -133,7 +133,7 @@ export const useLookupStore = defineStore('lookup', () => {
 				rateLimitInfo.value = err.response.data
 				error.value = `Rate limit reached (${err.response.data.limit}/${err.response.data.tier})`
 			} else {
-				error.value = err.response?.data?.error || err.message || 'Validation failed'
+				error.value = err.friendlyMessage || err.response?.data?.error || err.message || 'Validation failed'
 			}
 		} finally {
 			loading.value = false
@@ -176,7 +176,7 @@ export const useLookupStore = defineStore('lookup', () => {
 				rateLimitInfo.value = err.response.data
 				error.value = `Rate limit reached (${err.response.data.limit}/${err.response.data.tier})`
 			} else {
-				error.value = err.response?.data?.error || err.message || 'Search failed'
+				error.value = err.friendlyMessage || err.response?.data?.error || err.message || 'Search failed'
 			}
 		} finally {
 			loading.value = false
@@ -217,7 +217,7 @@ export const useLookupStore = defineStore('lookup', () => {
 			})
 			appraisalResult.value = data
 		} catch (err: any) {
-			appraisalError.value = err.response?.data?.error || err.message || 'Appraisal failed'
+			appraisalError.value = err.friendlyMessage || err.response?.data?.error || err.message || 'Appraisal failed'
 		} finally {
 			appraisalLoading.value = false
 		}

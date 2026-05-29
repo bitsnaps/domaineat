@@ -31,6 +31,18 @@ type Variables = {
 export const app = new Hono<{ Variables: Variables }>()
 export { sequelize }
 
+// ─── Global Error Handler ─────────────────────────────────────────────
+// Catches any unhandled exceptions and returns safe JSON instead of
+// leaking internal error messages or stack traces.
+app.onError((err, c) => {
+	console.error('Unhandled error:', err)
+	const status = (err as any).status ?? 500
+	return c.json({ error: status >= 500 ? 'Something went wrong. Please try again.' : err.message }, status)
+})
+
+// ─── 404 Handler ──────────────────────────────────────────────────────
+app.notFound((c) => c.json({ error: 'Not found' }, 404))
+
 // ─── Security Middleware ─────────────────────────────────────────────────
 
 // HTTPS enforcement in production (checks X-Forwarded-Proto for Netlify/proxy)
@@ -199,7 +211,7 @@ app.post('/api/auth/login', async (c) => {
 		})
 	} catch (err: any) {
 		console.error('Login error:', err)
-		return c.json({ error: 'Login failed. Please try again.', detail: err.message }, 500)
+		return c.json({ error: 'Login failed. Please try again.' }, 500)
 	}
 })
 
