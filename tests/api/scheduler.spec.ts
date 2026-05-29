@@ -86,7 +86,7 @@ vi.mock('bcryptjs', () => ({
 }))
 
 import { app } from '../../api/app'
-import { runExpirationChecks, runCurrencyUpdate, runDailyAiReset, getCachedRates } from '../../api/scheduler.js'
+import { runExpirationChecks, runCurrencyUpdate, runDailyAiReset, runDailyRdapReset, getCachedRates } from '../../api/scheduler.js'
 
 describe('Background Task Scheduler', () => {
   beforeEach(() => {
@@ -226,21 +226,37 @@ describe('Background Task Scheduler', () => {
     })
   })
 
-  // ─── 3. Daily AI Call Counter Reset ───────────────────────────
+ // ─── 3. Daily AI Call Counter Reset ───────────────────────────
 
-  describe('runDailyAiReset', () => {
-    it('resets daily_ai_calls to 0 for all users', async () => {
-      const result = await runDailyAiReset()
+ describe('runDailyAiReset', () => {
+ it('resets daily_ai_calls to 0 for all users', async () => {
+ const result = await runDailyAiReset()
 
-      expect(result).toHaveProperty('reset')
-      expect(result.reset).toBeGreaterThanOrEqual(0)
-      const { User } = await import('../../api/models/index.js')
-      expect(User.update).toHaveBeenCalledWith(
-        { daily_ai_calls: 0 },
-        expect.objectContaining({ where: expect.anything() })
-      )
-    })
-  })
+ expect(result).toHaveProperty('reset')
+ expect(result.reset).toBeGreaterThanOrEqual(0)
+ const { User } = await import('../../api/models/index.js')
+ expect(User.update).toHaveBeenCalledWith(
+ { daily_ai_calls: 0 },
+ expect.objectContaining({ where: expect.anything() })
+ )
+ })
+ })
+
+ // ─── 3b. Daily RDAP Call Counter Reset ──────────────────────
+
+ describe('runDailyRdapReset', () => {
+ it('resets daily_rdap_calls to 0 for all users', async () => {
+ const result = await runDailyRdapReset()
+
+ expect(result).toHaveProperty('reset')
+ expect(result.reset).toBeGreaterThanOrEqual(0)
+ const { User } = await import('../../api/models/index.js')
+ expect(User.update).toHaveBeenCalledWith(
+ { daily_rdap_calls: 0 },
+ expect.objectContaining({ where: expect.anything() })
+ )
+ })
+ })
 
   // ─── 4. Scheduler API Endpoint ────────────────────────────────
 
@@ -250,32 +266,34 @@ describe('Background Task Scheduler', () => {
       expect(res.status).toBe(401)
     })
 
-    it('runs all scheduler tasks and returns summary', async () => {
-      const res = await app.request('/api/scheduler/run', {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-      })
-      expect(res.status).toBe(200)
-      const data = await res.json()
-      expect(data).toHaveProperty('expirationChecks')
-      expect(data).toHaveProperty('currencyUpdate')
-      expect(data).toHaveProperty('dailyAiReset')
-      expect(data).toHaveProperty('runAt')
-    })
+ it('runs all scheduler tasks and returns summary', async () => {
+ const res = await app.request('/api/scheduler/run', {
+ method: 'POST',
+ headers: authHeaders({ 'Content-Type': 'application/json' }),
+ })
+ expect(res.status).toBe(200)
+ const data = await res.json()
+ expect(data).toHaveProperty('expirationChecks')
+ expect(data).toHaveProperty('currencyUpdate')
+ expect(data).toHaveProperty('dailyAiReset')
+ expect(data).toHaveProperty('dailyRdapReset')
+ expect(data).toHaveProperty('runAt')
+ })
 
-    it('allows specifying which tasks to run', async () => {
-      const res = await app.request('/api/scheduler/run', {
-        method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ tasks: ['expiration'] }),
-      })
-      expect(res.status).toBe(200)
-      const data = await res.json()
-      expect(data).toHaveProperty('expirationChecks')
-      // Other tasks should not be present when filtered
-      expect(data).not.toHaveProperty('currencyUpdate')
-      expect(data).not.toHaveProperty('dailyAiReset')
-    })
+ it('allows specifying which tasks to run', async () => {
+ const res = await app.request('/api/scheduler/run', {
+ method: 'POST',
+ headers: authHeaders({ 'Content-Type': 'application/json' }),
+ body: JSON.stringify({ tasks: ['expiration'] }),
+ })
+ expect(res.status).toBe(200)
+ const data = await res.json()
+ expect(data).toHaveProperty('expirationChecks')
+ // Other tasks should not be present when filtered
+ expect(data).not.toHaveProperty('currencyUpdate')
+ expect(data).not.toHaveProperty('dailyAiReset')
+ expect(data).not.toHaveProperty('dailyRdapReset')
+ })
   })
 
   // ─── 5. GET /api/notifications ────────────────────────────────

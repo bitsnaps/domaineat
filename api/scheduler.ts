@@ -107,44 +107,60 @@ export async function runCurrencyUpdate(): Promise<CurrencyUpdateResult> {
   }
 }
 
-// ─── 3. Daily AI Call Counter Reset ───────────────────────────────────
+// ─── 3. Daily Counter Resets ──────────────────────────────────────────
 
 export interface DailyAiResetResult {
-  reset: number
+ reset: number
+}
+
+export interface DailyRdapResetResult {
+ reset: number
 }
 
 export async function runDailyAiReset(): Promise<DailyAiResetResult> {
-  const [count] = await User.update(
-    { daily_ai_calls: 0 },
-    { where: {} }
-  )
-  return { reset: count }
+ const [count] = await User.update(
+ { daily_ai_calls: 0 },
+ { where: {} }
+ )
+ return { reset: count }
+}
+
+export async function runDailyRdapReset(): Promise<DailyRdapResetResult> {
+ const [count] = await User.update(
+ { daily_rdap_calls: 0 },
+ { where: {} }
+ )
+ return { reset: count }
 }
 
 // ─── Run All Tasks ─────────────────────────────────────────────────────
 
 export interface SchedulerRunResult {
-  expirationChecks: ExpirationCheckResult
-  currencyUpdate: CurrencyUpdateResult
-  dailyAiReset: DailyAiResetResult
-  runAt: string
+ expirationChecks: ExpirationCheckResult
+ currencyUpdate: CurrencyUpdateResult
+ dailyAiReset: DailyAiResetResult
+ dailyRdapReset: DailyRdapResetResult
+ runAt: string
 }
 
 export async function runAllTasks(tasks?: string[]): Promise<Partial<SchedulerRunResult> & { runAt: string }> {
-  const runAt = new Date().toISOString()
-  const result: Partial<SchedulerRunResult> & { runAt: string } = { runAt }
+ const runAt = new Date().toISOString()
+ const result: Partial<SchedulerRunResult> & { runAt: string } = { runAt }
 
-  const shouldRun = (task: string) => !tasks || tasks.length === 0 || tasks.includes(task)
+ const shouldRun = (task: string) => !tasks || tasks.length === 0 || tasks.includes(task)
 
-  if (shouldRun('expiration')) {
-    result.expirationChecks = await runExpirationChecks()
-  }
-  if (shouldRun('currency')) {
-    result.currencyUpdate = await runCurrencyUpdate()
-  }
-  if (shouldRun('ai_reset')) {
-    result.dailyAiReset = await runDailyAiReset()
-  }
+ if (shouldRun('expiration')) {
+ result.expirationChecks = await runExpirationChecks()
+ }
+ if (shouldRun('currency')) {
+ result.currencyUpdate = await runCurrencyUpdate()
+ }
+ if (shouldRun('ai_reset')) {
+ result.dailyAiReset = await runDailyAiReset()
+ }
+ if (shouldRun('rdap_reset')) {
+ result.dailyRdapReset = await runDailyRdapReset()
+ }
 
-  return result
+ return result
 }

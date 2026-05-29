@@ -28,9 +28,9 @@ export default async () => {
 	const now = new Date()
 	const isMidnight = now.getUTCHours() === 0 && now.getUTCMinutes() < 10
 
-	// Always run expiration + currency; only reset AI counters near midnight
+	// Always run expiration + currency; only reset daily counters near midnight
 	const tasks = isMidnight
-		? ['expiration', 'currency', 'ai_reset']
+		? ['expiration', 'currency', 'ai_reset', 'rdap_reset']
 		: ['expiration', 'currency']
 
 	const result = await runAllTasks(tasks)
