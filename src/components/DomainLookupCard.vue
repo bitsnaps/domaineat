@@ -3,39 +3,152 @@ import type { ExtensionCheckResult } from '@/types'
 import { formatDate } from '@/lib/format'
 import { appraise } from '@/lib/appraise'
 import AppraisalBadge from '@/components/AppraisalBadge.vue'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { useWatchlistStore } from '@/stores/watchlist'
+import { useWishlistStore } from '@/stores/wishlist'
+import { useAuthStore } from '@/stores/auth'
+import api from '@/lib/api'
 
 const props = defineProps<{
 	result: ExtensionCheckResult
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
 	click: []
 }>()
 
+const watchlistStore = useWatchlistStore()
+const wishlistStore = useWishlistStore()
+const auth = useAuthStore()
+
+const showMenu = ref(false)
+const importing = ref(false)
+
 const appraisal = computed(() => appraise(props.result.domain))
+
+// ─── Decision Signals ──────────────────────────────────────────────
+
+const isHotBuy = computed(() => {
+	const a = appraisal.value
+	return props.result.available && a.grade !== 'F' && a.range.low >= 500
+})
+
+const isHighValueTarget = computed(() => {
+	const a = appraisal.value
+	return !props.result.available && (a.grade === 'A' || a.grade === 'A+' || a.range.low >= 5000)
+})
+
+// ─── Action Menu Handlers ──────────────────────────────────────────
+
+const domainParts = computed(() => {
+	const parts = props.result.domain.split('.')
+	const tld = parts.length > 1 ? parts.pop()! : 'com'
+	const sld = parts.join('.')
+	return { sld, tld }
+})
+
+async function addToWatchlist() {
+	if (!auth.isLoggedIn) return
+	await watchlistStore.addToWatchlist({
+		domain_name: props.result.domain,
+		tld: domainParts.value.tld,
+	})
+	showMenu.value = false
+}
+
+async function addToWishlist() {
+	if (!auth.isLoggedIn) return
+	await wishlistStore.addToWishlist({
+		domain_name: props.result.domain,
+		tld: domainParts.value.tld,
+		priority: props.result.available ? 'high' : 'medium',
+	})
+	showMenu.value = false
+}
+
+async function addToPortfolio() {
+	if (!auth.isLoggedIn) return
+	importing.value = true
+	try {
+		await api.post('/domains/from-lookup', { domain_name: props.result.domain })
+		const { useToastStore } = await import('@/stores/toast')
+		useToastStore().success(`${props.result.domain} added to portfolio`)
+	} catch (e: any) {
+		const msg = e.friendlyMessage ?? e.response?.data?.error ?? e.message
+		const { useToastStore } = await import('@/stores/toast')
+		useToastStore().error(`Failed to add: ${msg}`)
+	} finally {
+		importing.value = false
+		showMenu.value = false
+	}
+}
+
+function closeMenu() {
+	showMenu.value = false
+}
 </script>
 
 <template>
 	<div
 		class="card lookup-card h-100"
 		:class="{ 'card-available': result.available, 'card-taken': !result.available }"
-		role="button"
 		tabindex="0"
-		@click="$emit('click')"
-		@keydown.enter="$emit('click')"
+		@keydown.escape="closeMenu"
 	>
 		<div class="card-body d-flex flex-column p-3">
-			<!-- Domain name — always fully visible -->
-			<h6 class="card-title mb-1 text-break" style="word-break: break-all;">
-				{{ result.domain }}
-			</h6>
+			<!-- Top row: domain name + action menu -->
+			<div class="d-flex justify-content-between align-items-start">
+				<h6
+					class="card-title mb-1 text-break flex-grow-1"
+					style="word-break: break-all; cursor: pointer;"
+					@click="$emit('click')"
+				>
+					{{ result.domain }}
+				</h6>
+				<!-- Decision Signals -->
+				<span v-if="isHotBuy" class="badge bg-danger ms-1 flex-shrink-0" title="Hot Buy — Available + good appraisal">
+					🔥 Hot Buy
+				</span>
+				<span v-else-if="isHighValueTarget" class="badge bg-warning text-dark ms-1 flex-shrink-0" title="High Value Target — Premium taken domain">
+					💰 High Value
+				</span>
+				<!-- Action Menu ⋯ -->
+				<div v-if="auth.isLoggedIn" class="dropdown-center ms-1 flex-shrink-0">
+					<button
+						class="btn btn-sm btn-link text-muted p-0"
+						@click.stop="showMenu = !showMenu"
+						title="Actions"
+						data-testid="card-action-menu"
+					>
+						<i class="bi bi-three-dots-vertical"></i>
+					</button>
+					<div
+						v-if="showMenu"
+						class="dropdown-menu show end-0 shadow-sm"
+						style="min-width: 180px;"
+						data-testid="card-action-dropdown"
+					>
+						<button class="dropdown-item" @click.stop="addToWatchlist">
+							<i class="bi bi-eye me-2"></i>Add to Watchlist
+						</button>
+						<button class="dropdown-item" @click.stop="addToWishlist">
+							<i class="bi bi-heart me-2"></i>Add to Wishlist
+						</button>
+						<button class="dropdown-item" @click.stop="addToPortfolio" :disabled="importing">
+							<i class="bi bi-box-arrow-in-right me-2"></i>
+							{{ importing ? 'Adding...' : 'Add to Portfolio' }}
+						</button>
+					</div>
+				</div>
+			</div>
 
 			<!-- Badges: status + appraisal -->
 			<div class="d-flex align-items-center gap-1 mb-2">
 				<span
 					class="badge"
 					:class="result.available ? 'bg-success' : 'bg-secondary'"
+					style="cursor: pointer;"
+					@click="$emit('click')"
 				>
 					{{ result.available ? 'Available' : 'Taken' }}
 				</span>
@@ -61,7 +174,7 @@ const appraisal = computed(() => appraise(props.result.domain))
 <style scoped>
 .lookup-card {
 	transition: transform 0.15s, box-shadow 0.15s;
-	cursor: pointer;
+	cursor: default;
 }
 .lookup-card:hover {
 	transform: translateY(-2px);

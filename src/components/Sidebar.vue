@@ -45,20 +45,34 @@ const appState = useAppStateStore()
  <span class="sidebar-label ms-3">Ledger</span>
  </router-link>
  </li>
- <li class="nav-item">
- <router-link to="/prospects" class="nav-link d-flex align-items-center" active-class="active"
-				:title="appState.sidebarCollapsed ? 'Prospects' : ''">
+			<li class="nav-item">
+				<router-link to="/prospects" class="nav-link d-flex align-items-center" active-class="active"
+					:title="appState.sidebarCollapsed ? 'Prospects' : ''">
 					<i class="bi bi-people sidebar-icon"></i>
 					<span class="sidebar-label ms-3">Prospects</span>
- </router-link>
- </li>
- <li class="nav-item">
- <router-link to="/settings" class="nav-link d-flex align-items-center" active-class="active"
- :title="appState.sidebarCollapsed ? 'Settings' : ''">
- <i class="bi bi-gear sidebar-icon"></i>
- <span class="sidebar-label ms-3">Settings</span>
- </router-link>
- </li>
+				</router-link>
+			</li>
+			<li class="nav-item">
+				<router-link to="/watchlist" class="nav-link d-flex align-items-center" active-class="active"
+					:title="appState.sidebarCollapsed ? 'Watchlist' : ''">
+					<i class="bi bi-eye sidebar-icon"></i>
+					<span class="sidebar-label ms-3">Watchlist</span>
+				</router-link>
+			</li>
+			<li class="nav-item">
+				<router-link to="/wishlist" class="nav-link d-flex align-items-center" active-class="active"
+					:title="appState.sidebarCollapsed ? 'Wishlist' : ''">
+					<i class="bi bi-heart sidebar-icon"></i>
+					<span class="sidebar-label ms-3">Wishlist</span>
+				</router-link>
+			</li>
+			<li class="nav-item">
+				<router-link to="/settings" class="nav-link d-flex align-items-center" active-class="active"
+					:title="appState.sidebarCollapsed ? 'Settings' : ''">
+					<i class="bi bi-gear sidebar-icon"></i>
+					<span class="sidebar-label ms-3">Settings</span>
+				</router-link>
+			</li>
  </ul>
 
  <hr />

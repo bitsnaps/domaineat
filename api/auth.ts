@@ -35,9 +35,9 @@ export function verifyJwt(token: string): { userId: number; email: string; tier:
 
 /** Tier-based limits */
 export const TIER_LIMITS = {
-	free: { domains: 10, rdapDaily: 10, aiDaily: 5 },
-  premium: { domains: 1000, rdapDaily: 100, aiDaily: 100 },
-  enterprise: { domains: Infinity, rdapDaily: Infinity, aiDaily: Infinity },
+	free: { domains: 10, rdapDaily: 10, aiDaily: 5, watchlist: 10, wishlist: 5 },
+	premium: { domains: 1000, rdapDaily: 100, aiDaily: 100, watchlist: 100, wishlist: 50 },
+	enterprise: { domains: Infinity, rdapDaily: Infinity, aiDaily: Infinity, watchlist: Infinity, wishlist: Infinity },
 } as const
 
 export type TierName = keyof typeof TIER_LIMITS

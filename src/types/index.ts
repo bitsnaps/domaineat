@@ -253,3 +253,87 @@ export interface EnhancedAppraisal extends DomainAppraisal {
 	searchVolume: number | null
 	externalAppraisal: { source: string; value: number } | null
 }
+
+// ─── Watchlist ─────────────────────────────────────────────────────────────
+
+export interface WatchlistItem {
+	id: number
+	user_id: number
+	domain_name: string
+	tld: string
+	available: boolean | null
+	appraisal_grade: AppraisalGrade | null
+	notes: string | null
+	notify_on: string
+	last_checked_at: string | null
+	created_at: string
+	updated_at: string
+}
+
+export interface WatchlistCreate {
+	domain_name: string
+	tld: string
+	available?: boolean | null
+	appraisal_grade?: AppraisalGrade | null
+	notes?: string | null
+	notify_on?: string
+}
+
+// ─── Wishlist ──────────────────────────────────────────────────────────────
+
+export type WishlistPriority = 'low' | 'medium' | 'high' | 'critical'
+
+export interface WishlistItem {
+	id: number
+	user_id: number
+	domain_name: string
+	tld: string
+	max_budget: number | null
+	available: boolean | null
+	appraisal_grade: AppraisalGrade | null
+	auto_prospect: boolean
+	ai_agent: boolean
+	priority: WishlistPriority
+	notes: string | null
+	last_checked_at: string | null
+	created_at: string
+	updated_at: string
+}
+
+export interface WishlistCreate {
+	domain_name: string
+	tld: string
+	max_budget?: number | null
+	available?: boolean | null
+	appraisal_grade?: AppraisalGrade | null
+	auto_prospect?: boolean
+	ai_agent?: boolean
+	priority?: WishlistPriority
+	notes?: string | null
+}
+
+export interface WishlistUpdate {
+	max_budget?: number | null
+	auto_prospect?: boolean
+	ai_agent?: boolean
+	priority?: WishlistPriority
+	notes?: string | null
+}
+
+// ─── Notification ──────────────────────────────────────────────────────────
+
+export type NotificationType = 'status_change' | 'expiry_warning' | 'appraisal_shift' | 'new_prospect' | 'agent_action' | 'outreach_reply'
+
+export type NotificationLevel = 'info' | 'warning' | 'urgent'
+
+export interface AppNotification {
+	id: number
+	user_id: number
+	domain_id: number | null
+	type: NotificationType
+	level: NotificationLevel
+	message: string
+	dismissed: boolean
+	created_at: string
+	updated_at: string
+}

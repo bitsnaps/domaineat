@@ -11,7 +11,7 @@
  */
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { sequelize, Domain, Ledger, Prospect, User, Notification } from './models/index.js'
+import { sequelize, Domain, Ledger, Prospect, User, Notification, Watchlist, Wishlist } from './models/index.js'
 import { hashPassword, verifyPassword, signJwt, verifyJwt, TIER_LIMITS } from './auth.js'
 import { rdapRateLimit } from './rate-limit.js'
 import { runAllTasks } from './scheduler.js'
@@ -923,14 +923,251 @@ app.get('/api/notifications', async (c) => {
 })
 
 app.patch('/api/notifications/:id/dismiss', async (c) => {
- const userId = c.get('userId')
- const notification = await Notification.findByPk(c.req.param('id'))
- if (!notification) return c.json({ error: 'Notification not found' }, 404)
- // Verify ownership
- if (notification.user_id !== userId) {
- return c.json({ error: 'Notification not found' }, 404)
- }
+	const userId = c.get('userId')
+	const notification = await Notification.findByPk(c.req.param('id'))
+	if (!notification) return c.json({ error: 'Notification not found' }, 404)
+	// Verify ownership
+	if (notification.user_id !== userId) {
+		return c.json({ error: 'Notification not found' }, 404)
+	}
 
- await notification.update({ dismissed: true })
- return c.json(notification)
+	await notification.update({ dismissed: true })
+	return c.json(notification)
+})
+
+
+// ─── Watchlist ──────────────────────────────────────────────────────
+
+app.get('/api/watchlist', async (c) => {
+	const userId = c.get('userId')
+	try {
+		const items = await Watchlist.findAll({
+			where: { user_id: userId },
+			order: [['created_at', 'DESC']],
+		})
+		return c.json(items)
+	} catch (err: any) {
+		return c.json({ error: 'Failed to fetch watchlist' }, 500)
+	}
+})
+
+app.post('/api/watchlist', async (c) => {
+	const authUser = c.get('user')
+	const tier = (authUser.tier || 'free') as keyof typeof TIER_LIMITS
+	const limit = TIER_LIMITS[tier]?.watchlist ?? TIER_LIMITS.free.watchlist
+	if (limit !== Infinity) {
+		const currentCount = await Watchlist.count({ where: { user_id: authUser.userId } })
+		if (currentCount >= limit) {
+			return c.json({ error: `Watchlist limit reached (${limit} for ${tier} tier). Upgrade to add more.` }, 403)
+		}
+	}
+
+	const body = await c.req.json()
+	if (!body.domain_name || !body.tld) {
+		return c.json({ error: 'domain_name and tld are required' }, 400)
+	}
+	body.user_id = authUser.userId
+	try {
+		const item = await Watchlist.create(body)
+		return c.json(item, 201)
+	} catch (err: any) {
+		if (err.name === 'SequelizeUniqueConstraintError') {
+			return c.json({ error: 'Domain already in watchlist' }, 409)
+		}
+		return c.json({ error: err.message }, 400)
+	}
+})
+
+app.delete('/api/watchlist/:id', async (c) => {
+	const userId = c.get('userId')
+	const item = await Watchlist.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+	if (!item) return c.json({ error: 'Watchlist item not found' }, 404)
+	await item.destroy()
+	return c.json({ deleted: true }, 200)
+})
+
+app.post('/api/watchlist/check', async (c) => {
+	const userId = c.get('userId')
+	const items = await Watchlist.findAll({ where: { user_id: userId } })
+	if (items.length === 0) return c.json([])
+
+	const { rdapLookup } = await import('./domain-analysis.js')
+	const results = await Promise.allSettled(
+		items.map(async (item) => {
+			try {
+				const rdap = await rdapLookup(item.domain_name)
+				const nowAvailable = rdap === null
+				const prevAvailable = item.available
+				await item.update({ available: nowAvailable, last_checked_at: new Date() })
+				// Create notification if status changed
+				if (prevAvailable !== null && prevAvailable !== nowAvailable) {
+					await Notification.create({
+						user_id: userId,
+						type: 'status_change',
+						level: nowAvailable ? 'urgent' : 'info',
+						message: `${item.domain_name} is now ${nowAvailable ? 'available' : 'taken'}`,
+					})
+				}
+				return item
+			} catch {
+				await item.update({ last_checked_at: new Date() })
+				return item
+			}
+		})
+	)
+	return c.json(results.filter(r => r.status === 'fulfilled').map(r => (r as PromiseFulfilledResult<any>).value))
+})
+
+app.post('/api/watchlist/move-to-portfolio', async (c) => {
+	const userId = c.get('userId')
+	const { ids } = await c.req.json()
+	if (!Array.isArray(ids) || ids.length === 0) {
+		return c.json({ error: 'ids array is required' }, 400)
+	}
+	const items = await Watchlist.findAll({ where: { id: ids, user_id: userId } })
+	const created = []
+	for (const item of items) {
+		const [domain] = await Domain.findOrCreate({
+			where: { user_id: userId, domain_name: item.domain_name },
+			defaults: {
+				user_id: userId,
+				domain_name: item.domain_name,
+				registrar: 'Imported from watchlist',
+				acquisition_date: new Date().toISOString().split('T')[0],
+				expiry_date: new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0],
+				acquisition_cost: 0,
+				renewal_cost: 0,
+				status: 'active',
+			},
+		})
+		created.push(domain)
+	}
+	await Watchlist.destroy({ where: { id: ids, user_id: userId } })
+	return c.json({ moved: created.length, domains: created })
+})
+
+// ─── Wishlist ──────────────────────────────────────────────────────
+
+app.get('/api/wishlist', async (c) => {
+	const userId = c.get('userId')
+	try {
+		const items = await Wishlist.findAll({
+			where: { user_id: userId },
+			order: [['created_at', 'DESC']],
+		})
+		return c.json(items)
+	} catch (err: any) {
+		return c.json({ error: 'Failed to fetch wishlist' }, 500)
+	}
+})
+
+app.post('/api/wishlist', async (c) => {
+	const authUser = c.get('user')
+	const tier = (authUser.tier || 'free') as keyof typeof TIER_LIMITS
+	const limit = TIER_LIMITS[tier]?.wishlist ?? TIER_LIMITS.free.wishlist
+	if (limit !== Infinity) {
+		const currentCount = await Wishlist.count({ where: { user_id: authUser.userId } })
+		if (currentCount >= limit) {
+			return c.json({ error: `Wishlist limit reached (${limit} for ${tier} tier). Upgrade to add more.` }, 403)
+		}
+	}
+
+	const body = await c.req.json()
+	if (!body.domain_name || !body.tld) {
+		return c.json({ error: 'domain_name and tld are required' }, 400)
+	}
+	body.user_id = authUser.userId
+	try {
+		const item = await Wishlist.create(body)
+		return c.json(item, 201)
+	} catch (err: any) {
+		if (err.name === 'SequelizeUniqueConstraintError') {
+			return c.json({ error: 'Domain already in wishlist' }, 409)
+		}
+		return c.json({ error: err.message }, 400)
+	}
+})
+
+app.put('/api/wishlist/:id', async (c) => {
+	const userId = c.get('userId')
+	const item = await Wishlist.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+	if (!item) return c.json({ error: 'Wishlist item not found' }, 404)
+	const body = await c.req.json()
+	await item.update(body)
+	return c.json(item)
+})
+
+app.delete('/api/wishlist/:id', async (c) => {
+	const userId = c.get('userId')
+	const item = await Wishlist.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+	if (!item) return c.json({ error: 'Wishlist item not found' }, 404)
+	await item.destroy()
+	return c.json({ deleted: true }, 200)
+})
+
+app.post('/api/wishlist/move-to-portfolio', async (c) => {
+	const userId = c.get('userId')
+	const { ids } = await c.req.json()
+	if (!Array.isArray(ids) || ids.length === 0) {
+		return c.json({ error: 'ids array is required' }, 400)
+	}
+	const items = await Wishlist.findAll({ where: { id: ids, user_id: userId } })
+	const created = []
+	for (const item of items) {
+		const [domain] = await Domain.findOrCreate({
+			where: { user_id: userId, domain_name: item.domain_name },
+			defaults: {
+				user_id: userId,
+				domain_name: item.domain_name,
+				registrar: 'Imported from wishlist',
+				acquisition_date: new Date().toISOString().split('T')[0],
+				expiry_date: new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0],
+				acquisition_cost: Number(item.max_budget) || 0,
+				renewal_cost: 0,
+				status: 'active',
+			},
+		})
+		created.push(domain)
+	}
+	await Wishlist.destroy({ where: { id: ids, user_id: userId } })
+	return c.json({ moved: created.length, domains: created })
+})
+
+// ─── Domains from-lookup ──────────────────────────────────────────
+
+app.post('/api/domains/from-lookup', async (c) => {
+	const authUser = c.get('user')
+	const { domain_name } = await c.req.json()
+	if (!domain_name) {
+		return c.json({ error: 'domain_name is required' }, 400)
+	}
+	const sanitized = domain_name.toLowerCase().replace(/^www\./, '').trim()
+	try {
+		const { rdapLookup } = await import('./domain-analysis.js')
+		const rdap = await rdapLookup(sanitized)
+		const registrar = rdap?.registrar || 'Unknown'
+		const expiry_date = rdap?.expiryDate || new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]
+		const status = rdap ? 'active' : 'pending_delete'
+		const domain = await Domain.create({
+			user_id: authUser.userId,
+			domain_name: sanitized,
+			registrar,
+			acquisition_date: new Date().toISOString().split('T')[0],
+			expiry_date,
+			acquisition_cost: 0,
+			renewal_cost: 0,
+			status,
+		})
+		return c.json(domain, 201)
+	} catch (err: any) {
+		return c.json({ error: `Failed to import domain: ${err.message}` }, 502)
+	}
+})
+
+// ─── Notifications dismiss-all ─────────────────────────────────────
+
+app.patch('/api/notifications/dismiss-all', async (c) => {
+	const userId = c.get('userId')
+	await Notification.update({ dismissed: true }, { where: { user_id: userId } })
+	return c.json({ dismissed: true })
 })

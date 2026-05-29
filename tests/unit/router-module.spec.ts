@@ -29,17 +29,29 @@ describe('Router module', () => {
     expect(route?.path).toBe('/ledger')
   })
 
-  it('has a route named prospects at /prospects', () => {
-    const route = router.getRoutes().find((r) => r.name === 'prospects')
-    expect(route).toBeDefined()
-    expect(route?.path).toBe('/prospects')
-  })
+	it('has a route named prospects at /prospects', () => {
+		const route = router.getRoutes().find((r) => r.name === 'prospects')
+		expect(route).toBeDefined()
+		expect(route?.path).toBe('/prospects')
+	})
 
- it('has a route named settings at /settings', () => {
-  const route = router.getRoutes().find((r) => r.name === 'settings')
-  expect(route).toBeDefined()
-  expect(route?.path).toBe('/settings')
- })
+	it('has a route named watchlist at /watchlist', () => {
+		const route = router.getRoutes().find((r) => r.name === 'watchlist')
+		expect(route).toBeDefined()
+		expect(route?.path).toBe('/watchlist')
+	})
+
+	it('has a route named wishlist at /wishlist', () => {
+		const route = router.getRoutes().find((r) => r.name === 'wishlist')
+		expect(route).toBeDefined()
+		expect(route?.path).toBe('/wishlist')
+	})
+
+	it('has a route named settings at /settings', () => {
+		const route = router.getRoutes().find((r) => r.name === 'settings')
+		expect(route).toBeDefined()
+		expect(route?.path).toBe('/settings')
+	})
 
 	it('has a route named login at /login', () => {
 		const route = router.getRoutes().find((r) => r.name === 'login')
@@ -54,10 +66,10 @@ describe('Router module', () => {
 		expect(route?.meta?.public).toBe(true)
 	})
 
-	it('has exactly 10 named routes', () => {
-		const named = router.getRoutes().filter((r) => r.name)
-		expect(named.length).toBe(10)
-	})
+it('has exactly 12 named routes', () => {
+	const named = router.getRoutes().filter((r) => r.name)
+	expect(named.length).toBe(12)
+})
 
 	it('has a route named home at /home', () => {
 		const route = router.getRoutes().find((r) => r.name === 'home')

@@ -4,11 +4,15 @@ import { useRoute, useRouter } from 'vue-router'
 import DomainModal from '@/components/DomainModal.vue'
 import { useLookupStore } from '@/stores/lookup'
 import api from '@/lib/api'
+import { appraise } from '@/lib/appraise'
+import AppraisalBadge from '@/components/AppraisalBadge.vue'
 import type { Domain, LedgerEntry, Prospect, DnsResult } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const lookupStore = useLookupStore()
+
+const showOutreachDraft = ref(false)
 
 const domainId = computed(() => Number(route.params.id))
 
@@ -98,6 +102,16 @@ async function handleDelete() {
 function formatDate(d: string) {
 	return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
+
+const appraisal = computed(() => {
+	if (!domain.value) return null
+	return appraise(domain.value.domain_name)
+})
+
+const isHighValue = computed(() => {
+	if (!appraisal.value) return false
+	return appraisal.value.grade === 'A' || appraisal.value.grade === 'A+' || appraisal.value.range.low >= 5000
+})
 </script>
 
 <template>
@@ -208,6 +222,51 @@ function formatDate(d: string) {
 									SSL Expiry: {{ formatDate(dnsResult.ssl_expiry) }}
 								</div>
 							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+		<!-- Appraisal & AI Outreach -->
+			<div class="row g-3 mb-4">
+				<!-- Appraisal Card -->
+				<div class="col-md-6">
+					<div class="card border-0 shadow-sm h-100">
+						<div class="card-body">
+							<h6 class="text-muted small fw-semibold text-uppercase mb-3">
+								<i class="bi bi-graph-up me-1"></i>Appraisal
+							</h6>
+							<div v-if="appraisal" class="text-center py-2">
+								<AppraisalBadge :grade="appraisal.grade" :range="appraisal.range" size="lg" />
+								<div class="mt-2 text-muted small">
+									Estimated value: ${{ appraisal.range.low.toLocaleString() }} – ${{ appraisal.range.high.toLocaleString() }}
+								</div>
+								<div v-if="isHighValue" class="mt-2">
+									<span class="badge bg-warning text-dark">
+										<i class="bi bi-stars me-1"></i>High Value Domain
+									</span>
+								</div>
+							</div>
+							<div v-else class="text-muted small">Loading appraisal…</div>
+						</div>
+					</div>
+				</div>
+				<!-- AI Outreach CTA Card -->
+				<div class="col-md-6">
+					<div class="card border-0 shadow-sm h-100" style="background: linear-gradient(135deg, var(--bs-primary-bg-subtle, #e7f1ff) 0%, #fff 100%);">
+						<div class="card-body d-flex flex-column justify-content-center">
+							<h6 class="text-muted small fw-semibold text-uppercase mb-3">
+								<i class="bi bi-robot me-1"></i>AI Outreach
+							</h6>
+							<p class="small mb-3">
+								Let our AI agent find potential buyers, draft personalized outreach emails, and track responses — all automatically.
+							</p>
+							<button
+								class="btn btn-primary btn-sm"
+								@click="showOutreachDraft = true"
+							>
+								<i class="bi bi-send me-1"></i>Start AI Outreach
+							</button>
 						</div>
 					</div>
 				</div>

@@ -21,6 +21,8 @@ const DomainsView = () => import('@/views/DomainsView.vue')
 const DomainDetailView = () => import('@/views/DomainDetailView.vue')
 const LedgerView = () => import('@/views/LedgerView.vue')
 const ProspectsView = () => import('@/views/ProspectsView.vue')
+const WatchlistView = () => import('@/views/WatchlistView.vue')
+const WishlistView = () => import('@/views/WishlistView.vue')
 const SettingsView = () => import('@/views/SettingsView.vue')
 
 const routes = [
@@ -59,6 +61,8 @@ const routes = [
 			{ path: 'lookup', name: 'lookup', component: DomainSearchView },
 			{ path: 'ledger', name: 'ledger', component: LedgerView },
 			{ path: 'prospects', name: 'prospects', component: ProspectsView },
+			{ path: 'watchlist', name: 'watchlist', component: WatchlistView },
+			{ path: 'wishlist', name: 'wishlist', component: WishlistView },
 			{ path: 'settings', name: 'settings', component: SettingsView },
 		],
 	},
