@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useAppStateStore } from '@/stores/appState'
 
 const auth = useAuthStore()
+const appState = useAppStateStore()
 
 // Mobile nav toggle (replaces Bootstrap JS collapse)
 const navOpen = ref(false)
@@ -147,7 +149,17 @@ const pricingPlans = [
 				<li class="nav-item"><router-link to="/search" class="nav-link" @click="closeNav">Domain Lookup</router-link></li>
 				<li class="nav-item"><a class="nav-link" href="#features" @click="closeNav">Features</a></li>
 				<li class="nav-item"><a class="nav-link" href="#pricing" @click="closeNav">Pricing</a></li>
-				<li v-if="auth.isLoggedIn" class="nav-item ms-lg-3">
+				<li class="nav-item">
+				<button
+					class="btn btn-sm btn-outline-secondary me-2"
+					data-testid="theme-toggle"
+					@click="appState.toggleTheme"
+					:title="appState.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+				>
+					<i class="bi" :class="appState.theme === 'dark' ? 'bi-sun' : 'bi-moon'"></i>
+				</button>
+			</li>
+			<li v-if="auth.isLoggedIn" class="nav-item ms-lg-3">
 					<router-link to="/home" class="btn btn-nav btn-nav-primary" @click="closeNav">
 						<i class="bi bi-grid-1x2-fill me-1"></i> Dashboard
 					</router-link>
@@ -322,12 +334,13 @@ const pricingPlans = [
 <style scoped>
 /* ── Navigation ─────────────────────────────────────────────── */
 .navbar {
-  padding: 1.25rem 0;
-  background: rgba(248, 250, 252, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(203, 213, 225, 0.3);
-  z-index: 1030;
+	padding: 1.25rem 0;
+	background: color-mix(in srgb, var(--gray-50) 80%, transparent);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border-bottom: 1px solid color-mix(in srgb, var(--gray-300) 30%, transparent);
+	z-index: 1030;
+	transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .navbar-brand {
@@ -406,7 +419,7 @@ const pricingPlans = [
  display: flex !important;
  flex-direction: column;
  padding: 1rem 0;
- border-top: 1px solid rgba(203, 213, 225, 0.3);
+		border-top: 1px solid color-mix(in srgb, var(--gray-300) 30%, transparent);
  animation: navSlideDown 0.25s ease-out;
  }
 
@@ -760,9 +773,9 @@ const pricingPlans = [
 
 /* ── Features Section ────────────────────────────────────────── */
 .features-section {
-  padding: 6rem 0;
-  background: #fff;
-  position: relative;
+	padding: 6rem 0;
+	background: var(--gray-50);
+	position: relative;
 }
 
 .features-section::before {
@@ -880,10 +893,10 @@ const pricingPlans = [
 }
 
 .pricing-card {
-  background: #fff;
-  border-radius: 1.5rem;
-  border: 1px solid var(--gray-200);
-  padding: 2.5rem;
+	background: var(--gray-50);
+	border-radius: 1.5rem;
+	border: 1px solid var(--gray-200);
+	padding: 2.5rem;
   height: 100%;
   position: relative;
   transition: all 0.3s;
@@ -1098,14 +1111,75 @@ const pricingPlans = [
 }
 
 @media (max-width: 767.98px) {
-  .hero h1 {
-    font-size: 2.25rem;
-  }
-  .dashboard-section {
-    margin-top: -2rem;
-  }
-  .feature-card {
-    padding: 1.75rem;
-  }
+	.hero h1 {
+		font-size: 2.25rem;
+	}
+	.dashboard-section {
+		margin-top: -2rem;
+	}
+	.feature-card {
+		padding: 1.75rem;
+	}
+}
+
+/* ── Dark Mode Overrides ────────────────────────────────────── */
+:global([data-bs-theme='dark']) .navbar {
+	background: color-mix(in srgb, var(--gray-100) 80%, transparent);
+	border-bottom-color: color-mix(in srgb, var(--gray-200) 30%, transparent);
+}
+
+:global([data-bs-theme='dark']) .btn-nav-primary {
+	background: var(--gray-800);
+	border-color: var(--gray-800);
+}
+
+:global([data-bs-theme='dark']) .btn-nav-primary:hover {
+	background: var(--gray-700);
+	border-color: var(--gray-700);
+}
+
+:global([data-bs-theme='dark']) .feature-card {
+	background: var(--gray-100);
+	border-color: var(--gray-200);
+}
+
+:global([data-bs-theme='dark']) .feature-card:hover {
+	box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.3);
+	border-color: var(--gray-300);
+}
+
+:global([data-bs-theme='dark']) .pricing-card {
+	background: var(--gray-100);
+	border-color: var(--gray-200);
+}
+
+:global([data-bs-theme='dark']) .pricing-card:hover {
+	box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.3);
+}
+
+:global([data-bs-theme='dark']) .btn-pricing {
+	border-color: var(--gray-300);
+	color: var(--gray-300);
+}
+
+:global([data-bs-theme='dark']) .btn-pricing:hover {
+	border-color: var(--gray-100);
+	color: var(--gray-100);
+}
+
+:global([data-bs-theme='dark']) .features-section::before {
+	background: linear-gradient(90deg, transparent, var(--gray-300), transparent);
+}
+
+:global([data-bs-theme='dark']) .stat-divider {
+	background: var(--gray-300);
+}
+
+:global([data-bs-theme='dark']) .dashboard-card {
+	box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+:global([data-bs-theme='dark']) .landing {
+	background: var(--gray-50);
 }
 </style>
