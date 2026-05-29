@@ -61,6 +61,28 @@ Follow these guidelines when working on this project.
 
 **Supported Providers:** OpenAI, Anthropic, Google, Ollama, Groq, NVIDIA, DeepSeek, OpenRouter, Hugging Face (via LangChain)
 
+## Domain Appraisal
+
+Two-tier client-side + server-side domain appraisal system.
+
+**Tier 1 (instant, zero-cost):** `src/lib/appraise.ts` — `appraise(domain)` returns `DomainAppraisal` with grade (A+–F), dollar range, and 5 signals:
+- `length` — SLD character length score (shorter = higher)
+- `tld` — TLD prestige from `src/lib/tld-prestige.ts` (.com=10, .io/.ai=8, etc.)
+- `dictionary` — English word recognition from built-in `DICTIONARY` Set
+- `brandable` — Pronounceability via vowel/consonant ratio
+- `clean` — Hyphen/number penalty
+
+**Tier 2 (server-verified):** `GET /api/appraise?domain=X` — same engine via Hono endpoint (public, no auth)
+
+**UI components:**
+- `AppraisalBadge.vue` — color-coded grade badge
+- `DomainLookupCard.vue` — shows instant grade badge
+- `DomainLookupPanel.vue` — full breakdown + "Get Market Appraisal" button
+
+**Store:** `useLookupStore().fetchAppraisal()` / `clearAppraisal()` for Tier 2
+
+**Types:** `AppraisalGrade`, `AppraisalSignal`, `DomainAppraisal` in `src/types/index.ts`
+
 ## Previous Task Memory
 
 **Location:** `.memory/` directory
