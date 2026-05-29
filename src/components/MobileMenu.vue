@@ -42,34 +42,55 @@ const appState = useAppStateStore()
  <span>Dashboard</span>
  </router-link>
  </li>
- <li class="nav-item">
- <router-link to="/domains" class="nav-link d-flex align-items-center" active-class="active"
- @click="appState.closeMobileMenu">
- <i class="bi bi-globe me-3"></i>
- <span>Domains</span>
- </router-link>
- </li>
- <li class="nav-item">
- <router-link to="/ledger" class="nav-link d-flex align-items-center" active-class="active"
- @click="appState.closeMobileMenu">
- <i class="bi bi-cash-stack me-3"></i>
- <span>Ledger</span>
- </router-link>
- </li>
- <li class="nav-item">
- <router-link to="/prospects" class="nav-link d-flex align-items-center" active-class="active"
- @click="appState.closeMobileMenu">
- <i class="bi bi-search me-3"></i>
- <span>Prospects</span>
- </router-link>
- </li>
- <li class="nav-item">
- <router-link to="/settings" class="nav-link d-flex align-items-center" active-class="active"
- @click="appState.closeMobileMenu">
- <i class="bi bi-gear me-3"></i>
- <span>Settings</span>
- </router-link>
- </li>
+			<li class="nav-item">
+				<router-link to="/domains" class="nav-link d-flex align-items-center" active-class="active"
+					@click="appState.closeMobileMenu">
+					<i class="bi bi-globe me-3"></i>
+					<span>Domains</span>
+				</router-link>
+			</li>
+			<li class="nav-item">
+				<router-link to="/lookup" class="nav-link d-flex align-items-center" active-class="active"
+					@click="appState.closeMobileMenu">
+					<i class="bi bi-search me-3"></i>
+					<span>Lookup</span>
+				</router-link>
+			</li>
+			<li class="nav-item">
+				<router-link to="/ledger" class="nav-link d-flex align-items-center" active-class="active"
+					@click="appState.closeMobileMenu">
+					<i class="bi bi-cash-stack me-3"></i>
+					<span>Ledger</span>
+				</router-link>
+			</li>
+			<li class="nav-item">
+				<router-link to="/prospects" class="nav-link d-flex align-items-center" active-class="active"
+					@click="appState.closeMobileMenu">
+					<i class="bi bi-people me-3"></i>
+					<span>Prospects</span>
+				</router-link>
+			</li>
+			<li class="nav-item">
+				<router-link to="/watchlist" class="nav-link d-flex align-items-center" active-class="active"
+					@click="appState.closeMobileMenu">
+					<i class="bi bi-eye me-3"></i>
+					<span>Watchlist</span>
+				</router-link>
+			</li>
+			<li class="nav-item">
+				<router-link to="/wishlist" class="nav-link d-flex align-items-center" active-class="active"
+					@click="appState.closeMobileMenu">
+					<i class="bi bi-heart me-3"></i>
+					<span>Wishlist</span>
+				</router-link>
+			</li>
+			<li class="nav-item">
+				<router-link to="/settings" class="nav-link d-flex align-items-center" active-class="active"
+					@click="appState.closeMobileMenu">
+					<i class="bi bi-gear me-3"></i>
+					<span>Settings</span>
+				</router-link>
+			</li>
  </ul>
 
  <!-- Footer -->

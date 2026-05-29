@@ -6,11 +6,14 @@ import MobileMenu from '@/components/MobileMenu.vue'
 import { useAppStateStore } from '@/stores/appState'
 
 const routes = [
- { path: '/home', component: { template: '<div>Home</div>' } },
- { path: '/domains', component: { template: '<div>Domains</div>' } },
- { path: '/ledger', component: { template: '<div>Ledger</div>' } },
- { path: '/prospects', component: { template: '<div>Prospects</div>' } },
- { path: '/settings', component: { template: '<div>Settings</div>' } },
+	{ path: '/home', component: { template: '<div>Home</div>' } },
+	{ path: '/domains', component: { template: '<div>Domains</div>' } },
+	{ path: '/lookup', component: { template: '<div>Lookup</div>' } },
+	{ path: '/ledger', component: { template: '<div>Ledger</div>' } },
+	{ path: '/prospects', component: { template: '<div>Prospects</div>' } },
+	{ path: '/watchlist', component: { template: '<div>Watchlist</div>' } },
+	{ path: '/wishlist', component: { template: '<div>Wishlist</div>' } },
+	{ path: '/settings', component: { template: '<div>Settings</div>' } },
 ]
 
 async function createTestRouter() {
@@ -112,21 +115,21 @@ describe('MobileMenu', () => {
  expect(store.mobileMenuOpen).toBe(false)
  })
 
- it('renders all 5 nav links', async () => {
- const store = useAppStateStore()
- store.mobileMenuOpen = true
+	it('renders all 8 nav links', async () => {
+		const store = useAppStateStore()
+		store.mobileMenuOpen = true
 
- const router = await createTestRouter()
- mount(MobileMenu, {
- global: { plugins: [pinia, router] },
- attachTo: document.body,
- })
+		const router = await createTestRouter()
+		mount(MobileMenu, {
+			global: { plugins: [pinia, router] },
+			attachTo: document.body,
+		})
 
- await new Promise(r => setTimeout(r, 50))
+		await new Promise(r => setTimeout(r, 50))
 
- const links = findAllInBody('.mobile-menu-panel .nav-link')
- expect(links.length).toBe(5)
- })
+		const links = findAllInBody('.mobile-menu-panel .nav-link')
+		expect(links.length).toBe(8)
+	})
 
  it('has theme toggle button in footer', async () => {
  const store = useAppStateStore()
