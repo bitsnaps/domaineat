@@ -104,7 +104,7 @@ app.use('/api/*', cors())
 
 // ─── Auth Middleware ──────────────────────────────────────────────────
 // Public routes that skip authentication
-const PUBLIC_PATHS = ['/api/health', '/api/auth/register', '/api/auth/login', '/api/auth/me', '/api/validate', '/api/search']
+const PUBLIC_PATHS = ['/api/health', '/api/auth/register', '/api/auth/login', '/api/auth/me', '/api/validate', '/api/search', '/api/appraise']
 
 app.use('/api/*', async (c, next) => {
 	const path = new URL(c.req.url).pathname
@@ -613,9 +613,32 @@ app.get('/api/search', async (c) => {
       sld,
       results: extensions,
     })
-  } catch (err: any) {
-    return c.json({ error: `Search failed: ${err.message}` }, 502)
-  }
+	} catch (err: any) {
+		return c.json({ error: `Search failed: ${err.message}` }, 502)
+	}
+})
+
+// ─── Domain Appraisal (public, zero-cost) ────────────────────────────
+
+app.get('/api/appraise', async (c) => {
+	const domain = c.req.query('domain')
+	if (!domain || typeof domain !== 'string') {
+		return c.json({ error: 'domain query parameter is required' }, 400)
+	}
+
+	const sanitized = domain.toLowerCase().replace(/^www\./, '').trim()
+	if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z]{2,})+$/.test(sanitized)) {
+		return c.json({ error: 'Invalid domain format' }, 400)
+	}
+
+	try {
+		// Dynamic import so the server bundle can resolve the TS module
+		const { appraise } = await import('../src/lib/appraise.js')
+		const result = appraise(sanitized)
+		return c.json(result)
+	} catch (err: any) {
+		return c.json({ error: `Appraisal failed: ${err.message}` }, 502)
+	}
 })
 
 // ─── Bulk Domain Lookup ────────────────────────────────────────────────

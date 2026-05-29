@@ -172,7 +172,12 @@ describe('Auth Middleware', () => {
 		const res = await app.request('/api/search?domain=test')
 		expect(res.status).not.toBe(401)
 	})
-  })
+
+	it('GET /api/appraise is public (no auth required)', async () => {
+		const res = await app.request('/api/appraise?domain=test.com')
+		expect(res.status).not.toBe(401)
+	})
+ })
 
   // ─── Valid Token — Access Granted ──────────────────────────────
 

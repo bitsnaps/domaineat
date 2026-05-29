@@ -299,8 +299,59 @@ describe('API Routes (real api/app.ts)', () => {
     expect(prospect.destroy).toHaveBeenCalled()
   })
 
-  it('DELETE /api/prospects/:id returns 404 when not found', async () => {
-    const res = await app.request('/api/prospects/9999', { method: 'DELETE', headers: authHeaders() })
-    expect(res.status).toBe(404)
-  })
+	it('DELETE /api/prospects/:id returns 404 when not found', async () => {
+		const res = await app.request('/api/prospects/9999', { method: 'DELETE', headers: authHeaders() })
+		expect(res.status).toBe(404)
+	})
+})
+
+// ─── Domain Appraisal (public route) ──────────────────────────────────
+
+describe('GET /api/appraise', () => {
+	it('returns appraisal for a valid domain', async () => {
+		const res = await app.request('/api/appraise?domain=pay.com')
+		expect(res.status).toBe(200)
+		const data = await res.json()
+		expect(data.grade).toBeDefined()
+		expect(data.signals).toBeDefined()
+		expect(data.range).toBeDefined()
+		expect(typeof data.range.low).toBe('number')
+		expect(typeof data.range.high).toBe('number')
+	})
+
+	it('returns A+ for short dictionary .com', async () => {
+		const res = await app.request('/api/appraise?domain=pay.com')
+		expect(res.status).toBe(200)
+		const data = await res.json()
+		expect(data.grade).toBe('A+')
+	})
+
+	it('returns 400 when domain param is missing', async () => {
+		const res = await app.request('/api/appraise')
+		expect(res.status).toBe(400)
+		const data = await res.json()
+		expect(data.error).toMatch(/domain/i)
+	})
+
+	it('returns 400 for invalid domain format', async () => {
+		const res = await app.request('/api/appraise?domain=!!bad!!')
+		expect(res.status).toBe(400)
+	})
+
+	it('is accessible without auth token (public route)', async () => {
+		const res = await app.request('/api/appraise?domain=test.com')
+		expect(res.status).not.toBe(401)
+	})
+
+	it('includes all 5 signal keys', async () => {
+		const res = await app.request('/api/appraise?domain=shop.io')
+		expect(res.status).toBe(200)
+		const data = await res.json()
+		const signalKeys = Object.keys(data.signals)
+		expect(signalKeys).toContain('length')
+		expect(signalKeys).toContain('dictionary')
+		expect(signalKeys).toContain('tld')
+		expect(signalKeys).toContain('brandable')
+		expect(signalKeys).toContain('clean')
+	})
 })
