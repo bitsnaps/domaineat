@@ -74,9 +74,9 @@ function levelClass(level: string): string {
 		>
 			<i class="bi bi-list fs-5"></i>
 		</button>
-		<span class="navbar-brand mb-0 h1 fs-6" style="font-family: var(--font-display); font-weight: 700; color: var(--dark);">
+		<router-link to="/" class="navbar-brand mb-0 h1 fs-6 text-decoration-none" style="font-family: var(--font-display); font-weight: 700; color: var(--dark);">
 			Domain<span style="color: var(--primary);">eat</span>
-		</span>
+		</router-link>
 		<div class="ms-auto d-flex align-items-center gap-2">
 			<!-- User email -->
 			<span v-if="auth.isLoggedIn && auth.user" class="d-none d-md-inline small text-muted">

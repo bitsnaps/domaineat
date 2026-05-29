@@ -8,7 +8,7 @@ const appState = useAppStateStore()
  class="sidebar d-flex flex-column border-end"
  :class="{ 'sidebar-collapsed': appState.sidebarCollapsed }"
  >
- <router-link to="/home" class="sidebar-brand d-flex align-items-center mb-3 text-decoration-none">
+	<router-link to="/" class="sidebar-brand d-flex align-items-center mb-3 text-decoration-none">
  <i class="bi bi-globe2 fs-3" style="color: var(--primary);"></i>
  <span class="sidebar-label fs-5 fw-bold ms-2" style="font-family: var(--font-display); color: var(--dark);">
  Domain<span style="color: var(--primary);">eat</span>

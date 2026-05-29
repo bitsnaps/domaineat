@@ -19,9 +19,9 @@ const appState = useAppStateStore()
  <div v-if="appState.mobileMenuOpen" class="mobile-menu-panel">
  <!-- Header -->
  <div class="mobile-menu-header">
- <span class="mobile-menu-brand">
- Domain<span style="color: var(--primary);">eat</span>
- </span>
+			<router-link to="/" class="mobile-menu-brand text-decoration-none" @click="appState.closeMobileMenu">
+				Domain<span style="color: var(--primary);">eat</span>
+			</router-link>
  <button
  class="btn btn-sm btn-outline-secondary"
  @click="appState.closeMobileMenu"
