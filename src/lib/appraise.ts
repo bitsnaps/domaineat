@@ -108,7 +108,7 @@ function splitIntoKnownWords(s: string): string[] {
 			}
 		}
 		if (!found) {
-			result.push(remaining[0])
+			result.push(remaining[0] ?? '')
 			remaining = remaining.slice(1)
 		}
 	}
@@ -200,8 +200,8 @@ function gradeToRange(grade: AppraisalGrade): { low: number; high: number } {
  */
 export function appraise(domain: string): DomainAppraisal {
 	const parts = domain.toLowerCase().replace(/^www\./, '').split('.')
-	const sld = parts.length > 1 ? parts.slice(0, -1).join('.') : parts[0]
-	const tld = parts.length > 1 ? parts[parts.length - 1] : 'com'
+	const sld = (parts.length > 1 ? parts.slice(0, -1).join('.') : parts[0]) ?? domain
+	const tld = (parts.length > 1 ? parts[parts.length - 1] : 'com') ?? 'com'
 
 	const signals = {
 		length: scoreLength(sld),
