@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useWishlistStore } from '@/stores/wishlist'
+import { useProspectsStore } from '@/stores/prospects'
+import { useAuthStore } from '@/stores/auth'
 import EmptyState from '@/components/EmptyState.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
-import type { WishlistCreate, WishlistUpdate, WishlistPriority } from '@/types'
+import { gradeToRange } from '@/lib/appraise'
+import type { WishlistCreate, WishlistUpdate, WishlistPriority, AppraisalGrade } from '@/types'
 
 const store = useWishlistStore()
+const prospectsStore = useProspectsStore()
+const authStore = useAuthStore()
 
 const showAddModal = ref(false)
 const selectedIds = ref<number[]>([])
@@ -140,6 +145,46 @@ async function toggleAutoProspect(item: typeof store.items[0]) {
 async function toggleAiAgent(item: typeof store.items[0]) {
 	await store.updateWishlistItem(item.id, { ai_agent: !item.ai_agent })
 }
+
+async function handleFindProspects() {
+	if (!selectedIds.value.length) return
+	const takenIds = filteredItems.value
+		.filter(i => selectedIds.value.includes(i.id) && i.available === false)
+		.map(i => i.id)
+	if (takenIds.length === 0) {
+		const { useToastStore } = await import('@/stores/toast')
+		useToastStore().info('Only taken domains can have prospects')
+		return
+	}
+	await store.prospectAll(takenIds)
+	prospectsStore.fetchProspects()
+	selectedIds.value = []
+	selectAll.value = false
+}
+
+/** Compare user's budget vs appraisal range. Returns label + CSS class. */
+function budgetVsAppraisal(item: typeof store.items[0]) {
+	if (!item.max_budget || !item.appraisal_grade) return { label: '—', class: '' }
+	const range = gradeToRange(item.appraisal_grade as AppraisalGrade)
+	const budget = item.max_budget
+	if (budget < range.low) return { label: 'Under', class: 'text-danger' }
+	if (budget > range.high) return { label: 'Over', class: 'text-warning' }
+	return { label: 'In range', class: 'text-success' }
+}
+
+/** Generate registrar search URL for available domains */
+function registerUrl(item: typeof store.items[0]) {
+	const q = encodeURIComponent(item.domain_name)
+	const registrar = authStore.user?.preferred_registrar
+	if (registrar) {
+		// Custom registrar URL template — user sets full URL with {domain} placeholder
+		if (registrar.includes('{domain}')) return registrar.replace('{domain}', q)
+		// If just a domain, build a search URL
+		return `https://${registrar.replace(/^https?:\/\//, '')}?domain=${q}`
+	}
+	// Default: Namecheap
+	return `https://www.namecheap.com/domains/registration/results/?domain=${q}`
+}
 </script>
 
 <template>
@@ -153,13 +198,20 @@ async function toggleAiAgent(item: typeof store.items[0]) {
 				<button class="btn btn-outline-primary btn-sm" @click="handleBulkCheck" :disabled="store.loading || store.items.length === 0">
 					<i class="bi bi-arrow-repeat me-1"></i>Check All
 				</button>
-				<button
-					class="btn btn-outline-success btn-sm"
-					:disabled="!hasSelection"
-					@click="handleMoveToPortfolio"
-				>
-					<i class="bi bi-box-arrow-in-right me-1"></i>Move to Portfolio
-				</button>
+			<button
+				class="btn btn-outline-success btn-sm"
+				:disabled="!hasSelection"
+				@click="handleMoveToPortfolio"
+			>
+				<i class="bi bi-box-arrow-in-right me-1"></i>Move to Portfolio
+			</button>
+			<button
+				class="btn btn-outline-info btn-sm"
+				:disabled="!hasSelection"
+				@click="handleFindProspects"
+			>
+				<i class="bi bi-people me-1"></i>Find Prospects
+			</button>
 				<button
 					class="btn btn-outline-danger btn-sm"
 					:disabled="!hasSelection"
@@ -222,8 +274,9 @@ async function toggleAiAgent(item: typeof store.items[0]) {
 							<th>Domain</th>
 							<th style="width: 8%;">TLD</th>
 							<th style="width: 10%;">Priority</th>
-							<th style="width: 10%;">Budget</th>
-							<th style="width: 8%;">Status</th>
+						<th style="width: 10%;">Budget</th>
+						<th style="width: 10%;">Value</th>
+						<th style="width: 8%;">Status</th>
 							<th style="width: 8%;">Auto</th>
 							<th style="width: 8%;">AI</th>
 							<th>Notes</th>
@@ -252,11 +305,29 @@ async function toggleAiAgent(item: typeof store.items[0]) {
 								<span v-if="editId !== item.id">{{ item.max_budget ? `$${item.max_budget}` : '—' }}</span>
 								<input v-else v-model="editBudget" type="number" class="form-control form-control-sm" placeholder="Budget" />
 							</td>
-							<td>
-								<span v-if="item.available === true" class="badge bg-success">Available</span>
-								<span v-else-if="item.available === false" class="badge bg-secondary">Taken</span>
-								<span v-else class="badge bg-warning text-dark">Unknown</span>
-							</td>
+						<td>
+							<span :class="budgetVsAppraisal(item).class" class="fw-semibold">
+								{{ budgetVsAppraisal(item).label }}
+							</span>
+							<div v-if="item.appraisal_grade" class="text-muted small">
+								{{ item.appraisal_grade }} · ${{ gradeToRange(item.appraisal_grade as AppraisalGrade).low.toLocaleString() }}–${{ gradeToRange(item.appraisal_grade as AppraisalGrade).high.toLocaleString() }}
+							</div>
+						</td>
+						<td>
+							<span v-if="item.available === true" class="badge bg-success">Available</span>
+							<span v-else-if="item.available === false" class="badge bg-secondary">Taken</span>
+							<span v-else class="badge bg-warning text-dark">Unknown</span>
+							<a
+								v-if="item.available === true"
+								:href="registerUrl(item)"
+								target="_blank"
+								rel="noopener"
+								class="btn btn-sm btn-outline-success ms-1 py-0 px-1"
+								title="Register Now"
+							>
+								<i class="bi bi-cart-plus"></i>
+							</a>
+						</td>
 							<td>
 								<div class="form-check form-switch">
 									<input type="checkbox" class="form-check-input" :checked="item.auto_prospect" @change="toggleAutoProspect(item)" />

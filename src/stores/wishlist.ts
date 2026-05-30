@@ -179,6 +179,23 @@ export const useWishlistStore = defineStore('wishlist', () => {
 		}
 	}
 
+	async function prospectAll(ids: number[]): Promise<number> {
+		error.value = null
+		try {
+			const res = await api.post('/wishlist/prospect-all', { ids })
+			const found: number = res.data.found ?? 0
+			const toast = useToastStore()
+			toast.success(`Found ${found} prospect${found !== 1 ? 's' : ''} for selected domains`)
+			return found
+		} catch (e: any) {
+			const msg = e.friendlyMessage ?? e.response?.data?.error ?? e.message
+			error.value = msg
+			const toast = useToastStore()
+			toast.error(`Failed to find prospects: ${msg}`)
+			return 0
+		}
+	}
+
 	return {
 		// State
 		items,
@@ -195,5 +212,6 @@ export const useWishlistStore = defineStore('wishlist', () => {
 		bulkCheck,
 		bulkDelete,
 		exportCsv,
+		prospectAll,
 	}
 })

@@ -8,7 +8,7 @@ import CsvImportModal from '@/components/CsvImportModal.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import SmartFolderBar from '@/components/SmartFolderBar.vue'
-import type { Domain, DomainStatus, AppraisalGrade } from '@/types'
+import type { Domain, DomainStatus, AppraisalGrade, SmartFolderKey } from '@/types'
 
 const store = useDomainsStore()
 const watchlistStore = useWatchlistStore()
@@ -26,22 +26,8 @@ const selectAll = ref(false)
 const hasSelection = computed(() => selectedIds.value.length > 0)
 const selectedCount = computed(() => selectedIds.value.length)
 
-const gradeCounts = computed(() => {
-	const counts: Record<string, number> = { all: store.domains.length, ungraded: 0 }
-	const grades: AppraisalGrade[] = ['A+', 'A', 'B', 'C', 'D']
-	for (const g of grades) counts[g] = 0
-	for (const d of store.domains) {
-		if (d.appraisal_grade && grades.includes(d.appraisal_grade as AppraisalGrade)) {
-			counts[d.appraisal_grade]++
-		} else {
-			counts['ungraded']++
-		}
-	}
-	return counts
-})
-
-function handleFolderSelect(folder: AppraisalGrade | 'all' | 'ungraded') {
-	store.filterGrade = folder
+function handleFolderSelect(folder: SmartFolderKey) {
+	store.filterSmartFolder = folder
 }
 
 function toggleSelectAll() {
@@ -145,6 +131,37 @@ async function handleAddToWishlist() {
 	if (added > 0) clearSelection()
 }
 
+async function handleBulkTag() {
+	if (!selectedIds.value.length) return
+	const tag = prompt('Enter tag to apply to selected domains:')
+	if (!tag?.trim()) return
+	await store.bulkTag(selectedIds.value, tag.trim())
+	clearSelection()
+}
+
+async function handleBulkOutreach() {
+	if (!selectedIds.value.length) return
+	const { useProspectsStore } = await import('@/stores/prospects')
+	const prospectsStore = useProspectsStore()
+	const domains = store.domains.filter(d => selectedIds.value.includes(d.id))
+	let generated = 0
+	for (const d of domains) {
+		try {
+			await prospectsStore.createProspect({
+				domain_id: d.id,
+				prospect_domain: d.domain_name,
+				outreach_status: 'uncontacted',
+			})
+			generated++
+		} catch { /* skip failures */ }
+	}
+	if (generated > 0) {
+		const toast = (await import('@/stores/toast')).useToastStore()
+		toast().success(`Generated outreach for ${generated} domain${generated !== 1 ? 's' : ''}`)
+	}
+	clearSelection()
+}
+
 function toggleSort(field: keyof Domain) {
   if (store.sortField === field) {
     store.sortAsc = !store.sortAsc
@@ -240,8 +257,8 @@ function daysBadge(domain: Domain) {
 
     <!-- Smart Folders -->
 <SmartFolderBar
-	:active-grade="store.filterGrade as AppraisalGrade | 'all' | 'ungraded'"
-	:counts="gradeCounts"
+	:active-folder="store.filterSmartFolder"
+	:counts="store.smartFolderCounts"
 	@select="handleFolderSelect"
 	v-if="store.domains.length > 0"
 />
@@ -387,6 +404,12 @@ function daysBadge(domain: Domain) {
 	</button>
 	<button class="btn btn-sm btn-outline-danger" @click="handleAddToWishlist">
 		<i class="bi bi-heart me-1"></i>Add to Wishlist
+	</button>
+	<button class="btn btn-sm btn-outline-info" @click="handleBulkTag">
+		<i class="bi bi-tag me-1"></i>Tag
+	</button>
+	<button class="btn btn-sm btn-outline-success" @click="handleBulkOutreach">
+		<i class="bi bi-chat-dots me-1"></i>Generate Outreach
 	</button>
 	<button class="btn btn-sm btn-outline-danger" @click="handleBulkDelete">
 		<i class="bi bi-trash3 me-1"></i>Delete

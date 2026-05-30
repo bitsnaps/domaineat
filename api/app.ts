@@ -11,7 +11,7 @@
  */
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { sequelize, Domain, Ledger, Prospect, User, Notification, Watchlist, Wishlist } from './models/index.js'
+import { sequelize, Domain, Ledger, Prospect, User, Notification, Watchlist, Wishlist, DomainTag } from './models/index.js'
 import { hashPassword, verifyPassword, signJwt, verifyJwt, TIER_LIMITS } from './auth.js'
 import { rdapRateLimit } from './rate-limit.js'
 import { runAllTasks } from './scheduler.js'
@@ -333,6 +333,74 @@ app.delete('/api/domains/:id', async (c) => {
 
 	await domain.destroy()
 	return c.json({ deleted: true }, 200)
+})
+
+// Domain Tags — add and remove tags
+app.post('/api/domains/:id/tags', async (c) => {
+	const userId = c.get('userId')
+	const domain = await Domain.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+	if (!domain) return c.json({ error: 'Domain not found' }, 404)
+
+	const { tag } = await c.req.json()
+	if (!tag || typeof tag !== 'string' || tag.trim().length === 0) {
+		return c.json({ error: 'Tag is required' }, 400)
+	}
+	const trimmed = tag.trim().toLowerCase()
+	if (trimmed.length > 50) return c.json({ error: 'Tag too long (max 50 chars)' }, 400)
+
+	const [tagRecord, created] = await DomainTag.findOrCreate({
+		where: { domain_id: domain.id, user_id: userId, tag: trimmed },
+		defaults: { domain_id: domain.id, user_id: userId, tag: trimmed },
+	})
+	if (!created) return c.json({ error: 'Tag already exists' }, 409)
+	return c.json(tagRecord, 201)
+})
+
+app.delete('/api/domains/:id/tags/:tag', async (c) => {
+	const userId = c.get('userId')
+	const domain = await Domain.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+	if (!domain) return c.json({ error: 'Domain not found' }, 404)
+
+	const tagName = decodeURIComponent(c.req.param('tag')).toLowerCase()
+	const deleted = await DomainTag.destroy({
+		where: { domain_id: domain.id, user_id: userId, tag: tagName },
+	})
+	if (!deleted) return c.json({ error: 'Tag not found' }, 404)
+	return c.json({ deleted: true })
+})
+
+app.get('/api/domains/:id/tags', async (c) => {
+	const userId = c.get('userId')
+	const domain = await Domain.findOne({ where: { id: c.req.param('id'), user_id: userId } })
+	if (!domain) return c.json({ error: 'Domain not found' }, 404)
+
+	const tags = await DomainTag.findAll({
+		where: { domain_id: domain.id, user_id: userId },
+		order: [['tag', 'ASC']],
+	})
+	return c.json(tags)
+})
+
+// Bulk tag action — add a tag to multiple domains
+app.post('/api/domains/bulk-tag', async (c) => {
+	const userId = c.get('userId')
+	const { ids, tag } = await c.req.json()
+	if (!Array.isArray(ids) || ids.length === 0) return c.json({ error: 'ids array required' }, 400)
+	if (!tag || typeof tag !== 'string' || tag.trim().length === 0) {
+		return c.json({ error: 'tag is required' }, 400)
+	}
+	const trimmed = tag.trim().toLowerCase()
+	let tagged = 0
+	for (const domainId of ids) {
+		const domain = await Domain.findOne({ where: { id: domainId, user_id: userId } })
+		if (!domain) continue
+		await DomainTag.findOrCreate({
+			where: { domain_id: domain.id, user_id: userId, tag: trimmed },
+			defaults: { domain_id: domain.id, user_id: userId, tag: trimmed },
+		})
+		tagged++
+	}
+	return c.json({ tagged, tag: trimmed })
 })
 
 // Domain-scoped ledger entries
@@ -764,7 +832,7 @@ app.patch('/api/users/:id/ai-settings', async (c) => {
  if (!user) return c.json({ error: 'User not found' }, 404)
 
   const body = await c.req.json()
-  const allowed = ['llm_provider', 'llm_model', 'llm_api_key_encrypted']
+ const allowed = ['llm_provider', 'llm_model', 'llm_api_key_encrypted', 'preferred_registrar']
   const updates: Record<string, any> = {}
   for (const key of allowed) {
     if (body[key] !== undefined) updates[key] = body[key]
@@ -1229,6 +1297,65 @@ app.get('/api/wishlist/export', async (c) => {
 	})
 })
 
+// Find prospects for selected wishlist items — MUST be before /:id
+app.post('/api/wishlist/prospect-all', async (c) => {
+	const userId = c.get('userId')
+	const { ids } = await c.req.json()
+	if (!Array.isArray(ids) || ids.length === 0) {
+		return c.json({ error: 'ids array required' }, 400)
+	}
+
+	const ALT_TLDS = ['com', 'net', 'org', 'io', 'co', 'dev', 'app', 'ai', 'xyz', 'me']
+	let found = 0
+
+	for (const id of ids) {
+		const item = await Wishlist.findOne({ where: { id, user_id: userId } })
+		if (!item) continue
+
+		const sld = item.domain_name.replace(/\.[^.]+$/, '')
+		const currentTld = item.tld
+
+		// Find or create a portfolio domain to link prospects to
+		let domain = await Domain.findOne({ where: { domain_name: item.domain_name, user_id: userId } })
+		if (!domain) {
+			domain = await Domain.create({
+				user_id: userId,
+				domain_name: item.domain_name,
+				registrar: '',
+				acquisition_date: new Date().toISOString().split('T')[0],
+				expiry_date: '',
+				acquisition_cost: 0,
+				renewal_cost: 0,
+				nameservers: null,
+				status: 'parked',
+			} as any)
+		}
+
+		for (const tld of ALT_TLDS) {
+			if (tld === currentTld) continue
+			const prospectDomain = `${sld}.${tld}`
+
+			// Skip if prospect already exists for this domain
+			const existing = await Prospect.findOne({
+				where: { domain_id: domain!.id, prospect_domain: prospectDomain },
+			})
+			if (existing) continue
+
+			await Prospect.create({
+				domain_id: domain!.id,
+				prospect_domain: prospectDomain,
+				company_name: null,
+				contact_email: null,
+				outreach_status: 'uncontacted',
+				last_contact_date: null,
+			})
+			found++
+		}
+	}
+
+	return c.json({ found })
+})
+
 app.put('/api/wishlist/:id', async (c) => {
 	const userId = c.get('userId')
 	const item = await Wishlist.findOne({ where: { id: c.req.param('id'), user_id: userId } })
@@ -1312,3 +1439,5 @@ app.patch('/api/notifications/dismiss-all', async (c) => {
 	await Notification.update({ dismissed: true }, { where: { user_id: userId } })
 	return c.json({ dismissed: true })
 })
+
+export default app

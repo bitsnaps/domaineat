@@ -7,7 +7,10 @@ import type {
 	DomainCreate,
 	DomainUpdate,
 	DomainStatus,
+	SmartFolderKey,
+	AppraisalGrade,
 } from '@/types'
+import { gradeToRange } from '@/lib/appraise'
 
 export const useDomainsStore = defineStore('domains', () => {
 	// ─── State ─────────────────────────────────────────────────────────────
@@ -60,7 +63,7 @@ export const useDomainsStore = defineStore('domains', () => {
 
 	/** Status options derived from current data */
 	const statusOptions = computed((): DomainStatus[] => ['active', 'expired', 'sold', 'pending_delete', 'parked'])
-	const filterGrade = ref<string>('all')
+	const filterSmartFolder = ref<SmartFolderKey>('all')
 
 	const filteredDomains = computed(() => {
 		let result = [...domains.value]
@@ -82,10 +85,35 @@ export const useDomainsStore = defineStore('domains', () => {
 			result = result.filter((d) => d.status === filterStatus.value)
 		}
 
-		if (filterGrade.value === 'ungraded') {
+		// Smart folder filtering
+		const folder = filterSmartFolder.value
+		if (folder === 'ungraded') {
 			result = result.filter((d) => !d.appraisal_grade)
-		} else if (filterGrade.value !== 'all') {
-			result = result.filter((d) => d.appraisal_grade === filterGrade.value)
+		} else if (folder === 'expiring') {
+			result = result.filter((d) => {
+				const days = daysUntilExpiry(d.expiry_date)
+				return days >= 0 && days <= 30
+			})
+		} else if (folder === 'undervalued') {
+			result = result.filter((d) => {
+				if (!d.appraisal_grade) return false
+				const range = gradeToRange(d.appraisal_grade as AppraisalGrade)
+				return range.low > Number(d.acquisition_cost) * 2
+			})
+		} else if (folder === 'outreach') {
+			const domainIds = activeOutreachDomainIds.value
+			result = result.filter((d) => domainIds.has(d.id))
+		} else if (folder === 'recent') {
+			const sevenDaysAgo = new Date()
+				sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+				const cutoff = sevenDaysAgo.toISOString()
+			result = result.filter((d) => d.created_at && d.created_at >= cutoff)
+		} else if (folder === 'agent') {
+			const domainIds = agentDomainIds.value
+			result = result.filter((d) => domainIds.has(d.id))
+		} else if (folder !== 'all') {
+			// Grade-based folders (A+, A, B, C, D)
+			result = result.filter((d) => d.appraisal_grade === folder)
 		}
 
 		// Sort
@@ -123,6 +151,66 @@ export const useDomainsStore = defineStore('domains', () => {
 			return days >= 0 && days <= 30
 		})
 	)
+
+	/** Domain IDs that have prospects in contacted/negotiating status */
+	const activeOutreachDomainIds = computed(() => {
+		const ids = new Set<number>()
+		// Lazy import to avoid circular dependency
+		try {
+			const { useProspectsStore } = require('@/stores/prospects')
+			const prospectsStore = useProspectsStore()
+			for (const p of prospectsStore.prospects) {
+				if (['contacted', 'responded', 'negotiating'].includes(p.outreach_status)) {
+					ids.add(p.domain_id)
+				}
+			}
+		} catch { /* prospects store not initialized yet */ }
+		return ids
+	})
+
+	/** Domain IDs tracked by AI agent (in watchlist or wishlist with ai_agent=true) */
+	const agentDomainIds = computed(() => {
+		const ids = new Set<number>()
+		try {
+			const { useWatchlistStore } = require('@/stores/watchlist')
+			const { useWishlistStore } = require('@/stores/wishlist')
+			const watchlistStore = useWatchlistStore()
+			const wishlistStore = useWishlistStore()
+			for (const w of watchlistStore.items) {
+				if ((w as any).ai_agent) ids.add((w as any).domain_id ?? 0)
+			}
+			for (const w of wishlistStore.items) {
+				if (w.ai_agent) ids.add((w as any).domain_id ?? 0)
+			}
+		} catch { /* stores not initialized yet */ }
+		return ids
+	})
+
+	/** Smart folder counts for all folder tabs */
+	const smartFolderCounts = computed(() => {
+		const counts: Record<string, number> = {
+			all: domains.value.length,
+			ungraded: domains.value.filter((d) => !d.appraisal_grade).length,
+			expiring: expiringSoon.value.length,
+			undervalued: domains.value.filter((d) => {
+				if (!d.appraisal_grade) return false
+				const range = gradeToRange(d.appraisal_grade as AppraisalGrade)
+				return range.low > Number(d.acquisition_cost) * 2
+			}).length,
+			outreach: activeOutreachDomainIds.value.size,
+			recent: domains.value.filter((d) => {
+				if (!d.created_at) return false
+				const sevenDaysAgo = new Date()
+				sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+				return d.created_at >= sevenDaysAgo.toISOString()
+			}).length,
+			agent: agentDomainIds.value.size,
+		}
+		for (const g of ['A+', 'A', 'B', 'C', 'D'] as AppraisalGrade[]) {
+			counts[g] = domains.value.filter((d) => d.appraisal_grade === g).length
+		}
+		return counts
+	})
 
 	/** Count by status */
 	const countByStatus = computed(() => {
@@ -221,7 +309,7 @@ export const useDomainsStore = defineStore('domains', () => {
 		filterTld.value = ''
 		filterRegistrar.value = ''
 		filterStatus.value = ''
-		filterGrade.value = 'all'
+		filterSmartFolder.value = 'all'
 		searchQuery.value = ''
 		currentPage.value = 1
 	}
@@ -274,6 +362,62 @@ export const useDomainsStore = defineStore('domains', () => {
 		}
 	}
 
+	async function bulkTag(ids: number[], tag: string): Promise<{ tagged: number; tag: string } | null> {
+		error.value = null
+		try {
+			const res = await api.post('/domains/bulk-tag', { ids, tag })
+			const toast = useToastStore()
+			toast.success(`Tagged ${res.data.tagged} domain${res.data.tagged !== 1 ? 's' : ''} with "${res.data.tag}"`)
+			return res.data
+		} catch (e: any) {
+			const msg = e.response?.data?.error || e.message
+			error.value = msg
+			const toast = useToastStore()
+			toast.error(`Failed to tag domains: ${msg}`)
+			return null
+		}
+	}
+
+	async function fetchTags(domainId: number) {
+		try {
+			const res = await api.get(`/domains/${domainId}/tags`)
+			const domain = domains.value.find((d) => d.id === domainId)
+			if (domain) domain.tags = res.data
+			return res.data
+		} catch {
+			return []
+		}
+	}
+
+	async function addTag(domainId: number, tag: string) {
+		try {
+			const res = await api.post(`/domains/${domainId}/tags`, { tag })
+			const domain = domains.value.find((d) => d.id === domainId)
+			if (domain) {
+				if (!domain.tags) domain.tags = []
+				domain.tags.push(res.data)
+			}
+			return res.data
+		} catch (e: any) {
+			const toast = useToastStore()
+			toast.error(e.response?.data?.error || 'Failed to add tag')
+			return null
+		}
+	}
+
+	async function removeTag(domainId: number, tag: string) {
+		try {
+			await api.delete(`/domains/${domainId}/tags/${encodeURIComponent(tag)}`)
+			const domain = domains.value.find((d) => d.id === domainId)
+			if (domain?.tags) {
+				domain.tags = domain.tags.filter((t) => t.tag !== tag)
+			}
+		} catch (e: any) {
+			const toast = useToastStore()
+			toast.error(e.response?.data?.error || 'Failed to remove tag')
+		}
+	}
+
 	return {
 		// State
 		domains,
@@ -282,7 +426,8 @@ export const useDomainsStore = defineStore('domains', () => {
 		filterTld,
 		filterRegistrar,
 		filterStatus,
-		filterGrade,
+		filterGrade: filterSmartFolder,
+		filterSmartFolder,
 		searchQuery,
 		currentPage,
 		pageSize,
@@ -300,6 +445,9 @@ export const useDomainsStore = defineStore('domains', () => {
 		totalAcquisitionCost,
 		totalRenewalCost,
 		count,
+		smartFolderCounts,
+		activeOutreachDomainIds,
+		agentDomainIds,
 		// Helpers
 		getTld,
 		daysUntilExpiry,
@@ -311,5 +459,9 @@ export const useDomainsStore = defineStore('domains', () => {
 		clearFilters,
 		bulkDelete,
 		exportCsv,
+		bulkTag,
+		fetchTags,
+		addTag,
+		removeTag,
 	}
 })

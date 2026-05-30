@@ -19,6 +19,7 @@ export interface User {
 	llm_model: string | null
 	llm_api_key_encrypted: string | null // masked — only last 4 chars
 	daily_ai_calls: number
+	preferred_registrar: string | null
 	created_at: string
 }
 
@@ -49,6 +50,14 @@ export interface AiDraftResponse {
 
 export type DomainStatus = 'active' | 'expired' | 'sold' | 'pending_delete' | 'parked'
 
+export interface DomainTag {
+	id: number
+	domain_id: number
+	user_id: number
+	tag: string
+	created_at: string
+}
+
 export interface Domain {
 	id: number
 	user_id: number
@@ -61,9 +70,14 @@ export interface Domain {
 	nameservers: string | null
 	status: DomainStatus
 	appraisal_grade: AppraisalGrade | null
+	tags?: DomainTag[]
+	created_at: string
+	updated_at: string
 }
 
 export type AppraisalGrade = 'A+' | 'A' | 'B' | 'C' | 'D'
+
+export type SmartFolderKey = AppraisalGrade | 'all' | 'ungraded' | 'expiring' | 'undervalued' | 'outreach' | 'recent' | 'agent'
 
 /** Payload for creating a new domain */
 export interface DomainCreate {

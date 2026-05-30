@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import type { AppraisalGrade } from '@/types'
+import type { SmartFolderKey } from '@/types'
 
 defineProps<{
-	activeGrade: AppraisalGrade | 'all' | 'ungraded'
+	activeFolder: SmartFolderKey
 	counts: Record<string, number>
 }>()
 
 const emit = defineEmits<{
-	(e: 'select', folder: AppraisalGrade | 'all' | 'ungraded'): void
+	(e: 'select', folder: SmartFolderKey): void
 }>()
 
-type Folder = { key: AppraisalGrade | 'all' | 'ungraded'; label: string; icon: string; variant: string }
+type Folder = { key: SmartFolderKey; label: string; icon: string; variant: string }
 
 const folders: Folder[] = [
 	{ key: 'all', label: 'All', icon: 'bi-grid-3x3-gap', variant: 'btn-outline-primary' },
@@ -20,6 +20,11 @@ const folders: Folder[] = [
 	{ key: 'C', label: 'C', icon: 'bi-circle', variant: 'btn-outline-secondary' },
 	{ key: 'D', label: 'D', icon: 'bi-circle-fill', variant: 'btn-outline-danger' },
 	{ key: 'ungraded', label: 'Ungraded', icon: 'bi-question-circle', variant: 'btn-outline-dark' },
+	{ key: 'expiring', label: 'Expiring', icon: 'bi-clock', variant: 'btn-outline-danger' },
+	{ key: 'undervalued', label: 'Undervalued', icon: 'bi-cash-coin', variant: 'btn-outline-success' },
+	{ key: 'outreach', label: 'Outreach', icon: 'bi-chat-dots', variant: 'btn-outline-info' },
+	{ key: 'recent', label: 'Recent', icon: 'bi-calendar-plus', variant: 'btn-outline-primary' },
+	{ key: 'agent', label: 'Agent', icon: 'bi-robot', variant: 'btn-outline-warning' },
 ]
 </script>
 
@@ -30,8 +35,8 @@ const folders: Folder[] = [
 			:key="folder.key"
 			class="btn btn-sm d-flex align-items-center gap-1"
 			:class="[
-				activeGrade === folder.key ? folder.variant.replace('outline-', '') : folder.variant,
-				activeGrade === folder.key ? 'text-white' : ''
+				activeFolder === folder.key ? folder.variant.replace('outline-', '') : folder.variant,
+				activeFolder === folder.key ? 'text-white' : ''
 			]"
 			@click="emit('select', folder.key)"
 		>

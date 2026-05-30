@@ -20,6 +20,7 @@ function authHeaders(extra?: Record<string, string>) {
 const mockWatchlist: any[] = []
 const mockWishlist: any[] = []
 const mockDomains: any[] = []
+const mockDomainTags: any[] = []
 
 vi.mock('../../api/models/index.js', () => ({
 	sequelize: { authenticate: vi.fn() },
@@ -124,7 +125,55 @@ vi.mock('../../api/models/index.js', () => ({
 	},
 	Notification: { findAll: vi.fn(async () => []), findByPk: vi.fn(async () => null), create: vi.fn() },
 	Ledger: { findAll: vi.fn(async () => []), create: vi.fn() },
-	Prospect: { findAll: vi.fn(async () => []), findByPk: vi.fn(async () => null), create: vi.fn() },
+	Prospect: {
+		findAll: vi.fn(async () => []),
+		findByPk: vi.fn(async () => null),
+		findOne: vi.fn(async () => null),
+		create: vi.fn(async (data: any) => ({ id: 1, ...data })),
+	},
+	DomainTag: {
+		findAll: vi.fn(async (opts?: any) => {
+			if (opts?.where?.domain_id) return mockDomainTags.filter(t => t.domain_id === opts.where.domain_id)
+			return mockDomainTags
+		}),
+		findOne: vi.fn(async (opts?: any) => {
+			if (!opts?.where) return null
+			return mockDomainTags.find(t => {
+				if (opts.where.domain_id !== undefined && t.domain_id !== opts.where.domain_id) return false
+				if (opts.where.tag !== undefined && t.tag !== opts.where.tag) return false
+				return true
+			}) || null
+		}),
+		findOrCreate: vi.fn(async (opts: any) => {
+			const existing = mockDomainTags.find(t => {
+				if (opts.where.domain_id !== undefined && t.domain_id !== opts.where.domain_id) return false
+				if (opts.where.tag !== undefined && t.tag !== opts.where.tag) return false
+				return true
+			})
+			if (existing) return [existing, false]
+			const tag = { id: mockDomainTags.length + 1, ...opts.defaults, destroy: vi.fn() }
+			mockDomainTags.push(tag)
+			return [tag, true]
+		}),
+		create: vi.fn(async (data: any) => {
+			const tag = { id: mockDomainTags.length + 1, ...data, destroy: vi.fn() }
+			mockDomainTags.push(tag)
+			return tag
+		}),
+		destroy: vi.fn(async (opts?: any) => {
+			if (opts?.where) {
+				const before = mockDomainTags.length
+				for (let i = mockDomainTags.length - 1; i >= 0; i--) {
+					const t = mockDomainTags[i]
+					if (opts.where.domain_id !== undefined && t.domain_id !== opts.where.domain_id) continue
+					if (opts.where.tag !== undefined && t.tag !== opts.where.tag) continue
+					mockDomainTags.splice(i, 1)
+				}
+				return before - mockDomainTags.length
+			}
+			return 0
+		}),
+	},
 }))
 
 // Mock bcryptjs for auth routes
@@ -152,6 +201,7 @@ describe('Phase 2A — Wishlist Check All', () => {
 		mockWatchlist.length = 0
 		mockWishlist.length = 0
 		mockDomains.length = 0
+		mockDomainTags.length = 0
 	})
 
 	// ─── 1. POST /api/wishlist/check ────────────────────────────────
@@ -226,6 +276,7 @@ describe('Phase 2A — Bulk Delete', () => {
 		mockWatchlist.length = 0
 		mockWishlist.length = 0
 		mockDomains.length = 0
+		mockDomainTags.length = 0
 	})
 
 	// ─── 2. DELETE /api/watchlist/bulk ─────────────────────────────
@@ -341,6 +392,7 @@ describe('Phase 2A — Export CSV', () => {
 		mockWatchlist.length = 0
 		mockWishlist.length = 0
 		mockDomains.length = 0
+		mockDomainTags.length = 0
 	})
 
 	// ─── 4. GET /api/watchlist/export ──────────────────────────────
@@ -413,6 +465,183 @@ describe('Phase 2A — Export CSV', () => {
 			const text = await res.text()
 			expect(text).toContain('domain_name')
 			expect(text).toContain('mydomain.io')
+		})
+	})
+})
+
+describe('Phase 2D — Wishlist Prospect-All', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		mockWatchlist.length = 0
+		mockWishlist.length = 0
+		mockDomains.length = 0
+		mockDomainTags.length = 0
+	})
+
+	describe('POST /api/wishlist/prospect-all', () => {
+		it('returns 401 without auth token', async () => {
+			const res = await app.request('/api/wishlist/prospect-all', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ ids: [1] }),
+			})
+			expect(res.status).toBe(401)
+		})
+
+		it('returns 400 when ids array is missing', async () => {
+			const res = await app.request('/api/wishlist/prospect-all', {
+				method: 'POST',
+				headers: authHeaders({ 'Content-Type': 'application/json' }),
+				body: JSON.stringify({}),
+			})
+			expect(res.status).toBe(400)
+		})
+
+		it('returns 400 when ids array is empty', async () => {
+			const res = await app.request('/api/wishlist/prospect-all', {
+				method: 'POST',
+				headers: authHeaders({ 'Content-Type': 'application/json' }),
+				body: JSON.stringify({ ids: [] }),
+			})
+			expect(res.status).toBe(400)
+		})
+
+		it('creates prospect entries for alternative TLDs', async () => {
+			mockWishlist.push(
+				{ id: 1, user_id: 1, domain_name: 'example.com', tld: 'com', available: false },
+			)
+			const res = await app.request('/api/wishlist/prospect-all', {
+				method: 'POST',
+				headers: authHeaders({ 'Content-Type': 'application/json' }),
+				body: JSON.stringify({ ids: [1] }),
+			})
+			expect(res.status).toBe(200)
+			const data = await res.json()
+			expect(data.found).toBeTypeOf('number')
+			expect(data.found).toBeGreaterThan(0)
+		})
+
+		it('skips the current TLD when generating alternatives', async () => {
+			mockWishlist.push(
+				{ id: 2, user_id: 1, domain_name: 'mysite.io', tld: 'io', available: false },
+			)
+			const res = await app.request('/api/wishlist/prospect-all', {
+				method: 'POST',
+				headers: authHeaders({ 'Content-Type': 'application/json' }),
+				body: JSON.stringify({ ids: [2] }),
+			})
+			expect(res.status).toBe(200)
+			const { Prospect } = await import('../../api/models/index.js')
+			// No prospect should be created for mysite.io (same TLD as input)
+			const createCalls = (Prospect.create as any).mock.calls
+			for (const call of createCalls) {
+				expect(call[0].prospect_domain).not.toBe('mysite.io')
+			}
+		})
+
+		it('ignores wishlist items not belonging to user', async () => {
+			mockWishlist.push(
+				{ id: 3, user_id: 2, domain_name: 'other.com', tld: 'com', available: false },
+			)
+			const res = await app.request('/api/wishlist/prospect-all', {
+				method: 'POST',
+				headers: authHeaders({ 'Content-Type': 'application/json' }),
+				body: JSON.stringify({ ids: [3] }),
+			})
+			expect(res.status).toBe(200)
+			const data = await res.json()
+			expect(data.found).toBe(0)
+		})
+	})
+})
+
+// ─── Phase 2F: Domain Tags ────────────────────────────────────────────────
+describe('Phase 2F — Domain Tags', () => {
+	beforeEach(() => {
+		vi.clearAllMocks()
+		mockWatchlist.length = 0
+		mockWishlist.length = 0
+		mockDomains.length = 0
+		mockDomainTags.length = 0
+	})
+
+	describe('POST /api/domains/:id/tags', () => {
+		it('adds a tag to a domain owned by the user', async () => {
+			mockDomains.push({ id: 10, user_id: 1, domain_name: 'example.com' })
+			const res = await app.request('/api/domains/10/tags', {
+				method: 'POST',
+				headers: authHeaders({ 'Content-Type': 'application/json' }),
+				body: JSON.stringify({ tag: 'premium' }),
+			})
+			expect(res.status).toBe(201)
+			const data = await res.json()
+			expect(data.tag).toBe('premium')
+		})
+
+		it('rejects adding a duplicate tag', async () => {
+			mockDomains.push({ id: 10, user_id: 1, domain_name: 'example.com' })
+			// Pre-add the tag so findOrCreate finds it
+			mockDomainTags.push({ id: 1, domain_id: 10, user_id: 1, tag: 'premium' })
+			const res = await app.request('/api/domains/10/tags', {
+				method: 'POST',
+				headers: authHeaders({ 'Content-Type': 'application/json' }),
+				body: JSON.stringify({ tag: 'premium' }),
+			})
+			expect(res.status).toBe(409)
+		})
+
+		it('returns 404 for domain not found', async () => {
+			const res = await app.request('/api/domains/999/tags', {
+				method: 'POST',
+				headers: authHeaders({ 'Content-Type': 'application/json' }),
+				body: JSON.stringify({ tag: 'test' }),
+			})
+			expect(res.status).toBe(404)
+		})
+	})
+
+	describe('GET /api/domains/:id/tags', () => {
+		it('returns tags for a domain', async () => {
+			mockDomains.push({ id: 10, user_id: 1, domain_name: 'example.com' })
+			mockDomainTags.push(
+				{ id: 1, domain_id: 10, user_id: 1, tag: 'premium' },
+				{ id: 2, domain_id: 10, user_id: 1, tag: 'short' },
+			)
+			const res = await app.request('/api/domains/10/tags', {
+				headers: authHeaders(),
+			})
+			expect(res.status).toBe(200)
+			const data = await res.json()
+			expect(data).toHaveLength(2)
+		})
+	})
+
+	describe('DELETE /api/domains/:id/tags/:tag', () => {
+		it('removes a tag from a domain', async () => {
+			mockDomains.push({ id: 10, user_id: 1, domain_name: 'example.com' })
+			mockDomainTags.push({ id: 1, domain_id: 10, user_id: 1, tag: 'premium' })
+			const res = await app.request('/api/domains/10/tags/premium', {
+				method: 'DELETE',
+				headers: authHeaders(),
+			})
+			expect(res.status).toBe(200)
+		})
+	})
+
+	describe('POST /api/domains/bulk-tag', () => {
+		it('adds a tag to multiple domains', async () => {
+			mockDomains.push(
+				{ id: 10, user_id: 1, domain_name: 'a.com' },
+				{ id: 11, user_id: 1, domain_name: 'b.com' },
+			)
+			const res = await app.request('/api/domains/bulk-tag', {
+				method: 'POST',
+				headers: authHeaders({ 'Content-Type': 'application/json' }),
+				body: JSON.stringify({ ids: [10, 11], tag: 'bulk-test' }),
+			})
+			expect(res.status).toBe(200)
+			const data = await res.json()
+			expect(data.tagged).toBeTypeOf('number')
 		})
 	})
 })

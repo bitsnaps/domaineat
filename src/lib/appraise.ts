@@ -180,7 +180,7 @@ function scoreToGrade(avg: number): AppraisalGrade {
 }
 
 /** Map grade to approximate dollar range. */
-function gradeToRange(grade: AppraisalGrade): { low: number; high: number } {
+export function gradeToRange(grade: AppraisalGrade): { low: number; high: number } {
 	const ranges: Record<AppraisalGrade, { low: number; high: number }> = {
 		'A+': { low: 10000, high: 1000000 },
 		'A':  { low: 1000, high: 50000 },

@@ -19,6 +19,8 @@ const message = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 const llmProvider = ref<LlmProvider | ''>('')
 const llmModel = ref('')
 const llmApiKey = ref('')
+const preferredRegistrar = ref('')
+const registrarMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 
 const providerOptions: { value: LlmProvider; label: string }[] = [
 	{ value: 'openai', label: 'OpenAI' },
@@ -55,6 +57,7 @@ onMounted(async () => {
 		if (user.value) {
 			llmProvider.value = user.value.llm_provider || ''
 			llmModel.value = user.value.llm_model || ''
+			preferredRegistrar.value = (user.value as any).preferred_registrar || ''
 		}
 	} catch (err: any) {
 		message.value = { type: 'error', text: err.response?.data?.error || err.message }
@@ -97,6 +100,24 @@ async function saveAiSettings() {
 function onProviderChange() {
 	if (!llmModel.value && llmProvider.value) {
 		llmModel.value = defaultModels[llmProvider.value] || ''
+	}
+}
+
+async function saveRegistrar() {
+	saving.value = true
+	registrarMessage.value = null
+	try {
+		const userId = auth.user?.id
+		if (!userId) return
+		const res = await api.patch(`/users/${userId}/ai-settings`, {
+			preferred_registrar: preferredRegistrar.value || null,
+		})
+		user.value = res.data
+		registrarMessage.value = { type: 'success', text: 'Registrar preferences saved!' }
+	} catch (err: any) {
+		registrarMessage.value = { type: 'error', text: err.response?.data?.error || err.message }
+	} finally {
+		saving.value = false
 	}
 }
 
@@ -256,6 +277,39 @@ function handleLogout() {
 					<p class="text-muted small mb-0">
 						Set your preferred display currency in the Ledger view. This setting is stored locally in your browser.
 					</p>
+				</div>
+			</div>
+
+			<!-- Registrar Preferences Card -->
+			<div class="card border-0 shadow-sm mb-4">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-3">Registrar Preferences</h6>
+					<p class="text-muted small mb-3">
+						Set your preferred registrar URL for the "Register Now" button in the Wishlist.
+						Use <code>{domain}</code> as a placeholder for the domain name.
+					</p>
+					<div class="mb-3">
+						<label class="form-label small fw-semibold">Registrar URL</label>
+						<input
+							v-model="preferredRegistrar"
+							type="text"
+							class="form-control"
+							placeholder="https://www.namecheap.com/domains/registration/results/?domain={domain}"
+						/>
+						<div class="form-text small">
+							Leave blank to use Namecheap as default. Examples:<br />
+							<code>https://www.namecheap.com/domains/registration/results/?domain={domain}</code><br />
+							<code>https://www.godaddy.com/domainsearch/find?checkAvail=1&tmskey=&domainToCheck={domain}</code>
+						</div>
+					</div>
+					<div class="d-flex align-items-center gap-2">
+						<button class="btn btn-sm text-white" style="background: #6366f1;" :disabled="saving" @click="saveRegistrar">
+							{{ saving ? 'Saving\u2026' : 'Save Registrar' }}
+						</button>
+						<div v-if="registrarMessage" :class="registrarMessage.type === 'success' ? 'text-success' : 'text-danger'" class="small">
+							{{ registrarMessage.text }}
+						</div>
+					</div>
 				</div>
 			</div>
 		</template>
