@@ -8,7 +8,7 @@ import CsvImportModal from '@/components/CsvImportModal.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import SmartFolderBar from '@/components/SmartFolderBar.vue'
-import type { Domain, DomainStatus, AppraisalGrade, SmartFolderKey } from '@/types'
+import type { Domain, DomainStatus, SmartFolderKey } from '@/types'
 
 const store = useDomainsStore()
 const watchlistStore = useWatchlistStore()
@@ -157,7 +157,7 @@ async function handleBulkOutreach() {
 	}
 	if (generated > 0) {
 		const toast = (await import('@/stores/toast')).useToastStore()
-		toast().success(`Generated outreach for ${generated} domain${generated !== 1 ? 's' : ''}`)
+		toast.success(`Generated outreach for ${generated} domain${generated !== 1 ? 's' : ''}`)
 	}
 	clearSelection()
 }

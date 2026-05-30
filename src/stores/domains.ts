@@ -2,6 +2,9 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useToastStore } from '@/stores/toast'
 import api from '@/lib/api'
+
+/** Shim for lazy require() to avoid circular imports — Vite transforms at build time */
+declare const require: (id: string) => any
 import type {
 	Domain,
 	DomainCreate,
@@ -155,10 +158,9 @@ export const useDomainsStore = defineStore('domains', () => {
 	/** Domain IDs that have prospects in contacted/negotiating status */
 	const activeOutreachDomainIds = computed(() => {
 		const ids = new Set<number>()
-		// Lazy import to avoid circular dependency
 		try {
-			const { useProspectsStore } = require('@/stores/prospects')
-			const prospectsStore = useProspectsStore()
+			const mod = require('@/stores/prospects') as typeof import('@/stores/prospects')
+			const prospectsStore = mod.useProspectsStore()
 			for (const p of prospectsStore.prospects) {
 				if (['contacted', 'responded', 'negotiating'].includes(p.outreach_status)) {
 					ids.add(p.domain_id)
@@ -172,10 +174,10 @@ export const useDomainsStore = defineStore('domains', () => {
 	const agentDomainIds = computed(() => {
 		const ids = new Set<number>()
 		try {
-			const { useWatchlistStore } = require('@/stores/watchlist')
-			const { useWishlistStore } = require('@/stores/wishlist')
-			const watchlistStore = useWatchlistStore()
-			const wishlistStore = useWishlistStore()
+			const wlMod = require('@/stores/watchlist') as typeof import('@/stores/watchlist')
+			const wsMod = require('@/stores/wishlist') as typeof import('@/stores/wishlist')
+			const watchlistStore = wlMod.useWatchlistStore()
+			const wishlistStore = wsMod.useWishlistStore()
 			for (const w of watchlistStore.items) {
 				if ((w as any).ai_agent) ids.add((w as any).domain_id ?? 0)
 			}

@@ -75,7 +75,7 @@ export interface Domain {
 	updated_at: string
 }
 
-export type AppraisalGrade = 'A+' | 'A' | 'B' | 'C' | 'D'
+export type AppraisalGrade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F'
 
 export type SmartFolderKey = AppraisalGrade | 'all' | 'ungraded' | 'expiring' | 'undervalued' | 'outreach' | 'recent' | 'agent'
 
@@ -244,8 +244,6 @@ export interface RateLimitInfo {
 }
 
 // ─── Domain Appraisal ─────────────────────────────────────────────────
-
-export type AppraisalGrade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F'
 
 export interface AppraisalSignal {
 	score: number		// 0–10
