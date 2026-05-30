@@ -70,6 +70,15 @@ async function handleMoveToPortfolio() {
 	if (ok) selectedIds.value = []
 }
 
+async function handleBulkDelete() {
+	if (!selectedIds.value.length) return
+	const deleted = await store.bulkDelete(selectedIds.value)
+	if (deleted > 0) {
+		selectedIds.value = []
+		selectAll.value = false
+	}
+}
+
 async function handleRemove(id: number) {
 	await store.removeFromWatchlist(id)
 	selectedIds.value = selectedIds.value.filter(i => i !== id)
@@ -93,6 +102,16 @@ async function handleRemove(id: number) {
 					@click="handleMoveToPortfolio"
 				>
 					<i class="bi bi-box-arrow-in-right me-1"></i>Move to Portfolio
+				</button>
+				<button
+					class="btn btn-outline-danger btn-sm"
+					:disabled="!hasSelection"
+					@click="handleBulkDelete"
+				>
+					<i class="bi bi-trash3 me-1"></i>Delete
+				</button>
+				<button class="btn btn-outline-secondary btn-sm" @click="store.exportCsv()" :disabled="store.loading || store.items.length === 0">
+					<i class="bi bi-download me-1"></i>Export
 				</button>
 				<button class="btn btn-primary btn-sm" @click="showAddModal = true">
 					<i class="bi bi-plus-lg me-1"></i>Add Domain

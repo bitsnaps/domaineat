@@ -60,7 +60,10 @@ export interface Domain {
 	renewal_cost: number
 	nameservers: string | null
 	status: DomainStatus
+	appraisal_grade: AppraisalGrade | null
 }
+
+export type AppraisalGrade = 'A+' | 'A' | 'B' | 'C' | 'D'
 
 /** Payload for creating a new domain */
 export interface DomainCreate {
@@ -73,6 +76,7 @@ export interface DomainCreate {
 	renewal_cost?: number
 	nameservers?: string | null
 	status?: DomainStatus
+	appraisal_grade?: AppraisalGrade | null
 }
 
 /** Payload for updating a domain — all fields optional */

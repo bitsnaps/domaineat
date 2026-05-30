@@ -11,6 +11,7 @@ export class Domain extends Model {
 	declare renewal_cost: number
 	declare nameservers: string | null
 	declare status: string
+	declare appraisal_grade: string | null
 }
 
 export function initDomain(sequelize: Sequelize): typeof Domain {
@@ -58,6 +59,12 @@ export function initDomain(sequelize: Sequelize): typeof Domain {
 			status: {
 				type: DataTypes.STRING(50),
 				defaultValue: 'active',
+			},
+			appraisal_grade: {
+				type: DataTypes.STRING(20),
+				allowNull: true,
+				defaultValue: null,
+				comment: 'A+, A, B, C, D — AI-assessed domain quality grade',
 			},
 		},
 		{

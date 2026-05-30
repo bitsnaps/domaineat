@@ -9,8 +9,10 @@
  * 1. Domain expiration checks — mark expired, create notifications
  * 2. Currency exchange rate updates — cache rates
  * 3. Daily AI call counter resets
+ * 4. Watchlist auto-check — RDAP availability checks, status change notifications
+ * 5. Wishlist auto-check — RDAP availability checks, status change notifications
  */
-import { Domain, User, Notification } from './models/index.js'
+import { Domain, User, Notification, Watchlist, Wishlist } from './models/index.js'
 
 // ─── Cached Exchange Rates ────────────────────────────────────────────
 
@@ -110,57 +112,139 @@ export async function runCurrencyUpdate(): Promise<CurrencyUpdateResult> {
 // ─── 3. Daily Counter Resets ──────────────────────────────────────────
 
 export interface DailyAiResetResult {
- reset: number
+	reset: number
 }
 
 export interface DailyRdapResetResult {
- reset: number
+	reset: number
 }
 
 export async function runDailyAiReset(): Promise<DailyAiResetResult> {
- const [count] = await User.update(
- { daily_ai_calls: 0 },
- { where: {} }
- )
- return { reset: count }
+	const [count] = await User.update(
+		{ daily_ai_calls: 0 },
+		{ where: {} }
+	)
+	return { reset: count }
 }
 
 export async function runDailyRdapReset(): Promise<DailyRdapResetResult> {
- const [count] = await User.update(
- { daily_rdap_calls: 0 },
- { where: {} }
- )
- return { reset: count }
+	const [count] = await User.update(
+		{ daily_rdap_calls: 0 },
+		{ where: {} }
+	)
+	return { reset: count }
+}
+
+// ─── 4. Watchlist Auto-Check ──────────────────────────────────────────
+
+export interface WatchlistCheckResult {
+	checked: number
+	notifications: number
+}
+
+export async function runWatchlistCheck(): Promise<WatchlistCheckResult> {
+	const allItems = await Watchlist.findAll()
+	let notificationCount = 0
+
+	const { rdapLookup } = await import('./domain-analysis.js')
+	const results = await Promise.allSettled(
+		allItems.map(async (item) => {
+			try {
+				const rdap = await rdapLookup(item.domain_name)
+				const nowAvailable = rdap === null
+				const prevAvailable = item.available
+				await item.update({ available: nowAvailable, last_checked_at: new Date() })
+				if (prevAvailable !== null && prevAvailable !== nowAvailable) {
+					await Notification.create({
+						user_id: item.user_id,
+						type: 'status_change',
+						level: nowAvailable ? 'urgent' : 'info',
+						message: `${item.domain_name} is now ${nowAvailable ? 'available' : 'taken'}`,
+					})
+					notificationCount++
+				}
+			} catch {
+				await item.update({ last_checked_at: new Date() })
+			}
+		})
+	)
+
+	return { checked: allItems.length, notifications: notificationCount }
+}
+
+// ─── 5. Wishlist Auto-Check ───────────────────────────────────────────
+
+export interface WishlistCheckResult {
+	checked: number
+	notifications: number
+}
+
+export async function runWishlistCheck(): Promise<WishlistCheckResult> {
+	const allItems = await Wishlist.findAll()
+	let notificationCount = 0
+
+	const { rdapLookup } = await import('./domain-analysis.js')
+	const results = await Promise.allSettled(
+		allItems.map(async (item) => {
+			try {
+				const rdap = await rdapLookup(item.domain_name)
+				const nowAvailable = rdap === null
+				const prevAvailable = item.available
+				await item.update({ available: nowAvailable, last_checked_at: new Date() })
+				if (prevAvailable !== null && prevAvailable !== nowAvailable) {
+					await Notification.create({
+						user_id: item.user_id,
+						type: 'status_change',
+						level: nowAvailable ? 'urgent' : 'info',
+						message: `${item.domain_name} is now ${nowAvailable ? 'available' : 'taken'}`,
+					})
+					notificationCount++
+				}
+			} catch {
+				await item.update({ last_checked_at: new Date() })
+			}
+		})
+	)
+
+	return { checked: allItems.length, notifications: notificationCount }
 }
 
 // ─── Run All Tasks ─────────────────────────────────────────────────────
 
 export interface SchedulerRunResult {
- expirationChecks: ExpirationCheckResult
- currencyUpdate: CurrencyUpdateResult
- dailyAiReset: DailyAiResetResult
- dailyRdapReset: DailyRdapResetResult
- runAt: string
+	expirationChecks: ExpirationCheckResult
+	currencyUpdate: CurrencyUpdateResult
+	dailyAiReset: DailyAiResetResult
+	dailyRdapReset: DailyRdapResetResult
+	watchlistCheck: WatchlistCheckResult
+	wishlistCheck: WishlistCheckResult
+	runAt: string
 }
 
 export async function runAllTasks(tasks?: string[]): Promise<Partial<SchedulerRunResult> & { runAt: string }> {
- const runAt = new Date().toISOString()
- const result: Partial<SchedulerRunResult> & { runAt: string } = { runAt }
+	const runAt = new Date().toISOString()
+	const result: Partial<SchedulerRunResult> & { runAt: string } = { runAt }
 
- const shouldRun = (task: string) => !tasks || tasks.length === 0 || tasks.includes(task)
+	const shouldRun = (task: string) => !tasks || tasks.length === 0 || tasks.includes(task)
 
- if (shouldRun('expiration')) {
- result.expirationChecks = await runExpirationChecks()
- }
- if (shouldRun('currency')) {
- result.currencyUpdate = await runCurrencyUpdate()
- }
- if (shouldRun('ai_reset')) {
- result.dailyAiReset = await runDailyAiReset()
- }
- if (shouldRun('rdap_reset')) {
- result.dailyRdapReset = await runDailyRdapReset()
- }
+	if (shouldRun('expiration')) {
+		result.expirationChecks = await runExpirationChecks()
+	}
+	if (shouldRun('currency')) {
+		result.currencyUpdate = await runCurrencyUpdate()
+	}
+	if (shouldRun('ai_reset')) {
+		result.dailyAiReset = await runDailyAiReset()
+	}
+	if (shouldRun('rdap_reset')) {
+		result.dailyRdapReset = await runDailyRdapReset()
+	}
+	if (shouldRun('watchlist_check')) {
+		result.watchlistCheck = await runWatchlistCheck()
+	}
+	if (shouldRun('wishlist_check')) {
+		result.wishlistCheck = await runWishlistCheck()
+	}
 
- return result
+	return result
 }

@@ -120,6 +120,65 @@ export const useWishlistStore = defineStore('wishlist', () => {
 		}
 	}
 
+	async function bulkCheck(): Promise<boolean> {
+		error.value = null
+		try {
+			const res = await api.post('/wishlist/check')
+			items.value = res.data
+			const toast = useToastStore()
+			toast.success('Wishlist availability updated')
+			return true
+		} catch (e: any) {
+			const msg = e.friendlyMessage ?? e.response?.data?.error ?? e.message
+			error.value = msg
+			const toast = useToastStore()
+			toast.error(`Failed to check wishlist: ${msg}`)
+			return false
+		}
+	}
+
+	async function bulkDelete(ids: number[]): Promise<number> {
+		error.value = null
+		try {
+			const res = await api.delete('/wishlist/bulk', { data: { ids } })
+			const deleted: number = res.data.deleted ?? 0
+			items.value = items.value.filter((i) => !ids.includes(i.id))
+			const toast = useToastStore()
+			toast.success(`Deleted ${deleted} item${deleted !== 1 ? 's' : ''} from wishlist`)
+			return deleted
+		} catch (e: any) {
+			const msg = e.friendlyMessage ?? e.response?.data?.error ?? e.message
+			error.value = msg
+			const toast = useToastStore()
+			toast.error(`Failed to bulk delete: ${msg}`)
+			return 0
+		}
+	}
+
+	async function exportCsv(): Promise<boolean> {
+		error.value = null
+		try {
+			const res = await api.get('/wishlist/export', { responseType: 'blob' })
+			const url = window.URL.createObjectURL(new Blob([res.data as BlobPart], { type: 'text/csv' }))
+			const link = document.createElement('a')
+			link.href = url
+			link.setAttribute('download', 'wishlist.csv')
+			document.body.appendChild(link)
+			link.click()
+			link.remove()
+			window.URL.revokeObjectURL(url)
+			const toast = useToastStore()
+			toast.success('Wishlist exported')
+			return true
+		} catch (e: any) {
+			const msg = e.friendlyMessage ?? e.response?.data?.error ?? e.message
+			error.value = msg
+			const toast = useToastStore()
+			toast.error(`Failed to export wishlist: ${msg}`)
+			return false
+		}
+	}
+
 	return {
 		// State
 		items,
@@ -133,5 +192,8 @@ export const useWishlistStore = defineStore('wishlist', () => {
 		updateWishlistItem,
 		removeFromWishlist,
 		moveToPortfolio,
+		bulkCheck,
+		bulkDelete,
+		exportCsv,
 	}
 })

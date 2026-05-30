@@ -58,35 +58,46 @@ vi.mock('../../api/models/index.js', () => ({
   },
   Ledger: { findAll: vi.fn(async () => []), create: vi.fn() },
   Prospect: { findAll: vi.fn(async () => []), findByPk: vi.fn(async () => null), create: vi.fn() },
-  Notification: {
-    findAll: vi.fn(async (opts?: any) => {
-      // Filter by domain_id and type if provided
-      return mockNotifications.filter(n => {
-        if (opts?.where?.domain_id !== undefined && n.domain_id !== opts.where.domain_id) return false
-        if (opts?.where?.type && n.type !== opts.where.type) return false
-        if (opts?.where?.dismissed !== undefined && n.dismissed !== opts.where.dismissed) return false
-        return true
-      })
-    }),
-    findByPk: vi.fn(async (id: number) => mockNotifications.find(n => n.id === id) || null),
-    create: vi.fn(async (data: any) => {
-      const n = { id: mockNotifications.length + 1, ...data }
-      mockNotifications.push(n)
-      return n
-    }),
-  },
+	Notification: {
+		findAll: vi.fn(async (opts?: any) => {
+			// Filter by domain_id and type if provided
+			return mockNotifications.filter(n => {
+				if (opts?.where?.domain_id !== undefined && n.domain_id !== opts.where.domain_id) return false
+				if (opts?.where?.type && n.type !== opts.where.type) return false
+				if (opts?.where?.dismissed !== undefined && n.dismissed !== opts.where.dismissed) return false
+				return true
+			})
+		}),
+		findByPk: vi.fn(async (id: number) => mockNotifications.find(n => n.id === id) || null),
+		create: vi.fn(async (data: any) => {
+			const n = { id: mockNotifications.length + 1, ...data }
+			mockNotifications.push(n)
+			return n
+		}),
+	},
+	Watchlist: {
+		findAll: vi.fn(async () => []),
+	},
+	Wishlist: {
+		findAll: vi.fn(async () => []),
+	},
 }))
 
 // Mock bcryptjs for auth routes
 vi.mock('bcryptjs', () => ({
-  default: {
-    hash: vi.fn(async () => '$2a$10$hashedpassword'),
-    compare: vi.fn(async () => true),
-  },
+	default: {
+		hash: vi.fn(async () => '$2a$10$hashedpassword'),
+		compare: vi.fn(async () => true),
+	},
+}))
+
+// Mock domain-analysis for scheduler watchlist/wishlist check tasks
+vi.mock('../../api/domain-analysis.js', () => ({
+	rdapLookup: vi.fn(async () => ({ registrar: 'MockReg', expiryDate: '2026-01-01', nameservers: [], status: [] })),
 }))
 
 import { app } from '../../api/app'
-import { runExpirationChecks, runCurrencyUpdate, runDailyAiReset, runDailyRdapReset, getCachedRates } from '../../api/scheduler.js'
+import { runExpirationChecks, runCurrencyUpdate, runDailyAiReset, runDailyRdapReset, getCachedRates, runWatchlistCheck, runWishlistCheck } from '../../api/scheduler.js'
 
 describe('Background Task Scheduler', () => {
   beforeEach(() => {
@@ -266,34 +277,38 @@ describe('Background Task Scheduler', () => {
       expect(res.status).toBe(401)
     })
 
- it('runs all scheduler tasks and returns summary', async () => {
- const res = await app.request('/api/scheduler/run', {
- method: 'POST',
- headers: authHeaders({ 'Content-Type': 'application/json' }),
- })
- expect(res.status).toBe(200)
- const data = await res.json()
- expect(data).toHaveProperty('expirationChecks')
- expect(data).toHaveProperty('currencyUpdate')
- expect(data).toHaveProperty('dailyAiReset')
- expect(data).toHaveProperty('dailyRdapReset')
- expect(data).toHaveProperty('runAt')
- })
+	it('runs all scheduler tasks and returns summary', async () => {
+		const res = await app.request('/api/scheduler/run', {
+			method: 'POST',
+			headers: authHeaders({ 'Content-Type': 'application/json' }),
+		})
+		expect(res.status).toBe(200)
+		const data = await res.json()
+		expect(data).toHaveProperty('expirationChecks')
+		expect(data).toHaveProperty('currencyUpdate')
+		expect(data).toHaveProperty('dailyAiReset')
+		expect(data).toHaveProperty('dailyRdapReset')
+		expect(data).toHaveProperty('watchlistCheck')
+		expect(data).toHaveProperty('wishlistCheck')
+		expect(data).toHaveProperty('runAt')
+	})
 
- it('allows specifying which tasks to run', async () => {
- const res = await app.request('/api/scheduler/run', {
- method: 'POST',
- headers: authHeaders({ 'Content-Type': 'application/json' }),
- body: JSON.stringify({ tasks: ['expiration'] }),
- })
- expect(res.status).toBe(200)
- const data = await res.json()
- expect(data).toHaveProperty('expirationChecks')
- // Other tasks should not be present when filtered
- expect(data).not.toHaveProperty('currencyUpdate')
- expect(data).not.toHaveProperty('dailyAiReset')
- expect(data).not.toHaveProperty('dailyRdapReset')
- })
+	it('allows specifying which tasks to run', async () => {
+		const res = await app.request('/api/scheduler/run', {
+			method: 'POST',
+			headers: authHeaders({ 'Content-Type': 'application/json' }),
+			body: JSON.stringify({ tasks: ['expiration'] }),
+		})
+		expect(res.status).toBe(200)
+		const data = await res.json()
+		expect(data).toHaveProperty('expirationChecks')
+		// Other tasks should not be present when filtered
+		expect(data).not.toHaveProperty('currencyUpdate')
+		expect(data).not.toHaveProperty('dailyAiReset')
+		expect(data).not.toHaveProperty('dailyRdapReset')
+		expect(data).not.toHaveProperty('watchlistCheck')
+		expect(data).not.toHaveProperty('wishlistCheck')
+	})
   })
 
   // ─── 5. GET /api/notifications ────────────────────────────────

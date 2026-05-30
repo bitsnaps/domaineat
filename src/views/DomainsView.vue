@@ -1,18 +1,68 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useDomainsStore } from '@/stores/domains'
+import { useWatchlistStore } from '@/stores/watchlist'
+import { useWishlistStore } from '@/stores/wishlist'
 import DomainModal from '@/components/DomainModal.vue'
 import CsvImportModal from '@/components/CsvImportModal.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import type { Domain, DomainStatus } from '@/types'
+import SmartFolderBar from '@/components/SmartFolderBar.vue'
+import type { Domain, DomainStatus, AppraisalGrade } from '@/types'
 
 const store = useDomainsStore()
+const watchlistStore = useWatchlistStore()
+const wishlistStore = useWishlistStore()
 
 // Modal state
 const showModal = ref(false)
 const showCsvModal = ref(false)
 const editingDomain = ref<Domain | null>(null)
+
+// Selection state
+const selectedIds = ref<number[]>([])
+const selectAll = ref(false)
+
+const hasSelection = computed(() => selectedIds.value.length > 0)
+const selectedCount = computed(() => selectedIds.value.length)
+
+const gradeCounts = computed(() => {
+	const counts: Record<string, number> = { all: store.domains.length, ungraded: 0 }
+	const grades: AppraisalGrade[] = ['A+', 'A', 'B', 'C', 'D']
+	for (const g of grades) counts[g] = 0
+	for (const d of store.domains) {
+		if (d.appraisal_grade && grades.includes(d.appraisal_grade as AppraisalGrade)) {
+			counts[d.appraisal_grade]++
+		} else {
+			counts['ungraded']++
+		}
+	}
+	return counts
+})
+
+function handleFolderSelect(folder: AppraisalGrade | 'all' | 'ungraded') {
+	store.filterGrade = folder
+}
+
+function toggleSelectAll() {
+	if (selectAll.value) {
+		selectedIds.value = store.pagedDomains.map(d => d.id)
+	} else {
+		selectedIds.value = []
+	}
+}
+
+function toggleSelect(id: number) {
+	const idx = selectedIds.value.indexOf(id)
+	if (idx === -1) selectedIds.value.push(id)
+	else selectedIds.value.splice(idx, 1)
+	selectAll.value = selectedIds.value.length === store.pagedDomains.length
+}
+
+function clearSelection() {
+	selectedIds.value = []
+	selectAll.value = false
+}
 
 onMounted(() => {
 	if (store.domains.length === 0) store.fetchDomains()
@@ -50,9 +100,49 @@ async function handleCsvImport(domains: any[]) {
 }
 
 async function handleDelete(domain: Domain) {
-  if (confirm(`Delete ${domain.domain_name}? This cannot be undone.`)) {
-    await store.deleteDomain(domain.id)
-  }
+	if (confirm(`Delete ${domain.domain_name}? This cannot be undone.`)) {
+		await store.deleteDomain(domain.id)
+		selectedIds.value = selectedIds.value.filter(id => id !== domain.id)
+	}
+}
+
+async function handleBulkDelete() {
+	if (!selectedIds.value.length) return
+	const count = selectedIds.value.length
+	if (!confirm(`Delete ${count} domain${count > 1 ? 's' : ''}? This cannot be undone.`)) return
+	await store.bulkDelete(selectedIds.value)
+	clearSelection()
+}
+
+async function handleAddToWatchlist() {
+	if (!selectedIds.value.length) return
+	const domains = store.domains.filter(d => selectedIds.value.includes(d.id))
+	let added = 0
+	for (const d of domains) {
+		const ok = await watchlistStore.addToWatchlist({
+			domain_name: d.domain_name,
+			tld: store.getTld(d.domain_name).replace('.', ''),
+			notes: 'Added from portfolio',
+		})
+		if (ok) added++
+	}
+	if (added > 0) clearSelection()
+}
+
+async function handleAddToWishlist() {
+	if (!selectedIds.value.length) return
+	const domains = store.domains.filter(d => selectedIds.value.includes(d.id))
+	let added = 0
+	for (const d of domains) {
+		const ok = await wishlistStore.addToWishlist({
+			domain_name: d.domain_name,
+			tld: store.getTld(d.domain_name).replace('.', ''),
+			priority: 'medium',
+			notes: 'Added from portfolio',
+		})
+		if (ok) added++
+	}
+	if (added > 0) clearSelection()
 }
 
 function toggleSort(field: keyof Domain) {
@@ -96,17 +186,20 @@ function daysBadge(domain: Domain) {
         <h1 class="h3 mb-1" style="font-family: var(--font-display);">Domain Portfolio</h1>
         <p class="text-muted mb-0 small">{{ store.count }} domains tracked</p>
       </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-outline-secondary btn-sm" @click="store.clearFilters" v-if="store.searchQuery || store.filterTld || store.filterRegistrar || store.filterStatus">
-          <i class="bi bi-x-circle me-1"></i>Clear filters
-        </button>
-        <button class="btn btn-outline-primary btn-sm" @click="showCsvModal = true">
-          <i class="bi bi-upload me-1"></i>Import CSV
-        </button>
-        <button class="btn btn-primary btn-sm" @click="openAdd">
-          <i class="bi bi-plus-lg me-1"></i>Add Domain
-        </button>
-      </div>
+		<div class="d-flex gap-2">
+			<button class="btn btn-outline-secondary btn-sm" @click="store.clearFilters" v-if="store.searchQuery || store.filterTld || store.filterRegistrar || store.filterStatus">
+				<i class="bi bi-x-circle me-1"></i>Clear filters
+			</button>
+			<button class="btn btn-outline-secondary btn-sm" @click="store.exportCsv()" :disabled="store.loading || store.domains.length === 0">
+				<i class="bi bi-download me-1"></i>Export
+			</button>
+			<button class="btn btn-outline-primary btn-sm" @click="showCsvModal = true">
+				<i class="bi bi-upload me-1"></i>Import CSV
+			</button>
+			<button class="btn btn-primary btn-sm" @click="openAdd">
+				<i class="bi bi-plus-lg me-1"></i>Add Domain
+			</button>
+		</div>
     </div>
 
     <!-- Summary cards -->
@@ -145,7 +238,15 @@ function daysBadge(domain: Domain) {
       </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Smart Folders -->
+<SmartFolderBar
+	:active-grade="store.filterGrade as AppraisalGrade | 'all' | 'ungraded'"
+	:counts="gradeCounts"
+	@select="handleFolderSelect"
+	v-if="store.domains.length > 0"
+/>
+
+<!-- Filters -->
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-body py-3">
         <div class="row g-2 align-items-center">
@@ -183,26 +284,37 @@ function daysBadge(domain: Domain) {
     <!-- Table -->
     <div class="card border-0 shadow-sm">
       <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" v-if="!store.loading && store.pagedDomains.length">
-          <thead class="table-light">
-            <tr>
-              <th class="cursor-pointer" @click="toggleSort('domain_name')">
-                Domain <i class="bi" :class="sortIcon('domain_name')"></i>
-              </th>
-              <th class="cursor-pointer d-none d-md-table-cell" @click="toggleSort('registrar')">
-                Registrar <i class="bi" :class="sortIcon('registrar')"></i>
-              </th>
-              <th class="d-none d-lg-table-cell">Acquired</th>
-              <th class="cursor-pointer" @click="toggleSort('expiry_date')">
-                Expires <i class="bi" :class="sortIcon('expiry_date')"></i>
-              </th>
-              <th class="d-none d-md-table-cell">Cost</th>
-              <th>Status</th>
-              <th class="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="domain in store.pagedDomains" :key="domain.id">
+	<table class="table table-hover align-middle mb-0" v-if="!store.loading && store.pagedDomains.length">
+		<thead class="table-light">
+			<tr>
+				<th style="width: 40px;">
+					<input type="checkbox" class="form-check-input" v-model="selectAll" @change="toggleSelectAll" />
+				</th>
+				<th class="cursor-pointer" @click="toggleSort('domain_name')">
+					Domain <i class="bi" :class="sortIcon('domain_name')"></i>
+				</th>
+				<th class="cursor-pointer d-none d-md-table-cell" @click="toggleSort('registrar')">
+					Registrar <i class="bi" :class="sortIcon('registrar')"></i>
+				</th>
+				<th class="d-none d-lg-table-cell">Acquired</th>
+				<th class="cursor-pointer" @click="toggleSort('expiry_date')">
+					Expires <i class="bi" :class="sortIcon('expiry_date')"></i>
+				</th>
+				<th class="d-none d-md-table-cell">Cost</th>
+				<th>Status</th>
+				<th class="text-end">Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr v-for="domain in store.pagedDomains" :key="domain.id">
+				<td>
+					<input
+						type="checkbox"
+						class="form-check-input"
+						:checked="selectedIds.includes(domain.id)"
+						@change="toggleSelect(domain.id)"
+					/>
+				</td>
               <td>
                 <router-link :to="{ name: 'domain-detail', params: { id: domain.id } }" class="text-decoration-none">
                   <div class="fw-semibold" style="color: var(--dark);">{{ domain.domain_name }}</div>
@@ -267,7 +379,24 @@ function daysBadge(domain: Domain) {
       </div>
     </div>
 
-    <!-- Domain Modal -->
+    <!-- Sticky Bulk Action Bar (Gmail pattern) -->
+<div v-if="hasSelection" class="bulk-action-bar">
+	<span class="text-muted small me-2">{{ selectedCount }} selected</span>
+	<button class="btn btn-sm btn-outline-primary" @click="handleAddToWatchlist">
+		<i class="bi bi-eye me-1"></i>Add to Watchlist
+	</button>
+	<button class="btn btn-sm btn-outline-danger" @click="handleAddToWishlist">
+		<i class="bi bi-heart me-1"></i>Add to Wishlist
+	</button>
+	<button class="btn btn-sm btn-outline-danger" @click="handleBulkDelete">
+		<i class="bi bi-trash3 me-1"></i>Delete
+	</button>
+	<button class="btn btn-sm btn-outline-secondary" @click="clearSelection">
+		<i class="bi bi-x-lg me-1"></i>Clear
+	</button>
+</div>
+
+<!-- Domain Modal -->
     <DomainModal
       v-if="showModal"
       :domain="editingDomain"
@@ -324,7 +453,22 @@ function daysBadge(domain: Domain) {
 }
 
 .btn-primary:hover {
-  background: var(--primary-dark);
-  border-color: var(--primary-dark);
+	background: var(--primary-dark);
+	border-color: var(--primary-dark);
+}
+
+.bulk-action-bar {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	z-index: 1040;
+	background: var(--bs-body-bg, #fff);
+	border-top: 1px solid var(--bs-border-color, #dee2e6);
+	box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+	padding: 0.75rem 1.5rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
 }
 </style>

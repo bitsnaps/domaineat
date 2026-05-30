@@ -60,8 +60,8 @@ export const useDomainsStore = defineStore('domains', () => {
 
 	/** Status options derived from current data */
 	const statusOptions = computed((): DomainStatus[] => ['active', 'expired', 'sold', 'pending_delete', 'parked'])
+	const filterGrade = ref<string>('all')
 
-	/** Domains after applying all filters */
 	const filteredDomains = computed(() => {
 		let result = [...domains.value]
 
@@ -80,6 +80,12 @@ export const useDomainsStore = defineStore('domains', () => {
 
 		if (filterStatus.value) {
 			result = result.filter((d) => d.status === filterStatus.value)
+		}
+
+		if (filterGrade.value === 'ungraded') {
+			result = result.filter((d) => !d.appraisal_grade)
+		} else if (filterGrade.value !== 'all') {
+			result = result.filter((d) => d.appraisal_grade === filterGrade.value)
 		}
 
 		// Sort
@@ -215,8 +221,57 @@ export const useDomainsStore = defineStore('domains', () => {
 		filterTld.value = ''
 		filterRegistrar.value = ''
 		filterStatus.value = ''
+		filterGrade.value = 'all'
 		searchQuery.value = ''
 		currentPage.value = 1
+	}
+
+	async function bulkDelete(ids: number[]): Promise<number> {
+		error.value = null
+		try {
+			// Domains use individual DELETE since no bulk endpoint
+			let deleted = 0
+			for (const id of ids) {
+				try {
+					await api.delete(`/domains/${id}`)
+					deleted++
+				} catch { /* skip individual failures */ }
+			}
+			domains.value = domains.value.filter((d) => !ids.includes(d.id))
+			const toast = useToastStore()
+			toast.success(`Deleted ${deleted} domain${deleted !== 1 ? 's' : ''}`)
+			return deleted
+		} catch (e: any) {
+			const msg = e.response?.data?.error || e.message
+			error.value = msg
+			const toast = useToastStore()
+			toast.error(`Failed to bulk delete domains: ${msg}`)
+			return 0
+		}
+	}
+
+	async function exportCsv(): Promise<boolean> {
+		error.value = null
+		try {
+			const res = await api.get('/domains/export', { responseType: 'blob' })
+			const url = window.URL.createObjectURL(new Blob([res.data as BlobPart], { type: 'text/csv' }))
+			const link = document.createElement('a')
+			link.href = url
+			link.setAttribute('download', 'domains.csv')
+			document.body.appendChild(link)
+			link.click()
+			link.remove()
+			window.URL.revokeObjectURL(url)
+			const toast = useToastStore()
+			toast.success('Domains exported')
+			return true
+		} catch (e: any) {
+			const msg = e.response?.data?.error || e.message
+			error.value = msg
+			const toast = useToastStore()
+			toast.error(`Failed to export domains: ${msg}`)
+			return false
+		}
 	}
 
 	return {
@@ -227,6 +282,7 @@ export const useDomainsStore = defineStore('domains', () => {
 		filterTld,
 		filterRegistrar,
 		filterStatus,
+		filterGrade,
 		searchQuery,
 		currentPage,
 		pageSize,
@@ -253,5 +309,7 @@ export const useDomainsStore = defineStore('domains', () => {
 		updateDomain,
 		deleteDomain,
 		clearFilters,
+		bulkDelete,
+		exportCsv,
 	}
 })

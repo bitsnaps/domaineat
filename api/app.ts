@@ -264,25 +264,49 @@ app.get('/api/domains', async (c) => {
 })
 
 app.post('/api/domains', async (c) => {
- const authUser = c.get('user')
- const tier = (authUser.tier || 'free') as keyof typeof TIER_LIMITS
- const limit = TIER_LIMITS[tier]?.domains ?? TIER_LIMITS.free.domains
- if (limit !== Infinity) {
-  const currentCount = await Domain.count({ where: { user_id: authUser.userId } })
-  if (currentCount >= limit) {
-  return c.json({ error: `Domain limit reached (${limit} for ${tier} tier). Upgrade to add more.` }, 403)
-  }
- }
+	const authUser = c.get('user')
+	const tier = (authUser.tier || 'free') as keyof typeof TIER_LIMITS
+	const limit = TIER_LIMITS[tier]?.domains ?? TIER_LIMITS.free.domains
+	if (limit !== Infinity) {
+		const currentCount = await Domain.count({ where: { user_id: authUser.userId } })
+		if (currentCount >= limit) {
+			return c.json({ error: `Domain limit reached (${limit} for ${tier} tier). Upgrade to add more.` }, 403)
+		}
+	}
 
- const body = await c.req.json()
- // Always use the authenticated user's ID from the JWT
- body.user_id = authUser.userId
- try {
-  const domain = await Domain.create(body)
-  return c.json(domain, 201)
- } catch (err: any) {
-  return c.json({ error: err.message }, 400)
- }
+	const body = await c.req.json()
+	// Always use the authenticated user's ID from the JWT
+	body.user_id = authUser.userId
+	try {
+		const domain = await Domain.create(body)
+		return c.json(domain, 201)
+	} catch (err: any) {
+		return c.json({ error: err.message }, 400)
+	}
+})
+
+// Export domains as CSV — MUST be before /:id to avoid route conflict
+app.get('/api/domains/export', async (c) => {
+	const userId = c.get('userId')
+	const domains = await Domain.findAll({ where: { user_id: userId }, order: [['domain_name', 'ASC']] })
+	const headers = ['domain_name', 'registrar', 'status', 'acquisition_date', 'expiry_date', 'acquisition_cost', 'renewal_cost', 'nameservers']
+	const csvRows = [headers.join(',')]
+	for (const domain of domains) {
+		const raw = domain.get({ plain: true }) as any
+		const row = headers.map(h => {
+			const val = raw[h]
+			if (val === null || val === undefined) return ''
+			const str = String(val)
+			return str.includes(',') || str.includes('"') || str.includes('\n')
+				? `"${str.replace(/"/g, '""')}"`
+				: str
+		})
+		csvRows.push(row.join(','))
+	}
+	return c.text(csvRows.join('\n'), 200, {
+		'Content-Type': 'text/csv',
+		'Content-Disposition': 'attachment; filename="domains.csv"',
+	})
 })
 
 app.get('/api/domains/:id', async (c) => {
@@ -307,8 +331,8 @@ app.delete('/api/domains/:id', async (c) => {
  const domain = await Domain.findOne({ where: { id: c.req.param('id'), user_id: userId } })
  if (!domain) return c.json({ error: 'Domain not found' }, 404)
 
- await domain.destroy()
- return c.json({ deleted: true }, 200)
+	await domain.destroy()
+	return c.json({ deleted: true }, 200)
 })
 
 // Domain-scoped ledger entries
@@ -978,6 +1002,48 @@ app.post('/api/watchlist', async (c) => {
 	}
 })
 
+// Bulk delete watchlist items — MUST be before /:id
+app.delete('/api/watchlist/bulk', async (c) => {
+	const userId = c.get('userId')
+	let body: { ids?: number[] } = {}
+	try { body = await c.req.json() } catch { /* empty */ }
+	if (!Array.isArray(body.ids) || body.ids.length === 0) {
+		return c.json({ error: 'ids array is required and must not be empty' }, 400)
+	}
+	// Only delete items belonging to the authenticated user
+	const items = await Watchlist.findAll({ where: { id: body.ids, user_id: userId } })
+	let deleted = 0
+	for (const item of items) {
+		await item.destroy()
+		deleted++
+	}
+	return c.json({ deleted })
+})
+
+// Export watchlist as CSV — MUST be before /:id
+app.get('/api/watchlist/export', async (c) => {
+	const userId = c.get('userId')
+	const items = await Watchlist.findAll({ where: { user_id: userId }, order: [['created_at', 'DESC']] })
+	const headers = ['domain_name', 'tld', 'available', 'appraisal_grade', 'notes', 'notify_on', 'last_checked_at', 'created_at']
+	const csvRows = [headers.join(',')]
+	for (const item of items) {
+		const raw = item.get({ plain: true }) as any
+		const row = headers.map(h => {
+			const val = raw[h]
+			if (val === null || val === undefined) return ''
+			const str = String(val)
+			return str.includes(',') || str.includes('"') || str.includes('\n')
+				? `"${str.replace(/"/g, '""')}"`
+				: str
+		})
+		csvRows.push(row.join(','))
+	}
+	return c.text(csvRows.join('\n'), 200, {
+		'Content-Type': 'text/csv',
+		'Content-Disposition': 'attachment; filename="watchlist.csv"',
+	})
+})
+
 app.delete('/api/watchlist/:id', async (c) => {
 	const userId = c.get('userId')
 	const item = await Watchlist.findOne({ where: { id: c.req.param('id'), user_id: userId } })
@@ -1086,6 +1152,81 @@ app.post('/api/wishlist', async (c) => {
 		}
 		return c.json({ error: err.message }, 400)
 	}
+})
+
+// Check all wishlist items for availability changes
+app.post('/api/wishlist/check', async (c) => {
+	const userId = c.get('userId')
+	const items = await Wishlist.findAll({ where: { user_id: userId } })
+	if (items.length === 0) return c.json([])
+
+	const { rdapLookup } = await import('./domain-analysis.js')
+	const results = await Promise.allSettled(
+		items.map(async (item) => {
+			try {
+				const rdap = await rdapLookup(item.domain_name)
+				const nowAvailable = rdap === null
+				const prevAvailable = item.available
+				await item.update({ available: nowAvailable, last_checked_at: new Date() })
+				// Create notification if status changed (not on first check when prevAvailable is null)
+				if (prevAvailable !== null && prevAvailable !== nowAvailable) {
+					await Notification.create({
+						user_id: userId,
+						type: 'status_change',
+						level: nowAvailable ? 'urgent' : 'info',
+						message: `${item.domain_name} is now ${nowAvailable ? 'available' : 'taken'}`,
+					})
+				}
+				return item
+			} catch {
+				await item.update({ last_checked_at: new Date() })
+				return item
+			}
+		})
+	)
+	return c.json(results.filter(r => r.status === 'fulfilled').map(r => (r as PromiseFulfilledResult<any>).value))
+})
+
+// Bulk delete wishlist items — MUST be before /:id
+app.delete('/api/wishlist/bulk', async (c) => {
+	const userId = c.get('userId')
+	let body: { ids?: number[] } = {}
+	try { body = await c.req.json() } catch { /* empty */ }
+	if (!Array.isArray(body.ids) || body.ids.length === 0) {
+		return c.json({ error: 'ids array is required and must not be empty' }, 400)
+	}
+	// Only delete items belonging to the authenticated user
+	const items = await Wishlist.findAll({ where: { id: body.ids, user_id: userId } })
+	let deleted = 0
+	for (const item of items) {
+		await item.destroy()
+		deleted++
+	}
+	return c.json({ deleted })
+})
+
+// Export wishlist as CSV — MUST be before /:id
+app.get('/api/wishlist/export', async (c) => {
+	const userId = c.get('userId')
+	const items = await Wishlist.findAll({ where: { user_id: userId }, order: [['created_at', 'DESC']] })
+	const headers = ['domain_name', 'tld', 'max_budget', 'available', 'appraisal_grade', 'auto_prospect', 'ai_agent', 'priority', 'notes', 'last_checked_at', 'created_at']
+	const csvRows = [headers.join(',')]
+	for (const item of items) {
+		const raw = item.get({ plain: true }) as any
+		const row = headers.map(h => {
+			const val = raw[h]
+			if (val === null || val === undefined) return ''
+			const str = String(val)
+			return str.includes(',') || str.includes('"') || str.includes('\n')
+				? `"${str.replace(/"/g, '""')}"`
+				: str
+		})
+		csvRows.push(row.join(','))
+	}
+	return c.text(csvRows.join('\n'), 200, {
+		'Content-Type': 'text/csv',
+		'Content-Disposition': 'attachment; filename="wishlist.csv"',
+	})
 })
 
 app.put('/api/wishlist/:id', async (c) => {
