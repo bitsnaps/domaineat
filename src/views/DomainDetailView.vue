@@ -6,6 +6,10 @@ import { useLookupStore } from '@/stores/lookup'
 import api from '@/lib/api'
 import { appraise } from '@/lib/appraise'
 import AppraisalBadge from '@/components/AppraisalBadge.vue'
+import DecisionSignals from '@/components/DecisionSignals.vue'
+import SmartCtaButton from '@/components/SmartCtaButton.vue'
+import { getDecisionSignals } from '@/lib/decision-signals'
+import { getSmartCta } from '@/lib/smart-ctas'
 import type { Domain, LedgerEntry, Prospect, DnsResult } from '@/types'
 
 const route = useRoute()
@@ -112,6 +116,54 @@ const isHighValue = computed(() => {
 	if (!appraisal.value) return false
 	return appraisal.value.grade === 'A' || appraisal.value.grade === 'A+' || appraisal.value.range.low >= 5000
 })
+
+// ─── Decision Signals ──────────────────────────────────────────
+
+const decisionSignals = computed(() => {
+	if (!domain.value || !appraisal.value) return []
+	return getDecisionSignals({
+		domain: domain.value,
+		appraisal: appraisal.value,
+		prospectCount: prospects.value.length,
+	})
+})
+
+// ─── Smart CTA ─────────────────────────────────────────────────
+
+const hasUncontactedProspects = computed(() => {
+	return prospects.value.some(p => p.outreach_status === 'uncontacted')
+})
+
+const smartCta = computed(() => {
+	if (!domain.value || !appraisal.value) return null
+	return getSmartCta({
+		domain: domain.value,
+		appraisal: appraisal.value,
+		prospectCount: prospects.value.length,
+		uncontactedProspects: hasUncontactedProspects.value,
+	})
+})
+
+function handleCtaAction(key: string) {
+	switch (key) {
+		case 'find_prospects':
+			scrollToProspects()
+			break
+		case 'start_outreach':
+			showOutreachDraft.value = true
+			break
+		case 'renew':
+			// Could navigate to a renewal flow — for now, open edit modal
+			showEditModal.value = true
+			break
+		default:
+			break
+	}
+}
+
+function scrollToProspects() {
+	document.querySelector('#prospects-section')?.scrollIntoView({ behavior: 'smooth' })
+}
 </script>
 
 <template>
@@ -147,9 +199,11 @@ const isHighValue = computed(() => {
 							:class="daysUntilExpiry(domain.expiry_date) <= 0 ? 'bg-danger-subtle text-danger' : daysUntilExpiry(domain.expiry_date) <= 30 ? 'bg-warning-subtle text-warning' : 'bg-success-subtle text-success'">
 							{{ daysUntilExpiry(domain.expiry_date) <= 0 ? `${Math.abs(daysUntilExpiry(domain.expiry_date))}d overdue` : `${daysUntilExpiry(domain.expiry_date)}d to expiry` }}
 						</span>
+						<DecisionSignals :signals="decisionSignals" />
 					</div>
 				</div>
 				<div class="d-flex gap-2">
+					<SmartCtaButton v-if="smartCta" :cta="smartCta" @action="handleCtaAction" />
 					<button class="btn btn-outline-secondary btn-sm" @click="showEditModal = true">
 						<i class="bi bi-pencil me-1"></i>Edit
 					</button>
@@ -246,6 +300,17 @@ const isHighValue = computed(() => {
 										<i class="bi bi-stars me-1"></i>High Value Domain
 									</span>
 								</div>
+								<!-- Signal Breakdown -->
+								<div class="mt-3 text-start">
+									<div class="small text-muted fw-semibold mb-2">Signal Breakdown</div>
+									<div v-for="(signal, key) in appraisal.signals" :key="key" class="d-flex justify-content-between align-items-center py-1 border-bottom">
+										<span class="small text-capitalize">{{ key }}</span>
+										<span class="small">
+											<i class="bi me-1" :class="signal.passed ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'"></i>
+											<span class="text-muted">{{ signal.label }}</span>
+										</span>
+									</div>
+								</div>
 							</div>
 							<div v-else class="text-muted small">Loading appraisal…</div>
 						</div>
@@ -261,12 +326,21 @@ const isHighValue = computed(() => {
 							<p class="small mb-3">
 								Let our AI agent find potential buyers, draft personalized outreach emails, and track responses — all automatically.
 							</p>
-							<button
-								class="btn btn-primary btn-sm"
-								@click="showOutreachDraft = true"
-							>
-								<i class="bi bi-send me-1"></i>Start AI Outreach
-							</button>
+							<div class="d-flex gap-2 flex-wrap">
+								<button
+									class="btn btn-primary btn-sm"
+									@click="showOutreachDraft = true"
+								>
+									<i class="bi bi-send me-1"></i>Start AI Outreach
+								</button>
+								<button
+									v-if="isHighValue && prospects.length === 0"
+									class="btn btn-outline-primary btn-sm"
+									@click="scrollToProspects"
+								>
+									<i class="bi bi-search me-1"></i>Find Prospects
+								</button>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -375,7 +449,7 @@ const isHighValue = computed(() => {
 			</div>
 
 			<!-- Prospects -->
-			<div class="card border-0 shadow-sm mb-4">
+			<div id="prospects-section" class="card border-0 shadow-sm mb-4">
 				<div class="card-body">
 					<div class="d-flex justify-content-between align-items-center mb-3">
 						<h6 class="text-muted small fw-semibold text-uppercase mb-0">Prospects</h6>
