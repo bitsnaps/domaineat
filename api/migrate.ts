@@ -1,8 +1,7 @@
 /**
  * migrate.ts — ESM-compatible database migration runner
  * 
- * Usage: node --import tsx api/migrate.ts
- * Or:    npx tsx api/migrate.ts
+ * Usage: node api/migrate.ts
  * 
  * This replaces sequelize-cli which doesn't support ESM projects.
  * Reads migrations from api/migrations/ and runs them via Sequelize.

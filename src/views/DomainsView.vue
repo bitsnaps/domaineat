@@ -8,11 +8,17 @@ import CsvImportModal from '@/components/CsvImportModal.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import SmartFolderBar from '@/components/SmartFolderBar.vue'
-import type { Domain, DomainStatus, SmartFolderKey } from '@/types'
+import DecisionSignals from '@/components/DecisionSignals.vue'
+import { appraise } from '@/lib/appraise'
+import { getDecisionSignals } from '@/lib/decision-signals'
+import type { Domain, DomainStatus, SmartFolderKey, DomainTag } from '@/types'
 
 const store = useDomainsStore()
 const watchlistStore = useWatchlistStore()
 const wishlistStore = useWishlistStore()
+
+// Tags per domain (fetched lazily)
+const domainTags = ref<Record<number, DomainTag[]>>({})
 
 // Modal state
 const showModal = ref(false)
@@ -50,9 +56,22 @@ function clearSelection() {
 	selectAll.value = false
 }
 
-onMounted(() => {
-	if (store.domains.length === 0) store.fetchDomains()
+onMounted(async () => {
+  if (store.domains.length === 0) await store.fetchDomains()
+  // Fetch tags for all domains
+  for (const d of store.domains) {
+    try {
+      const res = await store.fetchTags(d.id)
+      domainTags.value[d.id] = res
+    } catch { /* skip */ }
+  }
 })
+
+// Decision signals per domain
+function domainSignals(domain: Domain) {
+  const appraisal = appraise(domain.domain_name)
+  return getDecisionSignals({ domain, appraisal })
+}
 
 function openAdd() {
   editingDomain.value = null
@@ -337,6 +356,17 @@ function daysBadge(domain: Domain) {
                   <div class="fw-semibold" style="color: var(--dark);">{{ domain.domain_name }}</div>
                 </router-link>
                 <div class="text-muted small">{{ store.getTld(domain.domain_name) }}</div>
+                <div v-if="domainTags[domain.id]?.length" class="d-flex flex-wrap gap-1 mt-1">
+                  <span
+                    v-for="t in domainTags[domain.id]"
+                    :key="t.id"
+                    class="badge rounded-pill bg-primary-subtle text-primary-emphasis"
+                    style="font-size: 0.65rem;"
+                  >
+                    <i class="bi bi-tag me-1"></i>{{ t.tag }}
+                  </span>
+                </div>
+                <DecisionSignals :signals="domainSignals(domain)" />
               </td>
               <td class="d-none d-md-table-cell">{{ domain.registrar }}</td>
               <td class="d-none d-lg-table-cell text-muted small">{{ domain.acquisition_date }}</td>

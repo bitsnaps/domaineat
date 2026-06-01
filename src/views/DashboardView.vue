@@ -407,14 +407,14 @@ const pricingPlans = [
 
 .btn-nav-primary {
   background: var(--dark);
-  color: #fff !important;
+  color: var(--gray-300) !important;
   border-color: var(--dark);
 }
 
 .btn-nav-primary:hover {
  background: var(--gray-900);
  border-color: var(--gray-900);
- color: #fff !important;
+ color: var(--gray-300) !important;
 }
 
 /* ── Mobile nav toggle (Vue-driven, no Bootstrap JS) ─── */

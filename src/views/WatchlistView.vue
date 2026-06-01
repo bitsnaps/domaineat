@@ -80,8 +80,19 @@ async function handleBulkDelete() {
 }
 
 async function handleRemove(id: number) {
-	await store.removeFromWatchlist(id)
-	selectedIds.value = selectedIds.value.filter(i => i !== id)
+  await store.removeFromWatchlist(id)
+  selectedIds.value = selectedIds.value.filter(i => i !== id)
+}
+
+/** Check if a watchlist item had a recent status change (last_checked_at within 24h) */
+function statusChangeBadge(item: typeof store.items[0]): { label: string; class: string } | null {
+  if (!item.last_checked_at) return null
+  const lastChecked = new Date(item.last_checked_at)
+  const hoursSinceCheck = (Date.now() - lastChecked.getTime()) / (1000 * 60 * 60)
+  if (hoursSinceCheck > 24) return null
+  if (item.available === true) return { label: '↗ Now Available', class: 'bg-success-subtle text-success' }
+  if (item.available === false) return { label: '↘ Now Taken', class: 'bg-danger-subtle text-danger' }
+  return null
 }
 </script>
 
@@ -168,9 +179,14 @@ async function handleRemove(id: number) {
 							<td class="fw-semibold">{{ item.domain_name }}</td>
 							<td><span class="badge bg-light text-dark">.{{ item.tld }}</span></td>
 							<td>
-								<span v-if="item.available === true" class="badge bg-success">Available</span>
-								<span v-else-if="item.available === false" class="badge bg-secondary">Taken</span>
-								<span v-else class="badge bg-warning text-dark">Unknown</span>
+							  <span v-if="item.available === true" class="badge bg-success">Available</span>
+							  <span v-else-if="item.available === false" class="badge bg-secondary">Taken</span>
+							  <span v-else class="badge bg-warning text-dark">Unknown</span>
+							  <span
+							    v-if="statusChangeBadge(item)"
+							    class="badge ms-1"
+							    :class="statusChangeBadge(item)!.class"
+							  >{{ statusChangeBadge(item)!.label }}</span>
 							</td>
 							<td>
 								<AppraisalBadge v-if="item.appraisal_grade" :grade="item.appraisal_grade" size="sm" />

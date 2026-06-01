@@ -84,7 +84,18 @@ async function addToPortfolio() {
 }
 
 function closeMenu() {
-	showMenu.value = false
+  showMenu.value = false
+}
+
+/** Generate registrar search URL for available domains */
+function registerUrl() {
+  const q = encodeURIComponent(props.result.domain)
+  const registrar = auth.user?.preferred_registrar
+  if (registrar) {
+    if (registrar.includes('{domain}')) return registrar.replace('{domain}', q)
+    return `https://${registrar.replace(/^https?:\/\//, '')}?domain=${q}`
+  }
+  return `https://www.namecheap.com/domains/registration/results/?domain=${q}`
 }
 </script>
 
@@ -164,8 +175,18 @@ function closeMenu() {
 					<i class="bi bi-calendar me-1"></i>Exp: {{ formatDate(result.expiryDate) }}
 				</div>
 			</div>
-			<div v-else class="small text-success mt-auto">
-				<i class="bi bi-check-circle me-1"></i>Available for registration
+			<div v-else class="small mt-auto">
+			  <div class="text-success mb-1">
+			    <i class="bi bi-check-circle me-1"></i>Available for registration
+			  </div>
+			  <a
+			    :href="registerUrl()"
+			    target="_blank"
+			    rel="noopener"
+			    class="btn btn-sm btn-success py-0 px-2"
+			  >
+			    <i class="bi bi-cart-plus me-1"></i>Register Now →
+			  </a>
 			</div>
 		</div>
 	</div>

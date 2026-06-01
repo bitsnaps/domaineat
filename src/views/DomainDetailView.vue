@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DomainModal from '@/components/DomainModal.vue'
 import { useLookupStore } from '@/stores/lookup'
+import { useDomainsStore } from '@/stores/domains'
 import api from '@/lib/api'
 import { appraise } from '@/lib/appraise'
 import AppraisalBadge from '@/components/AppraisalBadge.vue'
@@ -10,11 +11,12 @@ import DecisionSignals from '@/components/DecisionSignals.vue'
 import SmartCtaButton from '@/components/SmartCtaButton.vue'
 import { getDecisionSignals } from '@/lib/decision-signals'
 import { getSmartCta } from '@/lib/smart-ctas'
-import type { Domain, LedgerEntry, Prospect, DnsResult } from '@/types'
+import type { Domain, DomainTag, LedgerEntry, Prospect, DnsResult } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const lookupStore = useLookupStore()
+const domainsStore = useDomainsStore()
 
 const showOutreachDraft = ref(false)
 
@@ -27,26 +29,47 @@ const dnsResult = ref<DnsResult | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 
+// Tags
+const tags = ref<DomainTag[]>([])
+const newTag = ref('')
+const tagInputVisible = ref(false)
+
 // Edit modal
 const showEditModal = ref(false)
 
 onMounted(async () => {
-	try {
-		const [domainRes, ledgerRes, prospectsRes] = await Promise.all([
-			api.get(`/domains/${domainId.value}`),
-			api.get(`/domains/${domainId.value}/ledger`),
-			api.get(`/domains/${domainId.value}/prospects`),
-		])
+  try {
+    const [domainRes, ledgerRes, prospectsRes, tagsRes] = await Promise.all([
+      api.get(`/domains/${domainId.value}`),
+      api.get(`/domains/${domainId.value}/ledger`),
+      api.get(`/domains/${domainId.value}/prospects`),
+      api.get(`/domains/${domainId.value}/tags`),
+    ])
 
-		domain.value = domainRes.data
-		ledgerEntries.value = ledgerRes.data
-		prospects.value = prospectsRes.data
-	} catch (e: any) {
-		error.value = e.response?.data?.error || e.message
-	} finally {
-		loading.value = false
-	}
+    domain.value = domainRes.data
+    ledgerEntries.value = ledgerRes.data
+    prospects.value = prospectsRes.data
+    tags.value = tagsRes.data
+  } catch (e: any) {
+    error.value = e.response?.data?.error || e.message
+  } finally {
+    loading.value = false
+  }
 })
+
+async function handleAddTag() {
+  const tag = newTag.value.trim().toLowerCase()
+  if (!tag) return
+  const result = await domainsStore.addTag(domainId.value, tag)
+  if (result) tags.value.push(result)
+  newTag.value = ''
+  tagInputVisible.value = false
+}
+
+async function handleRemoveTag(tag: string) {
+  await domainsStore.removeTag(domainId.value, tag)
+  tags.value = tags.value.filter(t => t.tag !== tag)
+}
 
 function daysUntilExpiry(dateStr: string): number {
 	const expiry = new Date(dateStr)
@@ -200,9 +223,47 @@ function scrollToProspects() {
 							{{ daysUntilExpiry(domain.expiry_date) <= 0 ? `${Math.abs(daysUntilExpiry(domain.expiry_date))}d overdue` : `${daysUntilExpiry(domain.expiry_date)}d to expiry` }}
 						</span>
 						<DecisionSignals :signals="decisionSignals" />
-					</div>
-				</div>
-				<div class="d-flex gap-2">
+						</div>
+						<!-- Tags -->
+						<div class="d-flex flex-wrap gap-1 mt-2 align-items-center">
+						  <span
+						    v-for="t in tags"
+						    :key="t.id"
+						    class="badge rounded-pill bg-primary-subtle text-primary-emphasis"
+						  >
+						    <i class="bi bi-tag me-1"></i>{{ t.tag }}
+						    <button
+						      type="button"
+						      class="btn-close btn-close-sm ms-1"
+						      style="font-size: 0.5em;"
+						      @click="handleRemoveTag(t.tag)"
+						      title="Remove tag"
+						    ></button>
+						  </span>
+						  <button
+						    v-if="!tagInputVisible"
+						    class="btn btn-sm btn-outline-secondary py-0 px-2"
+						    @click="tagInputVisible = true"
+						  >
+						    <i class="bi bi-plus me-1"></i>Add Tag
+						  </button>
+						  <div v-else class="input-group input-group-sm" style="width: 160px;">
+						    <input
+						      v-model="newTag"
+						      type="text"
+						      class="form-control form-control-sm"
+						      placeholder="Tag name"
+						      maxlength="50"
+						      @keydown.enter="handleAddTag"
+						      @keydown.escape="tagInputVisible = false"
+						    />
+						    <button class="btn btn-outline-primary btn-sm" @click="handleAddTag" :disabled="!newTag.trim()">
+						      <i class="bi bi-check"></i>
+						    </button>
+						  </div>
+						</div>
+						</div>
+						<div class="d-flex gap-2">
 					<SmartCtaButton v-if="smartCta" :cta="smartCta" @action="handleCtaAction" />
 					<button class="btn btn-outline-secondary btn-sm" @click="showEditModal = true">
 						<i class="bi bi-pencil me-1"></i>Edit
