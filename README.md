@@ -34,7 +34,7 @@
 ### Prerequisites
 
 - Node.js 20+
-- npm 9+
+- pnpm 8+
 - PostgreSQL (for production) or SQLite (for development)
 
 ### Setup
@@ -45,7 +45,7 @@ git clone https://github.com/user/domaineat.git
 cd domaineat
 
 # Install dependencies
-npm ci
+pnpm ci
 
 # Copy environment variables
 cp .env.sample .env
@@ -56,36 +56,36 @@ cp .env.sample .env
 
 ```bash
 # Frontend dev server (Vite)
-npm run dev
+pnpm run dev
 
 # API dev server (Hono)
-npm run dev:api
+pnpm run dev:api
 
 # Both simultaneously
-npm run dev:all
+pnpm run dev:all
 ```
 
 ### Build & Preview
 
 ```bash
 # Type-check and build frontend
-npm run build
+pnpm run build
 
 # Build API (TypeScript → JavaScript)
-npm run build:api
+pnpm run build:api
 
 # Preview production build
-npm run preview
+pnpm run preview
 ```
 
 ### Testing
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Run with coverage
-npm run test:coverage
+pnpm run test:coverage
 
 # Run specific test suite
 npx vitest run tests/api/
@@ -128,7 +128,7 @@ The project is configured for Netlify deployment:
 
 1. **Connect repo** — In Netlify UI → Sites → Add new site → Import from Git
 2. **Build settings** — Auto-detected from `netlify.toml`:
-   - Build command: `npm ci && npm run build`
+   - Build command: `pnpm ci && pnpm run build`
    - Publish directory: `dist`
    - Functions directory: `netlify/functions`
 3. **Environment variables** — Add `DATABASE_URL`, `JWT_SECRET`, `ENCRYPTION_KEY` in Netlify UI → Site settings → Environment variables

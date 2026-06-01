@@ -5,10 +5,9 @@
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "outDir": "dist-api",
-    "rootDir": "api",
     "strict": true,
     "skipLibCheck": true,
     "declaration": false
   },
-  "include": ["api/server.ts", "api/app.ts", "api/models/**/*.ts", "api/migrate.ts", "api/dns-check.ts", "api/domain-analysis.ts", "api/auth.ts"]
+  "include": ["api/**/*.ts", "src/lib/appraise.ts", "src/lib/tld-prestige.ts", "src/types/**/*.ts"]
 }

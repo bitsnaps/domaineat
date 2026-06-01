@@ -32,3 +32,6 @@ dist-ssr
 
 # coverage
 coverage/
+
+# demos
+demos/
