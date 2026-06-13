@@ -47,7 +47,9 @@ async function handleSubmit() {
 	<div class="login-view d-flex align-items-center justify-content-center min-vh-100" style="background: #f8f9fa;">
 		<div class="card border-0 shadow" style="width: 400px; max-width: 90vw;">
 			<div class="card-body p-4">
-				<h4 class="fw-semibold text-center mb-1" style="color: #6366f1;">DomainEat</h4>
+				<h4 class="fw-semibold text-center mb-1" style="color: #6366f1;">
+					<router-link to="/" class="text-decoration-none">DomainEat</router-link>
+				</h4>
 				<p class="text-muted text-center small mb-4">
 					{{ isLogin ? 'Sign in to your account' : 'Create a new account' }}
 				</p>
