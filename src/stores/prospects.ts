@@ -181,6 +181,28 @@ export const useProspectsStore = defineStore('prospects', () => {
 		})
 	})
 
+	async function findProspectsForDomain(domainId: number): Promise<number> {
+		loading.value = true
+		error.value = null
+		try {
+			const res = await api.post('/domains/find-prospects', { domain_id: domainId })
+			const { found } = res.data as { found: number }
+			if (found > 0) {
+				// Refresh the prospects list for this domain
+				await fetchProspects()
+			}
+			return found
+		} catch (err: any) {
+			const msg = err.response?.data?.error || err.message
+			error.value = msg
+			const toast = useToastStore()
+			toast.error(`Failed to find prospects: ${msg}`)
+			return 0
+		} finally {
+			loading.value = false
+		}
+	}
+
 	return {
 		prospects,
 		loading,
@@ -193,6 +215,7 @@ export const useProspectsStore = defineStore('prospects', () => {
 		createProspect,
 		updateProspect,
 		deleteProspect,
+		findProspectsForDomain,
 		clearFilters,
 		leadScore,
 		filteredProspects,

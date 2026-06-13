@@ -12,7 +12,7 @@
  * 4. Watchlist auto-check — RDAP availability checks, status change notifications
  * 5. Wishlist auto-check — RDAP availability checks, status change notifications
  */
-import { Domain, User, Notification, Watchlist, Wishlist } from './models/index.js'
+import { Domain, User, Notification, Watchlist, Wishlist, Prospect } from './models/index.js'
 
 // ─── Cached Exchange Rates ────────────────────────────────────────────
 
@@ -209,6 +209,91 @@ export async function runWishlistCheck(): Promise<WishlistCheckResult> {
 	return { checked: allItems.length, notifications: notificationCount }
 }
 
+// ─── 6. AI Agent Auto-Prospect ────────────────────────────────────────
+
+export interface AiAgentResult {
+	processed: number
+	prospectsFound: number
+	notifications: number
+}
+
+/**
+ * Process wishlist items with ai_agent = true.
+ * For each such item, find or create a portfolio domain, then generate
+ * prospects from alternative TLD extensions (similar to the prospect-all endpoint).
+ */
+export async function runAiAgent(): Promise<AiAgentResult> {
+	const ALT_TLDS = ['com', 'net', 'org', 'io', 'co', 'dev', 'app', 'ai', 'xyz', 'me']
+	let processed = 0
+	let prospectsFound = 0
+	let notificationCount = 0
+
+	// Find all wishlist items with ai_agent enabled
+	const aiItems = await Wishlist.findAll({ where: { ai_agent: true } })
+
+	for (const item of aiItems) {
+		const raw = item.get({ plain: true }) as any
+		const domainName = raw.domain_name as string
+		const sld = domainName.replace(/\.[^.]+$/, '')
+		const currentTld = (domainName.split('.').pop() || 'com')
+
+		// Find or create a portfolio domain to link prospects to
+		let domain = await Domain.findOne({ where: { domain_name: domainName, user_id: raw.user_id } })
+		if (!domain) {
+			domain = await Domain.create({
+				user_id: raw.user_id,
+				domain_name: domainName,
+				registrar: 'Auto-created by AI Agent',
+				acquisition_date: new Date().toISOString().split('T')[0],
+				expiry_date: '',
+				acquisition_cost: 0,
+				renewal_cost: 0,
+				nameservers: null,
+				status: 'parked',
+			} as any)
+		}
+
+		const domainId = (domain.get({ plain: true }) as any).id
+
+		for (const tld of ALT_TLDS) {
+			if (tld === currentTld) continue
+			const prospectDomain = `${sld}.${tld}`
+
+			// Skip if prospect already exists
+			const existing = await Prospect.findOne({
+				where: { domain_id: domainId, prospect_domain: prospectDomain },
+			})
+			if (existing) continue
+
+			await Prospect.create({
+				domain_id: domainId,
+				prospect_domain: prospectDomain,
+				company_name: null,
+				contact_email: null,
+				outreach_status: 'uncontacted',
+				last_contact_date: null,
+			})
+			prospectsFound++
+		}
+
+		// Create notification for the user
+		if (prospectsFound > 0) {
+			await Notification.create({
+				user_id: raw.user_id,
+				domain_id: domainId,
+				type: 'agent_action',
+				level: 'info',
+				message: `AI Agent found ${prospectsFound} prospect${prospectsFound !== 1 ? 's' : ''} for ${domainName}`,
+			})
+			notificationCount++
+		}
+
+		processed++
+	}
+
+	return { processed, prospectsFound, notifications: notificationCount }
+}
+
 // ─── Run All Tasks ─────────────────────────────────────────────────────
 
 export interface SchedulerRunResult {
@@ -218,6 +303,7 @@ export interface SchedulerRunResult {
 	dailyRdapReset: DailyRdapResetResult
 	watchlistCheck: WatchlistCheckResult
 	wishlistCheck: WishlistCheckResult
+	aiAgent: AiAgentResult
 	runAt: string
 }
 
@@ -244,6 +330,9 @@ export async function runAllTasks(tasks?: string[]): Promise<Partial<SchedulerRu
 	}
 	if (shouldRun('wishlist_check')) {
 		result.wishlistCheck = await runWishlistCheck()
+	}
+	if (shouldRun('ai_agent')) {
+		result.aiAgent = await runAiAgent()
 	}
 
 	return result

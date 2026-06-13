@@ -1432,6 +1432,50 @@ app.post('/api/domains/from-lookup', async (c) => {
 	}
 })
 
+// ─── Domains find-prospects ──────────────────────────────────────
+
+app.post('/api/domains/find-prospects', async (c) => {
+	const userId = c.get('userId')
+	const { domain_id } = await c.req.json()
+	if (!domain_id) {
+		return c.json({ error: 'domain_id is required' }, 400)
+	}
+
+	const domain = await Domain.findOne({ where: { id: domain_id, user_id: userId } })
+	if (!domain) return c.json({ error: 'Domain not found' }, 404)
+
+	const ALT_TLDS = ['com', 'net', 'org', 'io', 'co', 'dev', 'app', 'ai', 'xyz', 'me']
+	const raw = domain.get({ plain: true }) as any
+	const domainName = raw.domain_name
+	const sld = domainName.replace(/\.[^.]+$/, '')
+	const currentTld = domainName.split('.').pop() || 'com'
+
+	let found = 0
+
+	for (const tld of ALT_TLDS) {
+		if (tld === currentTld) continue
+		const prospectDomain = `${sld}.${tld}`
+
+		// Skip if prospect already exists for this domain
+		const existing = await Prospect.findOne({
+			where: { domain_id: domain.id, prospect_domain: prospectDomain },
+		})
+		if (existing) continue
+
+		await Prospect.create({
+			domain_id: domain.id,
+			prospect_domain: prospectDomain,
+			company_name: null,
+			contact_email: null,
+			outreach_status: 'uncontacted',
+			last_contact_date: null,
+		})
+		found++
+	}
+
+	return c.json({ found })
+})
+
 // ─── Notifications dismiss-all ─────────────────────────────────────
 
 app.patch('/api/notifications/dismiss-all', async (c) => {

@@ -23,6 +23,8 @@ const auth = useAuthStore()
 
 const showMenu = ref(false)
 const importing = ref(false)
+const findingProspects = ref(false)
+const prospectResult = ref<{ found: number } | null>(null)
 
 const appraisal = computed(() => appraise(props.result.domain))
 
@@ -79,6 +81,29 @@ async function addToPortfolio() {
 		useToastStore().error(`Failed to add: ${msg}`)
 	} finally {
 		importing.value = false
+		showMenu.value = false
+	}
+}
+
+async function findProspects() {
+	if (!auth.isLoggedIn) return
+	findingProspects.value = true
+	prospectResult.value = null
+	try {
+		// First add to portfolio if not already there
+		const addRes = await api.post('/domains/from-lookup', { domain_name: props.result.domain })
+		const domainId = (addRes.data as any).id
+		// Then find prospects
+		const res = await api.post('/domains/find-prospects', { domain_id: domainId })
+		prospectResult.value = res.data
+		const { useToastStore } = await import('@/stores/toast')
+		useToastStore().success(`Found ${res.data.found} prospect${res.data.found !== 1 ? 's' : ''} for ${props.result.domain}`)
+	} catch (e: any) {
+		const msg = e.friendlyMessage ?? e.response?.data?.error ?? e.message
+		const { useToastStore } = await import('@/stores/toast')
+		useToastStore().error(`Failed to find prospects: ${msg}`)
+	} finally {
+		findingProspects.value = false
 		showMenu.value = false
 	}
 }
@@ -149,6 +174,10 @@ function registerUrl() {
 							<i class="bi bi-box-arrow-in-right me-2"></i>
 							{{ importing ? 'Adding...' : 'Add to Portfolio' }}
 						</button>
+						<button v-if="!result.available" class="dropdown-item" @click.stop="findProspects" :disabled="findingProspects">
+							<i class="bi bi-search me-2"></i>
+							{{ findingProspects ? 'Finding...' : 'Find Prospects' }}
+						</button>
 					</div>
 				</div>
 			</div>
@@ -187,6 +216,10 @@ function registerUrl() {
 			  >
 			    <i class="bi bi-cart-plus me-1"></i>Register Now →
 			  </a>
+			</div>
+			<!-- Prospect result indicator -->
+			<div v-if="prospectResult" class="small mt-2 text-info">
+			  <i class="bi bi-check-circle me-1"></i>{{ prospectResult.found }} prospect{{ prospectResult.found !== 1 ? 's' : '' }} found
 			</div>
 		</div>
 	</div>
