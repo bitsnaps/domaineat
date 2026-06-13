@@ -11,7 +11,7 @@
  */
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { sequelize, Domain, Ledger, Prospect, User, Notification, Watchlist, Wishlist, DomainTag } from './models/index.js'
+import { sequelize, Domain, Ledger, Prospect, User, Notification, Watchlist, Wishlist, DomainTag, Plan } from './models/index.js'
 import { hashPassword, verifyPassword, signJwt, verifyJwt, TIER_LIMITS } from './auth.js'
 import { rdapRateLimit } from './rate-limit.js'
 import { runAllTasks } from './scheduler.js'
@@ -19,12 +19,13 @@ import { runAllTasks } from './scheduler.js'
 // BEFORE this module is imported, so that models/index.ts can safely read DATABASE_URL.
 // Do NOT call validateEnvVars() here — static imports above already loaded models.
 
-type JwtPayload = { userId: number; email: string; tier: string }
+type JwtPayload = { userId: number; email: string; tier: string; role: string }
 
 type Variables = {
 	userId: number
 	email: string
 	tier: string
+	role: string
 	user: JwtPayload
 }
 
@@ -132,6 +133,7 @@ app.use('/api/*', async (c, next) => {
 			c.set('userId', payload.userId)
 			c.set('email', payload.email)
 			c.set('tier', payload.tier)
+			c.set('role', payload.role || 'user')
 			c.set('user', payload)
 		} else if (!isPublic) {
 			return c.json({ error: 'Invalid or expired token' }, 401)
@@ -168,17 +170,22 @@ app.post('/api/auth/register', async (c) => {
 			return c.json({ error: 'Email already registered' }, 409)
 		}
 
+		// First user in the system becomes admin
+		const userCount = await User.count()
+		const role = userCount === 0 ? 'admin' : 'user'
+
 		const hashed = await hashPassword(password)
 		const user = await User.create({
 			email,
 			password_hash: hashed,
 			tier: 'free',
+			role,
 		} as any)
 
-		const token = signJwt({ userId: user.id, email: user.email, tier: user.tier })
+		const token = signJwt({ userId: user.id, email: user.email, tier: user.tier, role })
 		return c.json({
 			token,
-			user: { id: user.id, email: user.email, tier: user.tier },
+			user: { id: user.id, email: user.email, tier: user.tier, role },
 		}, 201)
 	} catch (err: any) {
 		console.error('Register error:', err)
@@ -204,10 +211,10 @@ app.post('/api/auth/login', async (c) => {
 			return c.json({ error: 'Invalid email or password' }, 401)
 		}
 
-		const token = signJwt({ userId: user.id, email: user.email, tier: user.tier })
+		const token = signJwt({ userId: user.id, email: user.email, tier: user.tier, role: (user as any).role || 'user' })
 		return c.json({
 			token,
-			user: { id: user.id, email: user.email, tier: user.tier },
+			user: { id: user.id, email: user.email, tier: user.tier, role: (user as any).role || 'user' },
 		})
 	} catch (err: any) {
 		console.error('Login error:', err)
@@ -1482,6 +1489,197 @@ app.patch('/api/notifications/dismiss-all', async (c) => {
 	const userId = c.get('userId')
 	await Notification.update({ dismissed: true }, { where: { user_id: userId } })
 	return c.json({ dismissed: true })
+})
+
+// ─── Admin Routes ─────────────────────────────────────────────────────
+// All /api/admin/* routes require admin role
+
+app.use('/api/admin/*', async (c, next) => {
+	const role = c.get('role')
+	if (role !== 'admin') {
+		return c.json({ error: 'Admin access required' }, 403)
+	}
+	return next()
+})
+
+// Admin stats — platform-wide overview
+app.get('/api/admin/stats', async (c) => {
+	try {
+		const totalUsers = await User.count()
+		const totalDomains = await Domain.count()
+
+		// Tier distribution
+		const allUsers = await User.findAll({ attributes: ['tier', 'role'] as any })
+		const tierCounts: Record<string, number> = { free: 0, premium: 0, enterprise: 0 }
+		let adminCount = 0
+		for (const u of allUsers) {
+			const t = (u as any).tier
+			if (t in tierCounts) tierCounts[t]++
+			if ((u as any).role === 'admin') adminCount++
+		}
+
+		return c.json({
+			totalUsers,
+			totalDomains,
+			adminCount,
+			tierDistribution: tierCounts,
+		})
+	} catch (err: any) {
+		return c.json({ error: 'Failed to fetch stats' }, 500)
+	}
+})
+
+// Admin — list all users
+app.get('/api/admin/users', async (c) => {
+	try {
+		const users = await User.findAll({
+			attributes: { exclude: ['password_hash', 'llm_api_key_encrypted'] },
+			order: [['created_at', 'DESC']],
+		})
+		return c.json({ users })
+	} catch (err: any) {
+		return c.json({ error: 'Failed to fetch users' }, 500)
+	}
+})
+
+// Admin — get user details
+app.get('/api/admin/users/:id', async (c) => {
+	try {
+		const user = await User.findByPk(c.req.param('id'))
+		if (!user) return c.json({ error: 'User not found' }, 404)
+		const safe = user.toJSON() as any
+		delete safe.password_hash
+		delete safe.llm_api_key_encrypted
+		return c.json(safe)
+	} catch (err: any) {
+		return c.json({ error: 'Failed to fetch user' }, 500)
+	}
+})
+
+// Admin — update user (tier, role, etc.)
+app.patch('/api/admin/users/:id', async (c) => {
+	try {
+		const targetId = Number(c.req.param('id'))
+		const user = await User.findByPk(targetId)
+		if (!user) return c.json({ error: 'User not found' }, 404)
+
+		// Prevent admin from demoting themselves
+		const authUserId = c.get('userId')
+		const body = await c.req.json()
+		if (targetId === authUserId && body.role === 'user') {
+			return c.json({ error: 'Cannot demote yourself from admin' }, 400)
+		}
+
+		const allowed = ['email', 'tier', 'role', 'preferred_registrar']
+		const updates: Record<string, any> = {}
+		for (const key of allowed) {
+			if (body[key] !== undefined) updates[key] = body[key]
+		}
+
+		await user.update(updates)
+		const safe = user.toJSON() as any
+		delete safe.password_hash
+		delete safe.llm_api_key_encrypted
+		return c.json(safe)
+	} catch (err: any) {
+		return c.json({ error: 'Failed to update user' }, 500)
+	}
+})
+
+// Admin — delete user
+app.delete('/api/admin/users/:id', async (c) => {
+	try {
+		const targetId = Number(c.req.param('id'))
+		const user = await User.findByPk(targetId)
+		if (!user) return c.json({ error: 'User not found' }, 404)
+
+		// Prevent admin from deleting themselves
+		const authUserId = c.get('userId')
+		if (targetId === authUserId) {
+			return c.json({ error: 'Cannot delete yourself' }, 400)
+		}
+
+		const cascade = c.req.query('cascade') === 'true'
+
+		if (cascade) {
+			// Delete all user data: domains, ledger entries, prospects, watchlist, wishlist, notifications, domain tags
+			const userDomainIds = (await Domain.findAll({
+				where: { user_id: targetId },
+				attributes: ['id'],
+			})).map(d => d.id)
+
+			if (userDomainIds.length > 0) {
+				await Prospect.destroy({ where: { domain_id: userDomainIds } })
+				await Ledger.destroy({ where: { domain_id: userDomainIds } })
+				await DomainTag.destroy({ where: { domain_id: userDomainIds } })
+				await Domain.destroy({ where: { user_id: targetId } })
+			}
+			await Watchlist.destroy({ where: { user_id: targetId } })
+			await Wishlist.destroy({ where: { user_id: targetId } })
+			await Notification.destroy({ where: { user_id: targetId } })
+		}
+
+		await user.destroy()
+		return c.json({ deleted: true, cascade })
+	} catch (err: any) {
+		return c.json({ error: 'Failed to delete user' }, 500)
+	}
+})
+
+// Admin — reset user usage counters
+app.post('/api/admin/users/:id/reset-usage', async (c) => {
+	try {
+		const user = await User.findByPk(c.req.param('id'))
+		if (!user) return c.json({ error: 'User not found' }, 404)
+
+		await user.update({ daily_ai_calls: 0, daily_rdap_calls: 0 })
+		return c.json({ reset: true })
+	} catch (err: any) {
+		return c.json({ error: 'Failed to reset usage' }, 500)
+	}
+})
+
+// Admin — list all plans
+app.get('/api/admin/plans', async (c) => {
+	try {
+		const plans = await Plan.findAll({ order: [['created_at', 'ASC']] })
+		return c.json(plans)
+	} catch (err: any) {
+		return c.json({ error: 'Failed to fetch plans' }, 500)
+	}
+})
+
+// Admin — update a plan
+app.put('/api/admin/plans/:tier', async (c) => {
+	try {
+		const plan = await Plan.findByPk(c.req.param('tier'))
+		if (!plan) return c.json({ error: 'Plan not found' }, 404)
+
+		const body = await c.req.json()
+		const allowed = ['name', 'price_monthly', 'price_yearly', 'domains', 'rdap_daily', 'ai_daily', 'watchlist', 'wishlist', 'features', 'active']
+		const updates: Record<string, any> = {}
+		for (const key of allowed) {
+			if (body[key] !== undefined) updates[key] = body[key]
+		}
+		updates.updated_at = new Date()
+
+		await plan.update(updates)
+		return c.json(plan)
+	} catch (err: any) {
+		return c.json({ error: 'Failed to update plan' }, 500)
+	}
+})
+
+// Admin — list all domains across users
+app.get('/api/admin/domains', async (c) => {
+	try {
+		const domains = await Domain.findAll({
+			order: [['created_at', 'DESC']],
+		})
+		return c.json(domains)
+	} catch (err: any) {
+		return c.json({ error: 'Failed to fetch domains' }, 500)
+	}
 })
 
 export default app

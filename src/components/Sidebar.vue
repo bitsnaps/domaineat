@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useAppStateStore } from '@/stores/appState'
+import { useAuthStore } from '@/stores/auth'
 const appState = useAppStateStore()
+const auth = useAuthStore()
 </script>
 
 <template>
@@ -64,6 +66,13 @@ const appState = useAppStateStore()
 					:title="appState.sidebarCollapsed ? 'Wishlist' : ''">
 					<i class="bi bi-heart sidebar-icon"></i>
 					<span class="sidebar-label ms-3">Wishlist</span>
+				</router-link>
+			</li>
+			<li class="nav-item" v-if="auth.isAdmin">
+				<router-link to="/admin" class="nav-link d-flex align-items-center" active-class="active"
+					:title="appState.sidebarCollapsed ? 'Admin' : ''">
+					<i class="bi bi-shield-lock sidebar-icon"></i>
+					<span class="sidebar-label ms-3">Admin</span>
 				</router-link>
 			</li>
 			<li class="nav-item">

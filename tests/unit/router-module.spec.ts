@@ -66,9 +66,9 @@ describe('Router module', () => {
 		expect(route?.meta?.public).toBe(true)
 	})
 
-it('has exactly 12 named routes', () => {
+it('has exactly 17 named routes', () => {
 	const named = router.getRoutes().filter((r) => r.name)
-	expect(named.length).toBe(12)
+	expect(named.length).toBe(17)
 })
 
 	it('has a route named home at /home', () => {

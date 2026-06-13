@@ -21,17 +21,18 @@ vi.mock('../../api/models/index.js', () => ({
     authenticate: vi.fn(),
   },
   User: {
-    findByPk: vi.fn(async (id: number | string) =>
-      mockUsers.find((u) => String(u.id) === String(id)) || null
-    ),
-    findOne: vi.fn(async (opts: any) =>
-      mockUsers.find((u) => u.email === opts?.where?.email) || null
-    ),
-    create: vi.fn(async (data: any) => {
-      const user = { id: mockUsers.length + 1, ...data, update: vi.fn(), toJSON: () => data }
-      mockUsers.push(user)
-      return user
-    }),
+  	findByPk: vi.fn(async (id: number | string) =>
+  		mockUsers.find((u) => String(u.id) === String(id)) || null
+  	),
+  	findOne: vi.fn(async (opts: any) =>
+  		mockUsers.find((u) => u.email === opts?.where?.email) || null
+  	),
+  	count: vi.fn(async () => mockUsers.length),
+  	create: vi.fn(async (data: any) => {
+  		const user = { id: mockUsers.length + 1, ...data, update: vi.fn(), toJSON: () => data }
+  		mockUsers.push(user)
+  		return user
+  	}),
   },
   Domain: {
     findAll: vi.fn(async () => []),

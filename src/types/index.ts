@@ -6,6 +6,7 @@
 // ─── User & AI ────────────────────────────────────────────────────────────
 
 export type UserTier = 'free' | 'premium' | 'enterprise'
+export type UserRole = 'user' | 'admin'
 
 export type LlmProvider = 'openai' | 'anthropic' | 'groq' | 'openrouter'
 
@@ -15,6 +16,7 @@ export interface User {
 	/** Omitted in API responses — never sent to the client */
 	password_hash?: never
 	tier: UserTier
+	role: UserRole
 	llm_provider: LlmProvider | null
 	llm_model: string | null
 	llm_api_key_encrypted: string | null // masked — only last 4 chars

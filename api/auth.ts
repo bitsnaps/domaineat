@@ -20,14 +20,14 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 /** Sign a JWT with user payload */
-export function signJwt(payload: { userId: number; email: string; tier: string }): string {
+export function signJwt(payload: { userId: number; email: string; tier: string; role?: string }): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
 }
 
 /** Verify and decode a JWT — returns null if invalid/expired */
-export function verifyJwt(token: string): { userId: number; email: string; tier: string } | null {
+export function verifyJwt(token: string): { userId: number; email: string; tier: string; role: string } | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as { userId: number; email: string; tier: string }
+    return jwt.verify(token, JWT_SECRET) as { userId: number; email: string; tier: string; role: string }
   } catch {
     return null
   }

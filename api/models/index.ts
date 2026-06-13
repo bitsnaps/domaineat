@@ -8,6 +8,7 @@ import { initNotification, Notification } from './Notification.js'
 import { initWatchlist, Watchlist } from './Watchlist.js'
 import { initWishlist, Wishlist } from './Wishlist.js'
 import { initDomainTag, DomainTag } from './DomainTag.js'
+import { initPlan, Plan } from './Plan.js'
 
 const env = process.env.NODE_ENV || 'development'
 
@@ -43,6 +44,7 @@ initNotification(sequelize)
 initWatchlist(sequelize)
 initWishlist(sequelize)
 initDomainTag(sequelize)
+initPlan(sequelize)
 
 // Define associations (PRD foreign keys)
 Domain.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
@@ -71,5 +73,5 @@ Domain.hasMany(DomainTag, { foreignKey: 'domain_id', as: 'tags' })
 DomainTag.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
 User.hasMany(DomainTag, { foreignKey: 'user_id', as: 'domainTags' })
 
-export { sequelize, User, Domain, Ledger, Prospect, Notification, Watchlist, Wishlist, DomainTag }
-export default { sequelize, User, Domain, Ledger, Prospect, Notification, Watchlist, Wishlist, DomainTag }
+export { sequelize, User, Domain, Ledger, Prospect, Notification, Watchlist, Wishlist, DomainTag, Plan }
+export default { sequelize, User, Domain, Ledger, Prospect, Notification, Watchlist, Wishlist, DomainTag, Plan }

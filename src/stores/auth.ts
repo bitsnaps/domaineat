@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
 	const error = ref<string | null>(null)
 
 	const isLoggedIn = computed(() => !!token.value)
+	const isAdmin = computed(() => (user.value as any)?.role === 'admin')
 	const userTier = computed<UserTier>(() => user.value?.tier || 'free')
 
 	// Tier limits
@@ -86,6 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
 		loading,
 		error,
 		isLoggedIn,
+		isAdmin,
 		userTier,
 		tierLimits,
 		register,

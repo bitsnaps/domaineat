@@ -5,6 +5,7 @@ export class User extends Model {
 	declare email: string
 	declare password_hash: string
 	declare tier: 'free' | 'premium' | 'enterprise'
+	declare role: 'user' | 'admin'
 	declare llm_provider: string | null
 	declare llm_model: string | null
 	declare llm_api_key_encrypted: string | null
@@ -36,6 +37,13 @@ export function initUser(sequelize: Sequelize): typeof User {
 				defaultValue: 'free',
 				validate: {
 					isIn: [['free', 'premium', 'enterprise']],
+				},
+			},
+			role: {
+				type: DataTypes.STRING(20),
+				defaultValue: 'user',
+				validate: {
+					isIn: [['user', 'admin']],
 				},
 			},
 			llm_provider: {

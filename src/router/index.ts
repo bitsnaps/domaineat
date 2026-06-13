@@ -25,6 +25,14 @@ const WatchlistView = () => import('@/views/WatchlistView.vue')
 const WishlistView = () => import('@/views/WishlistView.vue')
 const SettingsView = () => import('@/views/SettingsView.vue')
 
+// Views — admin pages
+const AdminLayout = () => import('@/layouts/AdminLayout.vue')
+const AdminUsersView = () => import('@/views/admin/AdminUsersView.vue')
+const AdminUserDetailView = () => import('@/views/admin/AdminUserDetailView.vue')
+const AdminPlansView = () => import('@/views/admin/AdminPlansView.vue')
+const AdminStatsView = () => import('@/views/admin/AdminStatsView.vue')
+const AdminDomainsView = () => import('@/views/admin/AdminDomainsView.vue')
+
 const routes = [
 	// Public landing page — no sidebar
 	{
@@ -66,6 +74,26 @@ const routes = [
 			{ path: 'settings', name: 'settings', component: SettingsView },
 		],
 	},
+	// Admin pages — nested under DefaultLayout
+	{
+		path: '/admin',
+		component: DefaultLayout,
+		meta: { requiresAuth: true, requiresAdmin: true },
+		children: [
+			{
+				path: '',
+				component: AdminLayout,
+				children: [
+					{ path: '', redirect: '/admin/users' },
+					{ path: 'users', name: 'admin-users', component: AdminUsersView },
+					{ path: 'users/:id', name: 'admin-user-detail', component: AdminUserDetailView, props: true },
+					{ path: 'plans', name: 'admin-plans', component: AdminPlansView },
+					{ path: 'stats', name: 'admin-stats', component: AdminStatsView },
+					{ path: 'domains', name: 'admin-domains', component: AdminDomainsView },
+				],
+			},
+		],
+	},
 ]
 
 const router = createRouter({
@@ -78,7 +106,7 @@ const router = createRouter({
 // Routes that don't require authentication
 const publicRoutes = new Set(['dashboard', 'login', 'search'])
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
 	// Public routes are always accessible
 	if (to.meta.public || publicRoutes.has(to.name as string)) return
 
@@ -86,6 +114,17 @@ router.beforeEach((to) => {
 	const auth = useAuthStore()
 	if (!auth.isLoggedIn) {
 		return { name: 'login', query: { redirect: to.fullPath } }
+	}
+
+	// Admin routes require admin role
+	if (to.meta.requiresAdmin || to.matched.some((r) => r.meta.requiresAdmin)) {
+		// Ensure profile is loaded
+		if (!auth.user && auth.isLoggedIn) {
+			await auth.fetchProfile()
+		}
+		if (!auth.isAdmin) {
+			return { name: 'home' }
+		}
 	}
 })
 
