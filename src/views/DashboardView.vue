@@ -148,6 +148,9 @@ const pricingPlans = [
 		<ul class="navbar-nav ms-auto align-items-center">
 				<li class="nav-item"><router-link to="/search" class="nav-link" @click="closeNav">Domain Lookup</router-link></li>
 				<li class="nav-item"><a class="nav-link" href="#features" @click="closeNav">Features</a></li>
+				<li class="nav-item" v-show="auth.isLoggedIn && auth.isAdmin">
+          <router-link to="/admin" class="nav-link">Admin</router-link>
+        </li>
 				<li class="nav-item"><a class="nav-link" href="#pricing" @click="closeNav">Pricing</a></li>
 				<li class="nav-item">
 				<button
