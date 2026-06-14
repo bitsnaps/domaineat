@@ -228,8 +228,8 @@ function handleLogout() {
 						<div class="col-sm-4">
 							<div class="text-muted small fw-semibold text-uppercase mb-1">Status</div>
 							<div class="h5 mb-0">
-								<span v-if="aiStatus?.configured" class="text-success">\u2713 Configured</span>
-								<span v-else class="text-muted">\u2717 Not configured</span>
+								<span v-if="aiStatus?.configured" class="text-success">✓ Configured</span>
+								<span v-else class="text-muted">✗ Not configured</span>
 							</div>
 						</div>
 					</div>

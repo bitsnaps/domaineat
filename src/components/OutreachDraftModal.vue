@@ -81,23 +81,23 @@ function saveAndClose() {
 				<div class="modal-body">
 					<!-- Context info -->
 					<div class="d-flex gap-3 mb-3 text-muted small">
-						<span>\ud83d\udc64 {{ prospect.company_name || 'Unknown company' }}</span>
-						<span>\ud83d\udce7 {{ prospect.contact_email || 'No email' }}</span>
-						<span>\ud83c\udfe0 Your domain: {{ domain.domain_name }}</span>
+						<span>👤 {{ prospect.company_name || 'Unknown company' }}</span>
+						<span>📧 {{ prospect.contact_email || 'No email' }}</span>
+						<span>🏠 Your domain: {{ domain.domain_name }}</span>
 					</div>
 
 					<!-- Generate button -->
 					<div v-if="!hasDraft && !generating && !error" class="text-center py-4">
 						<p class="text-muted mb-3">Generate an AI outreach email for this prospect.</p>
 						<button class="btn text-white" style="background: #6366f1;" @click="generateDraft">
-							\u2728 Generate Draft
+							✨ Generate Draft
 						</button>
 					</div>
 
 					<!-- Loading -->
 					<div v-if="generating" class="text-center py-4">
 						<div class="spinner-border text-primary spinner-border-sm me-2"></div>
-						<span class="text-muted">Generating outreach draft\u2026</span>
+						<span class="text-muted">Generating outreach draft…</span>
 					</div>
 
 					<!-- Error -->
@@ -112,10 +112,10 @@ function saveAndClose() {
 							<span class="small text-muted">Generated via {{ provider }} / {{ model }}</span>
 							<div class="d-flex gap-2">
 								<button class="btn btn-sm btn-outline-secondary" @click="copyDraft">
-									{{ copied ? '\u2713 Copied' : '\ud83d\udccb Copy' }}
+									{{ copied ? '✓ Copied' : '📋 Copy' }}
 								</button>
 								<button class="btn btn-sm btn-outline-secondary" @click="generateDraft" :disabled="generating">
-									\ud83d\udd04 Regenerate
+									🔄 Regenerate
 								</button>
 							</div>
 						</div>

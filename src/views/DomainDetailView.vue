@@ -200,7 +200,7 @@ function scrollToProspects() {
 		<!-- Error -->
 		<div class="alert alert-danger" v-if="error">
 			<i class="bi bi-exclamation-triangle me-1"></i>{{ error }}
-			<button class="btn btn-outline-secondary btn-sm ms-3" @click="router.push({ name: 'domains' })">\u2190 Back to Domains</button>
+			<button class="btn btn-outline-secondary btn-sm ms-3" @click="router.push({ name: 'domains' })">← Back to Domains</button>
 		</div>
 
 		<template v-if="domain && !loading">
