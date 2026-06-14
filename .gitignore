@@ -29,6 +29,7 @@ dist-ssr
 
 # var env
 .env
+.env.prod
 
 # coverage
 coverage/
