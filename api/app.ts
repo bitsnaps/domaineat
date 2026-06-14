@@ -12,7 +12,8 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { sequelize, Domain, Ledger, Prospect, User, Notification, Watchlist, Wishlist, DomainTag, Plan } from './models/index.js'
-import { hashPassword, verifyPassword, signJwt, verifyJwt, TIER_LIMITS } from './auth.js'
+import { hashPassword, verifyPassword, signJwt, verifyJwt } from './auth.js'
+import { getPlanLimits, invalidatePlanCache } from './plan-cache.js'
 import { rdapRateLimit } from './rate-limit.js'
 import { runAllTasks } from './scheduler.js'
 // Env validation is handled by the entrypoint (netlify/functions/api.ts or api/server.ts)
@@ -272,8 +273,9 @@ app.get('/api/domains', async (c) => {
 
 app.post('/api/domains', async (c) => {
 	const authUser = c.get('user')
-	const tier = (authUser.tier || 'free') as keyof typeof TIER_LIMITS
-	const limit = TIER_LIMITS[tier]?.domains ?? TIER_LIMITS.free.domains
+	const tier = authUser.tier || 'free'
+	const limits = await getPlanLimits(tier)
+	const limit = limits.domains
 	if (limit !== Infinity) {
 		const currentCount = await Domain.count({ where: { user_id: authUser.userId } })
 		if (currentCount >= limit) {
@@ -897,11 +899,12 @@ app.get('/api/users/:id/ai-status', async (c) => {
  const user = await User.findByPk(authUserId, {
  attributes: { exclude: ['password_hash', 'llm_api_key_encrypted'] },
  })
-  if (!user) return c.json({ error: 'User not found' }, 404)
+   if (!user) return c.json({ error: 'User not found' }, 404)
 
-  const configured = !!(user.llm_provider && user.llm_api_key_encrypted)
-  const dailyLimit = user.tier === 'free' ? 5 : user.tier === 'premium' ? 100 : Infinity
-  return c.json({
+   const configured = !!(user.llm_provider && user.llm_api_key_encrypted)
+   const planLimits = await getPlanLimits(user.tier || 'free')
+   const dailyLimit = planLimits.aiDaily
+   return c.json({
     configured,
     provider: user.llm_provider,
     model: user.llm_model,
@@ -931,7 +934,8 @@ app.post('/api/ai/draft-outreach', async (c) => {
   }
 
   // Rate limiting
-  const dailyLimit = user.tier === 'free' ? 5 : user.tier === 'premium' ? 100 : Infinity
+  const planLimits = await getPlanLimits(user.tier || 'free')
+  const dailyLimit = planLimits.aiDaily
   if (user.daily_ai_calls >= dailyLimit) {
     return c.json({ error: `Daily AI call limit reached (${dailyLimit}/day for ${user.tier} tier)` }, 429)
   }
@@ -1083,8 +1087,9 @@ app.get('/api/watchlist', async (c) => {
 
 app.post('/api/watchlist', async (c) => {
 	const authUser = c.get('user')
-	const tier = (authUser.tier || 'free') as keyof typeof TIER_LIMITS
-	const limit = TIER_LIMITS[tier]?.watchlist ?? TIER_LIMITS.free.watchlist
+	const tier = authUser.tier || 'free'
+	const limits = await getPlanLimits(tier)
+	const limit = limits.watchlist
 	if (limit !== Infinity) {
 		const currentCount = await Watchlist.count({ where: { user_id: authUser.userId } })
 		if (currentCount >= limit) {
@@ -1235,8 +1240,9 @@ app.get('/api/wishlist', async (c) => {
 
 app.post('/api/wishlist', async (c) => {
 	const authUser = c.get('user')
-	const tier = (authUser.tier || 'free') as keyof typeof TIER_LIMITS
-	const limit = TIER_LIMITS[tier]?.wishlist ?? TIER_LIMITS.free.wishlist
+	const tier = authUser.tier || 'free'
+	const limits = await getPlanLimits(tier)
+	const limit = limits.wishlist
 	if (limit !== Infinity) {
 		const currentCount = await Wishlist.count({ where: { user_id: authUser.userId } })
 		if (currentCount >= limit) {
@@ -1695,9 +1701,51 @@ app.put('/api/admin/plans/:tier', async (c) => {
 		updates.updated_at = new Date()
 
 		await plan.update(updates)
+		// Invalidate plan cache so next request uses fresh data
+		invalidatePlanCache()
 		return c.json(plan)
 	} catch (err: any) {
 		return c.json({ error: 'Failed to update plan' }, 500)
+	}
+})
+
+// Admin — delete user (POST endpoint with body for cascade flag)
+app.post('/api/admin/users/:id/delete', async (c) => {
+	try {
+		const targetId = Number(c.req.param('id'))
+		const user = await User.findByPk(targetId)
+		if (!user) return c.json({ error: 'User not found' }, 404)
+
+		const authUserId = c.get('userId')
+		if (targetId === authUserId) {
+			return c.json({ error: 'Cannot delete yourself' }, 400)
+		}
+
+		let body: { cascade?: boolean } = {}
+		try { body = await c.req.json() } catch { /* empty */ }
+		const cascade = body.cascade === true
+
+		if (cascade) {
+			const userDomainIds = (await Domain.findAll({
+				where: { user_id: targetId },
+				attributes: ['id'],
+			})).map(d => d.id)
+
+			if (userDomainIds.length > 0) {
+				await Prospect.destroy({ where: { domain_id: userDomainIds } })
+				await Ledger.destroy({ where: { domain_id: userDomainIds } })
+				await DomainTag.destroy({ where: { domain_id: userDomainIds } })
+				await Domain.destroy({ where: { user_id: targetId } })
+			}
+			await Watchlist.destroy({ where: { user_id: targetId } })
+			await Wishlist.destroy({ where: { user_id: targetId } })
+			await Notification.destroy({ where: { user_id: targetId } })
+		}
+
+		await user.destroy()
+		return c.json({ deleted: true, cascade })
+	} catch (err: any) {
+		return c.json({ error: 'Failed to delete user' }, 500)
 	}
 })
 

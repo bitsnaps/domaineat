@@ -2,7 +2,7 @@
  * rate-limit.ts — RDAP rate-limit enforcement middleware for Hono.
  *
  * Two modes:
- *   1. Authenticated user: check User.daily_rdap_calls against TIER_LIMITS[tier].rdapDaily
+ *   1. Authenticated user: check User.daily_rdap_calls against plan limits from DB
  *   2. Anonymous (public): IP-based tracking via X-Forwarded-For / c.req.header, 
  *      with ANON_RDAP_DAILY limit (higher than free-tier).
  *
@@ -10,7 +10,7 @@
  *        app.use('/api/search',  rdapRateLimit())
  */
 import type { Context, Next } from 'hono'
-import { TIER_LIMITS } from './auth.js'
+import { getPlanLimits } from './plan-cache.js'
 
 /** Anonymous daily limit — generous for public use, encourages sign-up for more */
 export const ANON_RDAP_DAILY = 30
@@ -61,7 +61,8 @@ export function rdapRateLimit() {
 				return c.json({ error: 'User not found' }, 401)
 			}
 
-			const limit = TIER_LIMITS[tier as keyof typeof TIER_LIMITS]?.rdapDaily ?? TIER_LIMITS.free.rdapDaily
+			const planLimits = await getPlanLimits(tier)
+			const limit = planLimits.rdapDaily
 			const current = (user as any).daily_rdap_calls ?? 0
 
 			if (limit !== Infinity && current >= limit) {

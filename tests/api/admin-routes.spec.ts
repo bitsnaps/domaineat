@@ -6,12 +6,26 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { signJwt } from '../../api/auth.js'
+import * as planCache from '../../api/plan-cache.js'
 
 // Helper to generate auth headers with a valid JWT
 function makeAuthHeader(payload: { userId: number; email: string; tier: string; role?: string }) {
 	const token = signJwt(payload as any)
 	return { Authorization: `Bearer ${token}` }
 }
+
+// Mock plan-cache so getPlanLimits returns hardcoded TIER_LIMITS-like values
+vi.mock('../../api/plan-cache.js', () => ({
+	getPlanLimits: vi.fn(async (tier: string) => {
+		const limits: Record<string, any> = {
+			free: { domains: 10, rdapDaily: 10, aiDaily: 5, watchlist: 10, wishlist: 5 },
+			premium: { domains: 1000, rdapDaily: 100, aiDaily: 100, watchlist: 100, wishlist: 50 },
+			enterprise: { domains: Infinity, rdapDaily: Infinity, aiDaily: Infinity, watchlist: Infinity, wishlist: Infinity },
+		}
+		return limits[tier] || limits.free
+	}),
+	invalidatePlanCache: vi.fn(),
+}))
 
 // Mock data stores
 const mockUsers: any[] = []
@@ -37,9 +51,10 @@ const mockPlans: any[] = [
 vi.mock('../../api/models/index.js', () => ({
 	sequelize: { authenticate: vi.fn() },
 	User: {
-		findByPk: vi.fn(async (id: number | string) =>
-			mockUsers.find((u) => String(u.id) === String(id)) || null
-		),
+		findByPk: vi.fn(async (id: number | string) => {
+			const user = mockUsers.find((u) => String(u.id) === String(id))
+			return user || null
+		}),
 		findOne: vi.fn(async (opts: any) => {
 			if (opts?.where?.email) return mockUsers.find((u) => u.email === opts.where.email) || null
 			return mockUsers[0] || null
@@ -51,7 +66,7 @@ vi.mock('../../api/models/index.js', () => ({
 		}),
 		count: vi.fn(async () => mockUsers.length),
 		create: vi.fn(async (data: any) => {
-			const user = { id: mockUsers.length + 1, ...data, update: vi.fn(), toJSON: () => ({ ...data, id: mockUsers.length + 1 }) }
+			const user = { id: mockUsers.length + 1, ...data, update: vi.fn(), destroy: vi.fn(), toJSON: () => ({ ...data, id: mockUsers.length + 1 }) }
 			mockUsers.push(user)
 			return user
 		}),
@@ -78,16 +93,18 @@ vi.mock('../../api/models/index.js', () => ({
 		findByPk: vi.fn(async () => null),
 		count: vi.fn(async () => 0),
 		create: vi.fn(async (data: any) => ({ id: 1, ...data })),
+		destroy: vi.fn(async () => 0),
 	},
 	Prospect: {
 		findAll: vi.fn(async () => []),
 		findByPk: vi.fn(async () => null),
 		create: vi.fn(async (data: any) => ({ id: 1, ...data })),
+		destroy: vi.fn(async () => 0),
 	},
-	Notification: { findAll: vi.fn(async () => []), create: vi.fn() },
-	Watchlist: { findAll: vi.fn(async () => []), count: vi.fn(async () => 0) },
-	Wishlist: { findAll: vi.fn(async () => []), count: vi.fn(async () => 0) },
-	DomainTag: { findAll: vi.fn(async () => []) },
+	Notification: { findAll: vi.fn(async () => []), create: vi.fn(), destroy: vi.fn(async () => 0) },
+	Watchlist: { findAll: vi.fn(async () => []), count: vi.fn(async () => 0), destroy: vi.fn(async () => 0) },
+	Wishlist: { findAll: vi.fn(async () => []), count: vi.fn(async () => 0), destroy: vi.fn(async () => 0) },
+	DomainTag: { findAll: vi.fn(async () => []), destroy: vi.fn(async () => 0) },
 	Plan: {
 		findAll: vi.fn(async () => [...mockPlans]),
 		findByPk: vi.fn(async (tier: string) => mockPlans.find((p) => p.tier === tier) || null),
@@ -119,9 +136,9 @@ describe('Admin API Routes', () => {
 		// Reset plans to defaults
 		mockPlans.length = 0
 		mockPlans.push(
-			{ tier: 'free', name: 'Free', price_monthly: 0, price_yearly: 0, domains: 10, rdap_daily: 10, ai_daily: 5, watchlist: 10, wishlist: 5, features: '[]', active: true },
-			{ tier: 'premium', name: 'Premium', price_monthly: 29.99, price_yearly: 299.99, domains: 1000, rdap_daily: 100, ai_daily: 100, watchlist: 100, wishlist: 50, features: '[]', active: true },
-			{ tier: 'enterprise', name: 'Enterprise', price_monthly: 99.99, price_yearly: 999.99, domains: -1, rdap_daily: -1, ai_daily: -1, watchlist: -1, wishlist: -1, features: '[]', active: true },
+			{ tier: 'free', name: 'Free', price_monthly: 0, price_yearly: 0, domains: 10, rdap_daily: 10, ai_daily: 5, watchlist: 10, wishlist: 5, features: '[]', active: true, update: vi.fn(), destroy: vi.fn() },
+			{ tier: 'premium', name: 'Premium', price_monthly: 29.99, price_yearly: 299.99, domains: 1000, rdap_daily: 100, ai_daily: 100, watchlist: 100, wishlist: 50, features: '[]', active: true, update: vi.fn(), destroy: vi.fn() },
+			{ tier: 'enterprise', name: 'Enterprise', price_monthly: 99.99, price_yearly: 999.99, domains: -1, rdap_daily: -1, ai_daily: -1, watchlist: -1, wishlist: -1, features: '[]', active: true, update: vi.fn(), destroy: vi.fn() },
 		)
 	})
 
@@ -153,8 +170,8 @@ describe('Admin API Routes', () => {
 	describe('GET /api/admin/stats', () => {
 		it('returns platform stats for admin', async () => {
 			mockUsers.push(
-				{ id: 1, email: 'a@test.com', tier: 'free', role: 'admin' },
-				{ id: 2, email: 'b@test.com', tier: 'premium', role: 'user' },
+				{ id: 1, email: 'a@test.com', tier: 'free', role: 'admin', update: vi.fn(), destroy: vi.fn() },
+				{ id: 2, email: 'b@test.com', tier: 'premium', role: 'user', update: vi.fn(), destroy: vi.fn() },
 			)
 			const headers = makeAuthHeader({ userId: 1, email: 'admin@test.com', tier: 'free', role: 'admin' })
 			const res = await app.request('/api/admin/stats', { headers })
@@ -170,8 +187,8 @@ describe('Admin API Routes', () => {
 	describe('GET /api/admin/users', () => {
 		it('returns list of users for admin', async () => {
 			mockUsers.push(
-				{ id: 1, email: 'a@test.com', tier: 'free', role: 'admin' },
-				{ id: 2, email: 'b@test.com', tier: 'premium', role: 'user' },
+				{ id: 1, email: 'a@test.com', tier: 'free', role: 'admin', update: vi.fn(), destroy: vi.fn() },
+				{ id: 2, email: 'b@test.com', tier: 'premium', role: 'user', update: vi.fn(), destroy: vi.fn() },
 			)
 			const headers = makeAuthHeader({ userId: 1, email: 'admin@test.com', tier: 'free', role: 'admin' })
 			const res = await app.request('/api/admin/users', { headers })
@@ -271,6 +288,71 @@ describe('Admin API Routes', () => {
 				method: 'PUT',
 				headers: { ...headers, 'Content-Type': 'application/json' },
 				body: JSON.stringify({ price_monthly: 10 }),
+			})
+			expect(res.status).toBe(404)
+		})
+
+		it('invalidates plan cache on update', async () => {
+			const mockUpdate = vi.fn()
+			const plan = { tier: 'free', name: 'Free', price_monthly: 0, domains: 10, update: mockUpdate, toJSON: () => ({ tier: 'free', price_monthly: 5 }) }
+			mockPlans.length = 0
+			mockPlans.push(plan)
+
+			const headers = makeAuthHeader({ userId: 1, email: 'admin@test.com', tier: 'free', role: 'admin' })
+			await app.request('/api/admin/plans/free', {
+				method: 'PUT',
+				headers: { ...headers, 'Content-Type': 'application/json' },
+				body: JSON.stringify({ price_monthly: 5 }),
+			})
+			expect(planCache.invalidatePlanCache).toHaveBeenCalled()
+		})
+	})
+
+	// ─── Delete User (POST endpoint) ────────────────────────────────
+
+	describe('POST /api/admin/users/:id/delete', () => {
+		it('allows admin to delete user with cascade', async () => {
+			const mockDestroy = vi.fn()
+			const userObj = { id: 2, email: 'user@test.com', tier: 'free', role: 'user', destroy: mockDestroy }
+			mockUsers.push(
+				{ id: 1, email: 'admin@test.com', tier: 'free', role: 'admin' },
+				userObj,
+			)
+
+			const headers = makeAuthHeader({ userId: 1, email: 'admin@test.com', tier: 'free', role: 'admin' })
+			const res = await app.request('/api/admin/users/2/delete', {
+				method: 'POST',
+				headers: { ...headers, 'Content-Type': 'application/json' },
+				body: JSON.stringify({ cascade: true }),
+			})
+			expect(res.status).toBe(200)
+			const data = await res.json()
+			expect(data.deleted).toBe(true)
+			expect(data.cascade).toBe(true)
+			expect(mockDestroy).toHaveBeenCalled()
+		})
+
+		it('prevents admin from deleting themselves', async () => {
+			const userObj = { id: 1, email: 'admin@test.com', tier: 'free', role: 'admin', destroy: vi.fn() }
+			mockUsers.push(userObj)
+
+			const headers = makeAuthHeader({ userId: 1, email: 'admin@test.com', tier: 'free', role: 'admin' })
+			const res = await app.request('/api/admin/users/1/delete', {
+				method: 'POST',
+				headers: { ...headers, 'Content-Type': 'application/json' },
+				body: JSON.stringify({}),
+			})
+			expect(res.status).toBe(400)
+			const data = await res.json()
+			expect(data.error).toMatch(/delete yourself/i)
+		})
+
+		it('returns 404 for non-existent user', async () => {
+			const headers = makeAuthHeader({ userId: 1, email: 'admin@test.com', tier: 'free', role: 'admin' })
+			const res = await app.request('/api/admin/users/999/delete', {
+				method: 'POST',
+				headers: { ...headers, 'Content-Type': 'application/json' },
+				body: JSON.stringify({}),
 			})
 			expect(res.status).toBe(404)
 		})
