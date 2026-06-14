@@ -117,7 +117,7 @@ app.use('/api/*', cors())
 
 // ─── Auth Middleware ──────────────────────────────────────────────────
 // Public routes that skip authentication
-const PUBLIC_PATHS = ['/api/health', '/api/auth/register', '/api/auth/login', '/api/auth/me', '/api/validate', '/api/search', '/api/appraise']
+const PUBLIC_PATHS = ['/api/health', '/api/auth/register', '/api/auth/login', '/api/auth/me', '/api/validate', '/api/search', '/api/appraise', '/api/pricing', '/api/pricing/providers']
 
 app.use('/api/*', async (c, next) => {
 	const path = new URL(c.req.url).pathname
@@ -749,6 +749,37 @@ app.get('/api/appraise', async (c) => {
 		return c.json(result)
 	} catch (err: any) {
 		return c.json({ error: `Appraisal failed: ${err.message}` }, 502)
+	}
+})
+
+// ─── Domain Pricing (public, free registrar APIs) ────────────────────
+
+app.get('/api/pricing', async (c) => {
+	const domain = c.req.query('domain')
+	if (!domain || typeof domain !== 'string') {
+		return c.json({ error: 'domain query parameter is required' }, 400)
+	}
+
+	const sanitized = domain.toLowerCase().replace(/^www\./, '').trim()
+	if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z]{2,})+$/.test(sanitized)) {
+		return c.json({ error: 'Invalid domain format' }, 400)
+	}
+
+	try {
+		const { getDomainPricing } = await import('./pricing/index.js')
+		const result = await getDomainPricing(sanitized)
+		return c.json(result)
+	} catch (err: any) {
+		return c.json({ error: `Pricing lookup failed: ${err.message}` }, 502)
+	}
+})
+
+app.get('/api/pricing/providers', async (c) => {
+	try {
+		const { getProviderStatus } = await import('./pricing/index.js')
+		return c.json(getProviderStatus())
+	} catch (err: any) {
+		return c.json({ error: `Failed to get provider status: ${err.message}` }, 500)
 	}
 })
 

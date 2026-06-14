@@ -3,14 +3,16 @@ import { ref, onMounted, computed } from 'vue'
 import { useWishlistStore } from '@/stores/wishlist'
 import { useProspectsStore } from '@/stores/prospects'
 import { useAuthStore } from '@/stores/auth'
+import { usePricingStore } from '@/stores/pricing'
 import EmptyState from '@/components/EmptyState.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import { gradeToRange } from '@/lib/appraise'
-import type { WishlistCreate, WishlistUpdate, WishlistPriority, AppraisalGrade } from '@/types'
+import type { WishlistCreate, WishlistUpdate, WishlistPriority, AppraisalGrade, DomainPricing } from '@/types'
 
 const store = useWishlistStore()
 const prospectsStore = useProspectsStore()
 const authStore = useAuthStore()
+const pricingStore = usePricingStore()
 
 const showAddModal = ref(false)
 const selectedIds = ref<number[]>([])
@@ -162,6 +164,22 @@ async function handleFindProspects() {
 	selectAll.value = false
 }
 
+/** Fetch pricing for a single wishlist item */
+function fetchItemPricing(item: typeof store.items[0]) {
+	const domain = `${item.domain_name}.${item.tld}`
+	pricingStore.fetchPricing(domain)
+}
+
+/** Get cheapest price for a domain from cached pricing result */
+function cheapestPrice(item: typeof store.items[0]): DomainPricing | null {
+	if (!pricingStore.pricingResult) return null
+	const domain = `${item.domain_name}.${item.tld}`
+	if (pricingStore.pricingResult.domain !== domain) return null
+	const withPrice = pricingStore.pricingResult.prices.filter(p => p.register !== null)
+	if (withPrice.length === 0) return null
+	return withPrice.sort((a, b) => (a.register ?? Infinity) - (b.register ?? Infinity))[0]
+}
+
 /** Compare user's budget vs appraisal range. Returns label + CSS class. */
 function budgetVsAppraisal(item: typeof store.items[0]) {
 	if (!item.max_budget || !item.appraisal_grade) return { label: '—', class: '' }
@@ -276,6 +294,7 @@ function registerUrl(item: typeof store.items[0]) {
 							<th style="width: 10%;">Priority</th>
 						<th style="width: 10%;">Budget</th>
 						<th style="width: 10%;">Value</th>
+						<th style="width: 8%;">Price</th>
 						<th style="width: 8%;">Status</th>
 							<th style="width: 8%;">Auto</th>
 							<th style="width: 8%;">AI</th>
@@ -312,6 +331,22 @@ function registerUrl(item: typeof store.items[0]) {
 							<div v-if="item.appraisal_grade" class="text-muted small">
 								{{ item.appraisal_grade }} · ${{ gradeToRange(item.appraisal_grade as AppraisalGrade).low.toLocaleString() }}–${{ gradeToRange(item.appraisal_grade as AppraisalGrade).high.toLocaleString() }}
 							</div>
+						</td>
+						<td>
+							<div v-if="cheapestPrice(item)" class="small">
+								<span class="fw-semibold text-success">${{ cheapestPrice(item)!.register!.toFixed(2) }}</span>
+								<span class="text-muted d-block" style="font-size: 0.7rem;">{{ cheapestPrice(item)!.provider }}</span>
+							</div>
+							<button
+								v-else-if="item.available === true"
+								class="btn btn-sm btn-outline-primary py-0"
+								@click="fetchItemPricing(item)"
+								:disabled="pricingStore.loading"
+								style="font-size: 0.7rem;"
+							>
+								<i class="bi bi-tag me-1"></i>Get Price
+							</button>
+							<span v-else class="text-muted small">—</span>
 						</td>
 						<td>
 							<span v-if="item.available === true" class="badge bg-success">Available</span>

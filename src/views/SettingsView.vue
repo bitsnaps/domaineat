@@ -5,6 +5,11 @@ import { useAuthStore } from '@/stores/auth'
 import api from '@/lib/api'
 import type { User, AiStatus, LlmProvider } from '@/types'
 
+interface ProviderStatus {
+	name: string
+	configured: boolean
+}
+
 const auth = useAuthStore()
 const router = useRouter()
 
@@ -41,17 +46,22 @@ const tierLabel = computed(() => {
 	return t.charAt(0).toUpperCase() + t.slice(1)
 })
 
+// ─── Pricing Provider Status ──────────────────────────────────────────
+const pricingProviders = ref<ProviderStatus[]>([])
+
 onMounted(async () => {
 	loading.value = true
 	try {
 		const userId = auth.user?.id
 		if (!userId) return
-		const [userRes, statusRes] = await Promise.all([
+		const [userRes, statusRes, providersRes] = await Promise.all([
 			api.get(`/users/${userId}`),
 			api.get(`/users/${userId}/ai-status`),
+			api.get('/pricing/providers').catch(() => ({ data: [] })),
 		])
 		user.value = userRes.data
 		aiStatus.value = statusRes.data
+		pricingProviders.value = providersRes.data
 
 		// Pre-fill form
 		if (user.value) {
@@ -266,6 +276,31 @@ function handleLogout() {
 						<div class="small fw-semibold" style="color: #b45309;">Upgrade to Enterprise</div>
 						<div class="text-muted small mb-2">Unlimited domains, RDAP checks, and AI calls.</div>
 						<button class="btn btn-sm text-white" style="background: #b45309;" disabled>Coming Soon</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Domain Pricing Providers Card -->
+			<div v-if="pricingProviders.length > 0" class="card border-0 shadow-sm mb-4">
+				<div class="card-body">
+					<h6 class="fw-semibold mb-3">
+						<i class="bi bi-tag me-2" style="color: #6366f1;"></i>Domain Pricing Providers
+					</h6>
+					<p class="text-muted small mb-3">
+						These providers supply domain registration pricing data. Configure API keys in your environment to enable each provider.
+					</p>
+					<div class="row g-3">
+						<div v-for="p in pricingProviders" :key="p.name" class="col-sm-4">
+							<div class="d-flex align-items-center gap-2 p-2 rounded bg-light">
+								<i class="bi" :class="p.configured ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'"></i>
+								<div>
+									<div class="fw-semibold small">{{ p.name }}</div>
+									<div class="text-muted" style="font-size: 0.7rem;">
+										{{ p.configured ? 'Configured' : 'Not configured' }}
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>

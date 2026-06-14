@@ -40,5 +40,5 @@ app.get('*', async (c) => {
 
 const port = Number(process.env.PORT) || 3000
 
-console.log(`🚀 Starting Domaineat on port ${port}`)
+console.log(`🚀 Starting Domaineat on: http://localhost:${port}/`)
 serve({ fetch: app.fetch, port })

@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useLookupStore, type LookupHistoryEntry } from '@/stores/lookup'
 import { useAuthStore } from '@/stores/auth'
+import { usePricingStore } from '@/stores/pricing'
 import DomainLookupCard from '@/components/DomainLookupCard.vue'
 import AppraisalBadge from '@/components/AppraisalBadge.vue'
+import PricingCard from '@/components/PricingCard.vue'
 import TldSelector from '@/components/TldSelector.vue'
 import LoadingSkeleton from '@/components/LoadingSkeleton.vue'
 import type { ExtensionCheckResult, DomainAppraisal } from '@/types'
@@ -12,6 +14,7 @@ import { appraise } from '@/lib/appraise'
 
 const store = useLookupStore()
 const auth = useAuthStore()
+const pricingStore = usePricingStore()
 
 const searchInput = ref('')
 const selectedTlds = ref<string[]>([...store.defaultTlds])
@@ -114,6 +117,20 @@ function formatRange(range: { low: number; high: number }): string {
 function signalIcon(passed: boolean): string {
 	return passed ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-warning'
 }
+
+// ─── Pricing Integration ────────────────────────────────────────────
+
+/** Auto-fetch pricing when a validate result is available */
+watch(
+	() => store.validateResult,
+	(result) => {
+		if (result?.domain) {
+			pricingStore.fetchPricing(result.domain)
+		} else {
+			pricingStore.clearPricing()
+		}
+	},
+)
 </script>
 
 <template>
@@ -490,6 +507,17 @@ function signalIcon(passed: boolean): string {
 						</p>
 					</div>
 				</div>
+			</div>
+
+			<!-- Domain Pricing -->
+			<div v-if="pricingStore.loading || pricingStore.pricingResult" class="mt-3">
+				<div v-if="pricingStore.loading" class="card shadow-sm">
+					<div class="card-body text-center py-3">
+						<span class="spinner-border spinner-border-sm me-2"></span>
+						Fetching pricing from providers...
+					</div>
+				</div>
+				<PricingCard v-else-if="pricingStore.pricingResult" :pricing="pricingStore.pricingResult" />
 			</div>
 		</div>
 	</div>

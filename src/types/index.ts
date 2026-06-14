@@ -245,6 +245,26 @@ export interface RateLimitInfo {
 	tier: string
 }
 
+// ─── Domain Pricing ──────────────────────────────────────────────────
+
+export interface DomainPricing {
+	provider: string
+	domain: string
+	available: boolean | null
+	register: number | null
+	renew: number | null
+	transfer: number | null
+	currency: string
+	buyUrl?: string
+}
+
+export interface PricingResponse {
+	domain: string
+	available: boolean | null
+	prices: DomainPricing[]
+	providersConfigured: string[]
+}
+
 // ─── Domain Appraisal ─────────────────────────────────────────────────
 
 export interface AppraisalSignal {
