@@ -25,7 +25,7 @@
 | Frontend | Vue 3 + TypeScript + Pinia + Vue Router + Bootstrap 5 |
 | Backend | Hono (Node.js) |
 | Database | PostgreSQL (production) / SQLite (development) |
-| AI | Configurable LLM providers (OpenAI, Anthropic, Google, Ollama, Groq, etc.) |
+| AI | Configurable LLM providers (OpenAI, Anthropic, Google, Ollama, Groq, NVIDIA, etc.) |
 | Deployment | Netlify (static + serverless functions) |
 | CI/CD | GitHub Actions |
 

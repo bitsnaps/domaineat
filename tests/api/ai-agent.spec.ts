@@ -23,7 +23,7 @@ vi.mock('../../api/models/index.js', () => ({
   sequelize: { authenticate: vi.fn() },
   User: {
     findByPk: vi.fn(async (id: number | string) => {
-      if (String(id) === '1') return { id: 1, email: 'test@test.com', tier: 'premium', password_hash: 'hash', llm_provider: 'openai', llm_api_key_encrypted: 'sk-test', llm_model: 'gpt-4o-mini', daily_ai_calls: 0, daily_rdap_calls: 0, increment: vi.fn(), toJSON: () => ({ id: 1, email: 'test@test.com', tier: 'premium' }), update: vi.fn() }
+      if (String(id) === '1') return { id: 1, email: 'test@test.com', tier: 'premium', password_hash: 'hash', llm_provider: 'openai', llm_api_key_encrypted: 'sk-test', llm_model: 'gpt-5.4-mini', daily_ai_calls: 0, daily_rdap_calls: 0, increment: vi.fn(), toJSON: () => ({ id: 1, email: 'test@test.com', tier: 'premium' }), update: vi.fn() }
       return null
     }),
     findOne: vi.fn(async () => null),

@@ -977,13 +977,14 @@ Return ONLY the email body text, no subject line needed.`
  */
 async function callLlm(provider: string, apiKey: string, model: string | null, prompt: string): Promise<string> {
   const defaultModels: Record<string, string> = {
-    openai: 'gpt-4o-mini',
-    anthropic: 'claude-3-haiku-20240307',
-    groq: 'llama-3.1-8b-instant',
-    openrouter: 'openai/gpt-4o-mini',
+    openai: 'gpt-5.4-mini',
+    anthropic: 'claude-haiku-4-5',
+    groq: 'openai/gpt-oss-120b',
+	nvidia: 'nvidia/nemotron-3-super-120b-a12b',
+    openrouter: 'openrouter/free',
   }
 
-  const useModel = model || defaultModels[provider] || 'gpt-4o-mini'
+  const useModel = model || defaultModels[provider] || 'gpt-5.4-mini'
 
   if (provider === 'anthropic') {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1005,10 +1006,11 @@ async function callLlm(provider: string, apiKey: string, model: string | null, p
     return data.content?.[0]?.text || ''
   }
 
-  // OpenAI-compatible (openai, groq, openrouter)
+  // OpenAI-compatible (openai, groq, nvidia, openrouter)
   const baseUrls: Record<string, string> = {
     openai: 'https://api.openai.com',
     groq: 'https://api.groq.com/openai',
+    nvidia: 'https://integrate.api.nvidia.com',
     openrouter: 'https://openrouter.ai/api',
   }
   const baseUrl = baseUrls[provider] || baseUrls.openai

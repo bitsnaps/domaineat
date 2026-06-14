@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:api": "pnpm run build:api && node --watch dist-api/api/server.js",
-    "dev:all": "concurrently \"pnpm run dev\" \"pnpm run dev:api\"",
+    "dev:all": "pnpm run build && concurrently \"pnpm run dev\" \"pnpm run dev:api\"",
     "build": "vue-tsc -b && vite build",
     "build:api": "tsc -p tsconfig.api.json && cp -r api/migrations dist-api/api/migrations",
     "start": "node dist-api/api/server.js",

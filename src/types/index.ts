@@ -8,7 +8,7 @@
 export type UserTier = 'free' | 'premium' | 'enterprise'
 export type UserRole = 'user' | 'admin'
 
-export type LlmProvider = 'openai' | 'anthropic' | 'groq' | 'openrouter'
+export type LlmProvider = 'openai' | 'anthropic' | 'groq' | 'nvidia' | 'openrouter'
 
 export interface User {
 	id: number

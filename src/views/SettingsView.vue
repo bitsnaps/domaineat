@@ -31,14 +31,16 @@ const providerOptions: { value: LlmProvider; label: string }[] = [
 	{ value: 'openai', label: 'OpenAI' },
 	{ value: 'anthropic', label: 'Anthropic' },
 	{ value: 'groq', label: 'Groq' },
+	{ value: 'nvidia', label: 'NVIDIA' },
 	{ value: 'openrouter', label: 'OpenRouter' },
 ]
 
 const defaultModels: Record<string, string> = {
-	openai: 'gpt-4o-mini',
-	anthropic: 'claude-3-haiku-20240307',
-	groq: 'llama-3.1-8b-instant',
-	openrouter: 'openai/gpt-4o-mini',
+	openai: 'gpt-5.4-mini',
+	anthropic: 'claude-haiku-4-5',
+	groq: 'openai/gpt-oss-120b',
+	nvidia: 'nvidia/nemotron-3-super-120b-a12b',
+	openrouter: 'openrouter/free',
 }
 
 const tierLabel = computed(() => {
@@ -187,7 +189,7 @@ function handleLogout() {
 					<!-- Model -->
 					<div class="mb-3">
 						<label class="form-label small fw-semibold">Model</label>
-						<input v-model="llmModel" type="text" class="form-control" :placeholder="llmProvider ? defaultModels[llmProvider] : 'e.g. gpt-4o-mini'" />
+						<input v-model="llmModel" type="text" class="form-control" :placeholder="llmProvider ? defaultModels[llmProvider] : 'e.g. gpt-5.4-mini'" />
 						<div class="form-text small">Leave blank to use the default model for your provider.</div>
 					</div>
 

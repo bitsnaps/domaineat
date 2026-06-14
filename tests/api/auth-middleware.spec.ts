@@ -313,7 +313,7 @@ describe('Auth Middleware', () => {
         tier: 'free',
         llm_provider: 'openai',
         llm_api_key_encrypted: 'sk-test',
-        llm_model: 'gpt-4o-mini',
+        llm_model: 'gpt-5.4-mini',
         daily_ai_calls: 5,
         update: vi.fn(),
       })
@@ -333,7 +333,7 @@ describe('Auth Middleware', () => {
         tier: 'enterprise',
         llm_provider: 'openai',
         llm_api_key_encrypted: 'sk-test',
-        llm_model: 'gpt-4o-mini',
+        llm_model: 'gpt-5.4-mini',
         daily_ai_calls: 999,
         update: vi.fn(),
       })
