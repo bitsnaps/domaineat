@@ -177,7 +177,9 @@ function cheapestPrice(item: typeof store.items[0]): DomainPricing | null {
 	if (pricingStore.pricingResult.domain !== domain) return null
 	const withPrice = pricingStore.pricingResult.prices.filter(p => p.register !== null)
 	if (withPrice.length === 0) return null
-	return withPrice.sort((a, b) => (a.register ?? Infinity) - (b.register ?? Infinity))[0]
+	const sorted = withPrice.sort((a, b) => (a.register ?? Infinity) - (b.register ?? Infinity))
+	const cheapest: DomainPricing | undefined = sorted[0]
+	return cheapest ?? null
 }
 
 /** Compare user's budget vs appraisal range. Returns label + CSS class. */
