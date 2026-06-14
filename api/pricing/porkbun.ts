@@ -5,8 +5,8 @@
  * Auth: API key + secret in request body
  * Returns: Full TLD pricing catalog (cached 24h)
  */
-import type { PricingProvider, TldPricing, DomainPricingResult } from './providers'
-import { getCachedTldPricing, setCachedTldPricing } from './cache'
+import type { PricingProvider, TldPricing, DomainPricingResult } from './providers.js'
+import { getCachedTldPricing, setCachedTldPricing } from './cache.js'
 
 const API_URL = 'https://api.porkbun.com/api/json/v3/pricing/get'
 

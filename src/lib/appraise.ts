@@ -6,8 +6,8 @@
  *
  * Signals: length, TLD prestige, dictionary match, brandability, cleanliness.
  */
-import type { AppraisalGrade, AppraisalSignal, DomainAppraisal } from '../types'
-import { getTldPrestige } from './tld-prestige'
+import type { AppraisalGrade, AppraisalSignal, DomainAppraisal } from '../types/index.js'
+import { getTldPrestige } from './tld-prestige.js'
 
 // ─── Signal scorers ──────────────────────────────────────────────────
 

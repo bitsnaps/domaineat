@@ -2,10 +2,10 @@
  * Pricing aggregator — queries all configured providers in parallel
  * and returns results sorted by registration price (lowest first).
  */
-import type { PricingProvider, DomainPricingResult } from './providers'
-import { PorkbunProvider } from './porkbun'
-import { CloudflareProvider } from './cloudflare'
-import { GoDaddyProvider } from './godaddy'
+import type { PricingProvider, DomainPricingResult } from './providers.js'
+import { PorkbunProvider } from './porkbun.js'
+import { CloudflareProvider } from './cloudflare.js'
+import { GoDaddyProvider } from './godaddy.js'
 
 export interface PricingResponse {
 	domain: string

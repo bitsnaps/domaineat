@@ -5,7 +5,7 @@
  * We cache these for 24 hours to minimize API requests.
  */
 
-import type { TldPricing } from './providers'
+import type { TldPricing } from './providers.js'
 
 interface CacheEntry<T> {
 	data: T

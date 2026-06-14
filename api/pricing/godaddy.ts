@@ -6,8 +6,8 @@
  * Auth: Authorization: sso-key {API_KEY}:{SECRET_KEY}
  * GoDaddy already has env vars configured in the project.
  */
-import type { PricingProvider, TldPricing, DomainPricingResult } from './providers'
-import { getCachedTldPricing, setCachedTldPricing } from './cache'
+import type { PricingProvider, TldPricing, DomainPricingResult } from './providers.js'
+import { getCachedTldPricing, setCachedTldPricing } from './cache.js'
 
 const API_BASE = 'https://api.godaddy.com'
 

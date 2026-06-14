@@ -7,8 +7,8 @@
  *       However, the pricing API requires per-domain queries and an account ID.
  *       We fall back to a static TLD pricing list when API isn't fully configured.
  */
-import type { PricingProvider, TldPricing, DomainPricingResult } from './providers'
-import { getCachedTldPricing, setCachedTldPricing } from './cache'
+import type { PricingProvider, TldPricing, DomainPricingResult } from './providers.js'
+import { getCachedTldPricing, setCachedTldPricing } from './cache.js'
 
 const API_BASE = 'https://api.cloudflare.com/client/v4'
 
