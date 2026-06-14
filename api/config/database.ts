@@ -5,12 +5,6 @@ export default {
   development: {
     use_env_variable: 'DATABASE_URL',
     dialect: 'postgres' as const,
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false,
-      },
-    },
   },
   test: {
     use_env_variable: 'DATABASE_URL',

@@ -19,11 +19,13 @@ async function getSequelize(): Promise<Sequelize> {
   const url = process.env.DATABASE_URL
   if (!url) throw new Error('DATABASE_URL not set in environment')
 
+  const env = process.env.NODE_ENV || 'development'
+
   return new Sequelize(url, {
     dialect: 'postgres',
-    dialectOptions: {
+    dialectOptions: env !== 'development' ? {
       ssl: { require: true, rejectUnauthorized: false },
-    },
+    } : {},
     logging: false,
   })
 }
@@ -53,7 +55,7 @@ async function runMigrations(direction: 'up' | 'down' = 'up'): Promise<void> {
     const ran = await getRan(sequelize)
 
     const files = (await readdir(MIGRATIONS_DIR))
-      .filter((f) => f.endsWith('.js'))
+      .filter((f) => f.endsWith('.cjs'))
       .sort()
 
     if (direction === 'up') {
@@ -97,3 +99,4 @@ runMigrations(process.argv[2] as 'up' | 'down' || 'up').catch((err) => {
   console.error('❌ Migration failed:', err.message)
   process.exit(1)
 })
+

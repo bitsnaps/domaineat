@@ -26,12 +26,12 @@ if (!databaseUrl) {
 
 const sequelize = new Sequelize(databaseUrl, {
 	dialect: 'postgres',
-	dialectOptions: {
+	dialectOptions: env !== 'development' ? {
 		ssl: {
 			require: true,
 			rejectUnauthorized: false,
 		},
-	},
+	} : {},
 	logging: env === 'development' ? console.log : false,
 })
 
